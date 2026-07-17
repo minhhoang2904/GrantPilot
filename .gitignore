@@ -1,0 +1,26 @@
+# Secrets — KHÔNG BAO GIỜ commit
+.streamlit/secrets.toml
+*.env
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# DB & Vector store (thường quá to hoặc chứa data nhạy cảm)
+*.db
+*.sqlite
+*.sqlite3
+chroma_db/
+
+# OS
+.DS_Store
+
+# Editors / IDE
+.vscode/
+.idea/
+
+# Logs
+*.log

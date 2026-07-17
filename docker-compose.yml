@@ -1,0 +1,42 @@
+services:
+  # Chạy một lần để nạp/refresh dữ liệu vào shared/policy.db, rồi thoát.
+  server-a-ingestion:
+    build: ./server-a-ingestion
+    volumes:
+      - ./shared:/app/shared
+    restart: "no"
+
+  server-b-retrieval:
+    build: ./server-b-retrieval
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./shared:/app/shared
+    depends_on:
+      server-a-ingestion:
+        condition: service_completed_successfully
+    environment:
+      - POLICY_DB_PATH=/app/shared/policy.db
+
+  server-c-eligibility:
+    build: ./server-c-eligibility
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./shared:/app/shared
+    depends_on:
+      server-a-ingestion:
+        condition: service_completed_successfully
+    environment:
+      - POLICY_DB_PATH=/app/shared/policy.db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8501:8501"
+    depends_on:
+      - server-b-retrieval
+      - server-c-eligibility
+    environment:
+      - SERVER_B_URL=http://server-b-retrieval:8001
+      - SERVER_C_URL=http://server-c-eligibility:8002

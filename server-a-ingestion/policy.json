@@ -1,0 +1,47 @@
+[
+  {
+    "id": "sme-tax-support-2026",
+    "title": "Miễn giảm thuế TNDN cho doanh nghiệp nhỏ và vừa",
+    "summary": "Hỗ trợ giảm 30% thuế thu nhập doanh nghiệp cho SME có doanh thu dưới 50 tỷ đồng/năm.",
+    "content": "Doanh nghiệp nhỏ và vừa (SME) có doanh thu năm dưới 50 tỷ đồng được giảm 30% số thuế thu nhập doanh nghiệp phải nộp trong năm tài chính. Áp dụng cho các doanh nghiệp thành lập trước 01/01/2025.",
+    "category": "thue",
+    "issuing_agency": "Bộ Tài chính",
+    "effective_date": "2026-01-01",
+    "source_url": "https://example.gov.vn/policies/sme-tax-support-2026",
+    "eligibility_criteria": {
+      "business_type": ["sme", "doanh_nghiep_nho"],
+      "max_annual_revenue": 50000000000,
+      "founded_before_year": 2025
+    }
+  },
+  {
+    "id": "startup-innovation-fund-2026",
+    "title": "Quỹ hỗ trợ khởi nghiệp sáng tạo",
+    "summary": "Hỗ trợ vốn không hoàn lại tối đa 500 triệu đồng cho startup công nghệ dưới 3 năm tuổi.",
+    "content": "Các startup hoạt động trong lĩnh vực công nghệ, thành lập không quá 3 năm, có dưới 50 nhân sự, được xét cấp vốn hỗ trợ không hoàn lại tối đa 500 triệu đồng để phát triển sản phẩm.",
+    "category": "khoi_nghiep",
+    "issuing_agency": "Bộ Khoa học và Công nghệ",
+    "effective_date": "2026-01-01",
+    "source_url": "https://example.gov.vn/policies/startup-innovation-fund-2026",
+    "eligibility_criteria": {
+      "business_type": ["startup"],
+      "industry": ["cong_nghe", "phan_mem"],
+      "max_num_employees": 50,
+      "founded_after_year": 2023
+    }
+  },
+  {
+    "id": "rural-employment-incentive-2026",
+    "title": "Ưu đãi doanh nghiệp tạo việc làm tại khu vực nông thôn",
+    "summary": "Miễn tiền thuê đất 5 năm cho doanh nghiệp sử dụng trên 30 lao động tại nông thôn.",
+    "content": "Doanh nghiệp đầu tư và tạo việc làm tại khu vực nông thôn, sử dụng trên 30 lao động thường xuyên, được miễn tiền thuê đất trong 5 năm đầu hoạt động.",
+    "category": "lao_dong",
+    "issuing_agency": "Bộ Nông nghiệp và Phát triển nông thôn",
+    "effective_date": "2026-01-01",
+    "source_url": "https://example.gov.vn/policies/rural-employment-incentive-2026",
+    "eligibility_criteria": {
+      "province": ["nong_thon"],
+      "min_num_employees": 30
+    }
+  }
+]

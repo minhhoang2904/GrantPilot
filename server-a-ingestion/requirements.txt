@@ -1,0 +1,2 @@
+# server-a-ingestion chỉ dùng thư viện chuẩn của Python (json, sqlite3, pathlib).
+# Thêm dependency ở đây khi cần (vd: pandas để xử lý dữ liệu nguồn, requests để crawl).
