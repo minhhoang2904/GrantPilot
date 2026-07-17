@@ -6,31 +6,16 @@ services:
   #     - ./shared:/app/shared
   #   restart: "no"
 
-  mongodb:
-    image: mongo:7
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   server-b-retrieval:
     build: ./server-b-retrieval
     ports:
       - "8001:8001"
     volumes:
       - ./shared:/app/shared
-    depends_on:
-      mongodb:
-        condition: service_healthy
     environment:
       - POLICY_DB_PATH=/app/shared/policy.db
-      - MONGODB_URI=mongodb://mongodb:27017
-      - MONGODB_DB=policy_advisor
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-policy_advisor}
 
   # server-c-eligibility:
   #   build: ./server-c-eligibility
@@ -51,6 +36,3 @@ services:
     environment:
       - SERVER_B_URL=http://server-b-retrieval:8001
       - SERVER_C_URL=http://server-c-eligibility:8002
-
-volumes:
-  mongo_data:
