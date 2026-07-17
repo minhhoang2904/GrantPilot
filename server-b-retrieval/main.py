@@ -11,12 +11,28 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 import answer_gen
+import auth_service
 import company_service
 import retrieval
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+def get_current_email(
+    creds: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+) -> str:
+    """FastAPI dependency — validates Bearer JWT and returns the email (sub)."""
+    if not creds:
+        raise HTTPException(status_code=401, detail="Token không được cung cấp.")
+    email = auth_service.decode_token(creds.credentials)
+    if not email:
+        raise HTTPException(status_code=401, detail="Token không hợp lệ hoặc đã hết hạn.")
+    return email
 
 app = FastAPI(title="Server B - Retrieval", version="0.2.0")
 
@@ -87,6 +103,11 @@ class TurnIn(BaseModel):
     results: Optional[list[dict[str, Any]]] = None
 
 
+class AuthIn(BaseModel):
+    email: str
+    password: str
+
+
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
@@ -97,11 +118,38 @@ def health() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# Auth endpoints (public)
+# ---------------------------------------------------------------------------
+
+@app.post("/auth/register", status_code=201)
+def auth_register(payload: AuthIn) -> dict[str, str]:
+    try:
+        token = auth_service.register_user(payload.email.strip().lower(), payload.password)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"token": token, "email": payload.email.strip().lower()}
+
+
+@app.post("/auth/login")
+def auth_login(payload: AuthIn) -> dict[str, str]:
+    try:
+        token = auth_service.login_user(payload.email.strip().lower(), payload.password)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    return {"token": token, "email": payload.email.strip().lower()}
+
+
+# ---------------------------------------------------------------------------
 # Company endpoints (MongoDB)
 # ---------------------------------------------------------------------------
 
 @app.get("/companies/{email}")
-def get_company(email: str) -> dict[str, Any]:
+def get_company(
+    email: str,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, Any]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
     company = company_service.get_company(email)
     if company is None:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -109,12 +157,23 @@ def get_company(email: str) -> dict[str, Any]:
 
 
 @app.post("/companies", status_code=201)
-def create_company(payload: CompanyIn) -> dict[str, Any]:
+def create_company(
+    payload: CompanyIn,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, Any]:
+    if current_email != payload.email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
     return company_service.create_company(payload.model_dump())
 
 
 @app.patch("/companies/{email}")
-def update_company(email: str, payload: CompanyUpdate) -> dict[str, Any]:
+def update_company(
+    email: str,
+    payload: CompanyUpdate,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, Any]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
     company = company_service.update_company(email, updates)
     if company is None:
@@ -127,12 +186,21 @@ def update_company(email: str, payload: CompanyUpdate) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @app.get("/history/{email}")
-def get_history(email: str) -> list[dict[str, Any]]:
+def get_history(
+    email: str,
+    current_email: str = Depends(get_current_email),
+) -> list[dict[str, Any]]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
     return company_service.get_chat_history(email)
 
 
 @app.post("/history/{email}/turn")
-def append_turn(email: str, payload: TurnIn) -> dict[str, str]:
+def append_turn(
+    email: str,
+    payload: TurnIn,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, str]:
     turn = {
         "role": payload.role,
         "content": payload.content,

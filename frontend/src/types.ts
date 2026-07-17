@@ -52,6 +52,7 @@ export interface PolicyResult {
 export interface AskResponse {
   answer: string
   results: PolicyResult[]
+  session_id?: string
 }
 
 export interface FlatAskResponse {

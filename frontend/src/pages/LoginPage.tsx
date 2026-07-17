@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { login, register, isRegistered } from '../auth'
+import { apiRegister, apiLogin, ApiError } from '../api'
+import { setSession } from '../auth'
 
 interface Props {
   onLogin: (email: string) => void
@@ -18,18 +19,14 @@ export default function LoginPage({ onLogin }: Props) {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  function reset() {
+  function switchTab(t: Tab) {
+    setTab(t)
     setError('')
     setPassword('')
     setConfirmPassword('')
   }
 
-  function switchTab(t: Tab) {
-    setTab(t)
-    reset()
-  }
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
 
@@ -42,38 +39,26 @@ export default function LoginPage({ onLogin }: Props) {
       setError('Mật khẩu tối thiểu 6 ký tự.')
       return
     }
+    if (tab === 'register' && password !== confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp.')
+      return
+    }
 
-    if (tab === 'register') {
-      if (password !== confirmPassword) {
-        setError('Mật khẩu xác nhận không khớp.')
-        return
-      }
-      if (isRegistered(trimEmail)) {
-        setError('Email này đã được đăng ký. Vui lòng đăng nhập.')
-        setTab('login')
-        return
-      }
-      setSubmitting(true)
-      const ok = register(trimEmail, password)
-      setSubmitting(false)
-      if (ok) {
-        onLogin(trimEmail)
+    setSubmitting(true)
+    try {
+      const fn = tab === 'register' ? apiRegister : apiLogin
+      const { token, email: returnedEmail } = await fn(trimEmail, password)
+      setSession(token, returnedEmail)
+      onLogin(returnedEmail)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+        if (tab === 'register' && err.status === 409) setTab('login')
       } else {
-        setError('Không thể tạo tài khoản. Vui lòng thử lại.')
+        setError('Đã xảy ra lỗi, vui lòng thử lại.')
       }
-    } else {
-      setSubmitting(true)
-      const ok = login(trimEmail, password)
+    } finally {
       setSubmitting(false)
-      if (ok) {
-        onLogin(trimEmail)
-      } else {
-        if (!isRegistered(trimEmail)) {
-          setError('Email chưa được đăng ký. Vui lòng tạo tài khoản mới.')
-        } else {
-          setError('Mật khẩu không đúng. Vui lòng thử lại.')
-        }
-      }
     }
   }
 
@@ -165,7 +150,9 @@ export default function LoginPage({ onLogin }: Props) {
               disabled={submitting}
               className="w-full py-2.5 px-4 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
             >
-              {tab === 'login' ? 'Đăng nhập' : 'Tạo tài khoản →'}
+              {submitting
+                ? 'Đang xử lý...'
+                : tab === 'login' ? 'Đăng nhập' : 'Tạo tài khoản →'}
             </button>
 
             <p className="text-center text-xs text-gray-400">

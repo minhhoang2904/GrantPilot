@@ -1,49 +1,36 @@
+const TOKEN_KEY = 'gp_token'
 const EMAIL_KEY = 'gp_email'
-const CREDS_KEY = 'gp_creds' // { [email]: hashedPassword } — mock only
+
+// ── token store ───────────────────────────────────────────────────────────────
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
 
 export function getEmail(): string | null {
   return localStorage.getItem(EMAIL_KEY)
 }
 
-export function setEmail(email: string): void {
+export function setSession(token: string, email: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
   localStorage.setItem(EMAIL_KEY, email)
 }
 
-export function clearEmail(): void {
+export function clearSession(): void {
+  localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(EMAIL_KEY)
 }
 
-// ── mock credential store ─────────────────────────────────────────────────────
+// ── token validation (client-side expiry check) ───────────────────────────────
 
-function getCreds(): Record<string, string> {
+export function isTokenValid(): boolean {
+  const token = getToken()
+  if (!token) return false
   try {
-    return JSON.parse(localStorage.getItem(CREDS_KEY) || '{}')
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    // exp is in seconds (Unix timestamp)
+    return typeof payload.exp === 'number' && payload.exp > Date.now() / 1000
   } catch {
-    return {}
+    return false
   }
-}
-
-function saveCreds(creds: Record<string, string>) {
-  localStorage.setItem(CREDS_KEY, JSON.stringify(creds))
-}
-
-export function register(email: string, password: string): boolean {
-  const creds = getCreds()
-  if (creds[email]) return false          // already exists
-  creds[email] = password
-  saveCreds(creds)
-  setEmail(email)
-  return true
-}
-
-export function login(email: string, password: string): boolean {
-  const creds = getCreds()
-  if (creds[email] === undefined) return false   // not registered
-  if (creds[email] !== password) return false    // wrong password
-  setEmail(email)
-  return true
-}
-
-export function isRegistered(email: string): boolean {
-  return email in getCreds()
 }

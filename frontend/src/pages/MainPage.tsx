@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Company, Message, Sector } from '../types'
-import { ask, ApiError } from '../api'
-import { clearEmail } from '../auth'
+import { ask, getHistory, ApiError } from '../api'
+import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
 import ChatInput from '../components/ChatInput'
 import BenchmarkPanel from '../components/BenchmarkPanel'
@@ -44,10 +44,38 @@ interface Props {
 export default function MainPage({ email, company, onLogout }: Props) {
   const [tab, setTab] = useState<Tab>('chat')
   const [messages, setMessages] = useState<Message[]>([])
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(true)
+
+  // Load most recent session on mount
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const sessions = await getHistory(email)
+        if (sessions.length > 0) {
+          // Use the most recent session
+          const latest = sessions[sessions.length - 1]
+          setSessionId(latest.session_id)
+          const restored: Message[] = latest.turns.map((t, i) => ({
+            id: `h-${i}`,
+            role: t.role,
+            content: t.content,
+            results: t.results as Message['results'],
+          }))
+          setMessages(restored)
+        }
+      } catch {
+        // History unavailable — start fresh session
+      } finally {
+        setHistoryLoading(false)
+      }
+    }
+    void loadHistory()
+  }, [email])
 
   function handleLogout() {
-    clearEmail()
+    clearSession()
     onLogout()
   }
 
@@ -60,7 +88,9 @@ export default function MainPage({ email, company, onLogout }: Props) {
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
     try {
-      const res = await ask(email, question)
+      const res = await ask(email, question, sessionId)
+      // Server returns the session_id used — keep it for next message
+      if (res.session_id) setSessionId(res.session_id)
       const assistantMsg: Message = {
         id: `a-${Date.now()}`,
         role: 'assistant',
@@ -181,8 +211,17 @@ export default function MainPage({ email, company, onLogout }: Props) {
                 Hỏi về ưu đãi và chính sách hỗ trợ doanh nghiệp — hệ thống sẽ kiểm tra điều kiện theo hồ sơ của bạn
               </p>
             </div>
-            <ChatThread messages={messages} loading={loading} />
-            <ChatInput onSend={handleSend} disabled={loading} />
+            {historyLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-gray-400">Đang tải lịch sử...</p>
+                </div>
+              </div>
+            ) : (
+              <ChatThread messages={messages} loading={loading} />
+            )}
+            <ChatInput onSend={handleSend} disabled={loading || historyLoading} />
           </>
         ) : (
           <>
