@@ -1,0 +1,226 @@
+{
+  "_HUONG_DAN": [
+    "6 test case CÓ CHỦ ĐÍCH — không test bằng 20 DN ngẫu nhiên.",
+    "Mỗi case chứng minh một năng lực mà RAG thường KHÔNG có.",
+    "Case 1 = happy path để demo. Case 5 = quan trọng nhất về nghiệp vụ. Case 6 = điểm nhấn.",
+    "",
+    "⚠️ ĐỌC TRƯỚC KHI SỬA — Case 1 vs Case 5 từng MÂU THUẪN NHAU:",
+    "  Bản trước: hai case dùng CÙNG profile_override, CÙNG program (coworking), nhưng",
+    "  Case 1 kỳ vọng LIKELY_ELIGIBLE còn Case 5 kỳ vọng PROGRAM_UNAVAILABLE.",
+    "  Engine tất định → cùng input KHÔNG THỂ ra hai status khác nhau. Một trong hai chắc chắn FAIL.",
+    "",
+    "  Đã sửa bằng 2 thay đổi (xem docs/contracts.md mục E2 + G):",
+    "  1. availability xét THEO TỈNH → hai case khác nhau ở `province`, không ở rule.",
+    "  2. result tách `legal_status` (từ rule) khỏi `status` (đã phủ availability)",
+    "     → Case 5 vừa báo PROGRAM_UNAVAILABLE vừa hiển thị được căn cứ pháp lý.",
+    "",
+    "⚠️ CASE 1 ĐANG BỊ CHẶN — xem `_TRANG_THAI_CASE_1`. Đây là rủi ro lớn nhất của dự án."
+  ],
+
+  "_TRANG_THAI_CASE_1": [
+    "Case 1 CHƯA THỂ PASS cho tới khi đội xác minh xong MỘT lát cắt dọc thật:",
+    "  a. availability.by_province[<tỉnh>].status = 'open'   (gọi Sở KH&ĐT / cổng dịch vụ công)",
+    "  b. benefit.tiers[<hạng>].rate + .cap_amount            (đọc số thật trong NĐ 80)",
+    "  c. sme_classification.criteria[...] + sector_to_linh_vuc (ngưỡng Điều 5)",
+    "  d. review_status = 'manually_reviewed' cho các rule liên quan",
+    "",
+    "Thiếu bất kỳ mảnh nào → status = PROGRAM_UNAVAILABLE hoặc NEED_MORE_INFO,",
+    "và benefit.computable = false. Tức là Case 1 FAIL — ĐÚNG như thiết kế, không phải bug engine.",
+    "",
+    "⭐ Ý NGHĨA: nếu 6/6 program đều PROGRAM_UNAVAILABLE + computable=false thì GrantPilot",
+    "an toàn hơn RAG phẳng nhưng CŨNG VÔ DỤNG NGANG NÓ với câu hỏi đắt nhất của DN",
+    "('tôi được bao nhiêu tiền?'). Case 1 là case DUY NHẤT chứng minh sản phẩm tạo ra GIÁ TRỊ,",
+    "chứ không chỉ tạo ra SỰ THẬN TRỌNG. Xem benchmark/README.md mục 'Giải pháp có hiệu quả không'.",
+    "",
+    "→ KHÔNG cần xác minh cả 6 program. Cần ĐÚNG 1 program × 1 tỉnh chạy thông suốt."
+  ],
+
+  "_VAN_DE_PASSED_TOTAL": [
+    "⚠️ CHƯA CHỐT — Hoàng quyết, ảnh hưởng UI. Phát hiện khi chạy thử engine.",
+    "",
+    "`passed`/`total` hiện đếm PHẲNG số leaf. Tầng 1 có 6 leaf:",
+    "  is_dnnvv, startup_age_limit, not_public_offering,",
+    "  + nhóm any[ innovative_product_type, has_patent, is_innovative ]",
+    "",
+    "Một startup phần mềm điển hình: 3 leaf đầu PASS, innovative_product_type PASS,",
+    "has_patent FAIL, is_innovative NEEDS_REVIEW → engine trả passed=4, total=6.",
+    "",
+    "Nhưng DN NÀY ĐẠT tầng 1: nhóm `any` chỉ cần 1 nhánh đạt là đủ.",
+    "Hiện lên UI '4/6' thì DN đọc thành 'mình thiếu 2 điều kiện' — SAI, và sai theo hướng",
+    "làm DN bỏ cuộc dù họ đủ điều kiện. Đúng thứ sản phẩm này sinh ra để tránh.",
+    "",
+    "Ba lựa chọn:",
+    "  a. Đếm theo node CON TRỰC TIẾP của group gốc (4 node → '4/4'). Khớp trực giác",
+    "     'có 4 điều kiện lớn', nhưng che mất chi tiết nhánh any.",
+    "  b. Giữ đếm phẳng, UI KHÔNG hiện tỉ lệ khi status=LIKELY_ELIGIBLE (chỉ hiện '✅ Đạt').",
+    "  c. Đếm phẳng nhưng loại leaf thuộc nhánh `any` đã thoả khỏi mẫu số.",
+    "",
+    "Cho tới khi chốt: ky_vong KHÔNG assert tỉ lệ, chỉ assert status."
+  ],
+
+  "persona_mac_dinh": {
+    "company_name": "GreenVision AI",
+    "province": null,
+    "founded_year": 2023,
+    "company_age_years": 2,
+    "legal_form": "joint_stock",
+    "sector": "information_technology",
+    "product_type": "software",
+    "employee_count": 18,
+    "social_insurance_employees": 18,
+    "annual_revenue_vnd": 6000000000,
+    "total_capital_vnd": null,
+    "sme_size_category": null,
+    "is_public_offering": false,
+    "has_patent": false,
+    "has_ip_registration": false,
+    "has_coworking_contract": null,
+    "has_business_registration": true,
+    "coworking_monthly_cost_vnd": null,
+
+    "_GHI_CHU": [
+      "province = null ở đây là CỐ Ý: từng case tự khai tỉnh của mình.",
+      "sme_size_category = null LUÔN LUÔN — trường DẪN XUẤT, classifier điền, user không khai.",
+      "Case nào để province nguyên null là đang test hành vi 'thiếu tỉnh → hỏi lại'."
+    ]
+  },
+
+  "test_cases": [
+    {
+      "id": "CASE_1",
+      "ten": "Đủ điều kiện rõ ràng (happy path)",
+      "_CHAN_BOI": "Cần lát cắt dọc đã xác minh — xem _TRANG_THAI_CASE_1. Chưa xong thì case này FAIL đúng thiết kế.",
+      "profile_override": {
+        "province": "<TODO: tỉnh đội đã xác minh availability = open>",
+        "has_coworking_contract": true,
+        "total_capital_vnd": 3000000000,
+        "coworking_monthly_cost_vnd": 15000000
+      },
+      "cau_hoi": "Startup phần mềm của mình 2 năm tuổi, 18 người. Mình có thuộc diện DNNVV khởi nghiệp sáng tạo không và được hỗ trợ gì?",
+      "ky_vong": {
+        "qualification_status": "LIKELY_ELIGIBLE",
+        "legal_status": "LIKELY_ELIGIBLE",
+        "program_status": "LIKELY_ELIGIBLE",
+        "phai_co": [
+          "qualification_status = LIKELY_ELIGIBLE",
+          "⚠️ KHÔNG khẳng định tỉ lệ '4/4': xem _VAN_DE_PASSED_TOTAL",
+          "sme_size_category có value + trace + citation Điều 5",
+          "benefit_estimate.computable = true, có tier_used",
+          "có citation điều/khoản",
+          "có submission.agency — trả lời được 'nộp ở đâu'"
+        ]
+      },
+      "diem_yeu_rag_thuong": "Chỉ tóm tắt văn bản, không kết luận DN có thuộc diện hay không"
+    },
+    {
+      "id": "CASE_2",
+      "ten": "Thiếu thông tin → không kết luận bừa",
+      "profile_override": {
+        "province": "<TODO: dùng cùng tỉnh với Case 1>",
+        "annual_revenue_vnd": null,
+        "total_capital_vnd": null,
+        "social_insurance_employees": null
+      },
+      "cau_hoi": "Startup phần mềm 2 năm tuổi, mình được hỗ trợ gì?",
+      "ky_vong": {
+        "program_status": "NEED_MORE_INFO",
+        "phai_co": [
+          "KHÔNG kết luận đủ/không đủ",
+          "hỏi lại ĐÚNG các field thiếu: social_insurance_employees, annual_revenue_vnd hoặc total_capital_vnd",
+          "⭐ KHÔNG hỏi 'sme_size_category' — user không khai được trường dẫn xuất",
+          "⭐ KHÔNG hỏi user về field UNKNOWN do THRESHOLD_UNVERIFIED — đó là việc của đội"
+        ]
+      },
+      "diem_yeu_rag_thuong": "LLM đoán bừa hoặc trả lời chung chung — đây là hallucination",
+      "chung_minh": "Chống hallucination: None ≠ False. Và: hỏi ĐÚNG người — user vs đội."
+    },
+    {
+      "id": "CASE_3",
+      "ten": "Không đạt điều kiện cứng",
+      "profile_override": {
+        "province": "<TODO: dùng cùng tỉnh với Case 1>",
+        "founded_year": 2018,
+        "company_age_years": 7
+      },
+      "cau_hoi": "Công ty phần mềm của mình 7 năm tuổi, có được hỗ trợ khởi nghiệp sáng tạo không?",
+      "ky_vong": {
+        "legal_status": "NOT_ELIGIBLE",
+        "program_status": "NOT_ELIGIBLE",
+        "phai_co": [
+          "blocking_reason = quá tuổi (7 > 5)",
+          "fixable = false",
+          "có trích dẫn điều khoản",
+          "KHÔNG bị UNKNOWN che mất dù thiếu field khác"
+        ]
+      },
+      "diem_yeu_rag_thuong": "Không phân biệt điều kiện cứng/mềm",
+      "chung_minh": "Logic 4 giá trị: FAIL thắng UNKNOWN trong nhóm all"
+    },
+    {
+      "id": "CASE_4",
+      "ten": "Đủ tư cách nhưng thiếu hồ sơ",
+      "profile_override": {
+        "province": "<TODO: dùng cùng tỉnh với Case 1>",
+        "has_coworking_contract": null,
+        "total_capital_vnd": 3000000000
+      },
+      "cau_hoi": "Mình muốn nhận hỗ trợ thuê khu làm việc chung thì cần gì?",
+      "ky_vong": {
+        "qualification_status": "LIKELY_ELIGIBLE",
+        "program_status": "NEED_MORE_INFO",
+        "phai_co": [
+          "missing_documents có 'Hợp đồng thuê mặt bằng'",
+          "checklist hồ sơ bổ sung",
+          "nói rõ ĐÃ thuộc diện DNNVV KNST rồi"
+        ]
+      },
+      "diem_yeu_rag_thuong": "Không tách được 'đủ tư cách' vs 'thiếu giấy tờ'",
+      "chung_minh": "Mô hình 2 tầng + gap analysis điều kiện mềm"
+    },
+    {
+      "id": "CASE_5",
+      "ten": "Đủ điều kiện pháp lý nhưng chương trình chưa rõ đang mở",
+      "_KHAC_CASE_1_O_DAU": "CHỈ khác `province`. Tỉnh này chưa xác minh → availability rơi vào `default` (unknown). Rule y hệt Case 1, hồ sơ y hệt Case 1.",
+      "profile_override": {
+        "province": "can_tho",
+        "has_coworking_contract": true,
+        "total_capital_vnd": 3000000000,
+        "coworking_monthly_cost_vnd": 15000000
+      },
+      "cau_hoi": "Vậy mình chắc chắn được nhận tiền hỗ trợ đúng không?",
+      "ky_vong": {
+        "legal_status": "LIKELY_ELIGIBLE",
+        "program_status": "PROGRAM_UNAVAILABLE",
+        "phai_co": [
+          "⭐ KHÔNG khẳng định chắc chắn được cấp tiền",
+          "⭐ VẪN hiển thị căn cứ pháp lý + điều kiện đã đạt (nhờ legal_status)",
+          "nói rõ chưa xác minh chương trình TẠI TỈNH NÀY — KHÔNG suy từ tỉnh khác sang",
+          "chỉ ra bước xác minh tiếp theo + cơ quan tiếp nhận (submission.agency)"
+        ]
+      },
+      "diem_yeu_rag_thuong": "Hứa chắc chắn được nhận — sai nghiệp vụ nghiêm trọng",
+      "chung_minh": "⭐ QUAN TRỌNG NHẤT: đủ điều kiện pháp lý ≠ chắc chắn được cấp tiền. legal_status ≠ status."
+    },
+    {
+      "id": "CASE_6",
+      "ten": "Chương trình hết hạn / xung khắc",
+      "_CAN_DAT_DIEN": "Cần 1 program có availability.by_province[<tỉnh Case 1>].status='closed' và 1 cặp conflicts_with nhau. Xem data/README.md.",
+      "profile_override": {
+        "province": "<TODO: dùng cùng tỉnh với Case 1>",
+        "has_coworking_contract": true,
+        "total_capital_vnd": 3000000000,
+        "coworking_monthly_cost_vnd": 15000000
+      },
+      "cau_hoi": "Mình nhận đồng thời cả hai hỗ trợ này được không?",
+      "ky_vong": {
+        "phai_co": [
+          "loại program đã hết hạn (availability: closed)",
+          "cảnh báo xung khắc 'chỉ được chọn một'",
+          "KHÔNG cộng trùng giá trị hai hỗ trợ"
+        ]
+      },
+      "diem_yeu_rag_thuong": "Không biết quan hệ giữa các chương trình, cộng bừa",
+      "chung_minh": "ranking.py chống cộng trùng"
+    }
+  ]
+}

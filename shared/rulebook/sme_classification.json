@@ -1,0 +1,89 @@
+{
+  "_HUONG_DAN": [
+    "BẢNG TRA PHÂN HẠNG DNNVV — nguồn: Nghị định 80/2021/NĐ-CP Điều 5.",
+    "⚠️ Đây là KHUNG MẪU. MỌI ngưỡng dưới đây là CHỖ TRỐNG (null) — Thành điền từ văn bản gốc.",
+    "LUẬT: không có nguồn → không có rule. Ngưỡng null → classifier trả UNKNOWN, KHÔNG trả 'không thuộc DNNVV'.",
+    "",
+    "VÌ SAO CÓ FILE NÀY (đọc kỹ trước khi sửa):",
+    "  Ngưỡng DNNVV KHÔNG phải một con số cố định — nó phụ thuộc LĨNH VỰC.",
+    "  Rule leaf trong contracts.md chỉ có field/operator/value với value là scalar,",
+    "  nên KHÔNG biểu diễn được 'ngưỡng phụ thuộc ngành' bằng một leaf.",
+    "  Viết bằng any[ all[sector==X, employees<=Y, ...] ] thì nổ tổ hợp (số ngành × số hạng × số tiêu chí)",
+    "  và mỗi nhánh lại phải lặp lại provenance → rất dễ sai lệch.",
+    "  → Tách ra thành BẢNG TRA + trường dẫn xuất `sme_size_category` (classifier.py).",
+    "  Tầng 1 khi đó chỉ còn MỘT leaf sạch: sme_size_category in [sieu_nho, nho, vua].",
+    "",
+    "Xem: docs/field-dictionary.md mục 'Trường dẫn xuất', docs/contracts.md mục B3, src/eligibility/classifier.py"
+  ],
+
+  "classification_id": "dnnvv_nd80_dieu5",
+  "name": "Phân hạng doanh nghiệp nhỏ và vừa",
+  "description": "Tra hạng siêu nhỏ / nhỏ / vừa theo lĩnh vực + số LĐ BHXH + (doanh thu HOẶC nguồn vốn)",
+
+  "source_document": "Nghị định 80/2021/NĐ-CP",
+  "article": "<TODO: Điều 5 — XÁC MINH số điều/khoản và trích nguyên văn>",
+  "source_url": "<TODO>",
+  "interpretation_note": "<TODO: ghi trung thực đội hiểu Điều 5 thế nào, nhất là chỗ 'doanh thu HOẶC nguồn vốn'>",
+  "review_status": "draft",
+  "effective_from": "<TODO: ngày NĐ 80/2021 có hiệu lực>",
+  "effective_to": null,
+
+  "_TODO_MAP_LINH_VUC": [
+    "⭐ CÂU HỎI QUAN TRỌNG NHẤT CHO CHUYÊN GIA:",
+    "NĐ 80 Điều 5 chia theo LĨNH VỰC (nông-lâm-thủy sản & công nghiệp-xây dựng | thương mại-dịch vụ),",
+    "KHÔNG chia theo `sector` do đội tự định nghĩa. Phải map — và map SAI thì toàn bộ tầng 1 sai.",
+    "Persona MVP là startup PHẦN MỀM: thuộc lĩnh vực nào? Đây KHÔNG phải chuyện đội tự quyết.",
+    "Đưa câu này vào buổi hỏi chuyên gia (xem data/README.md)."
+  ],
+  "sector_to_linh_vuc": {
+    "information_technology": "<TODO: ⭐ CẦN CHUYÊN GIA XÁC NHẬN — đây là lĩnh vực của persona MVP>",
+    "manufacturing": "<TODO>",
+    "agriculture": "<TODO>",
+    "trade_service": "<TODO>"
+  },
+
+  "_GHI_CHU_QUY_TAC": [
+    "Thứ tự xét: sieu_nho → nho → vua. Hạng ĐẦU TIÊN thoả thì lấy.",
+    "Một hạng thoả khi:  social_insurance_employees <= max_social_insurance_employees",
+    "                AND ( annual_revenue_vnd <= max_annual_revenue_vnd",
+    "                      OR total_capital_vnd <= max_total_capital_vnd )",
+    "Không hạng nào thoả → khong_thuoc_dnnvv.",
+    "⚠️ Ngưỡng còn null → UNKNOWN, KHÔNG phải khong_thuoc_dnnvv. Chưa biết ≠ không đạt."
+  ],
+  "criteria": {
+    "nong_lam_thuy_san_cong_nghiep_xay_dung": {
+      "sieu_nho": {
+        "max_social_insurance_employees": null,
+        "max_annual_revenue_vnd": null,
+        "max_total_capital_vnd": null
+      },
+      "nho": {
+        "max_social_insurance_employees": null,
+        "max_annual_revenue_vnd": null,
+        "max_total_capital_vnd": null
+      },
+      "vua": {
+        "max_social_insurance_employees": null,
+        "max_annual_revenue_vnd": null,
+        "max_total_capital_vnd": null
+      }
+    },
+    "thuong_mai_dich_vu": {
+      "sieu_nho": {
+        "max_social_insurance_employees": null,
+        "max_annual_revenue_vnd": null,
+        "max_total_capital_vnd": null
+      },
+      "nho": {
+        "max_social_insurance_employees": null,
+        "max_annual_revenue_vnd": null,
+        "max_total_capital_vnd": null
+      },
+      "vua": {
+        "max_social_insurance_employees": null,
+        "max_annual_revenue_vnd": null,
+        "max_total_capital_vnd": null
+      }
+    }
+  }
+}

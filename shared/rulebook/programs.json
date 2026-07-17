@@ -1,0 +1,120 @@
+{
+  "_HUONG_DAN": [
+    "TẦNG 2 — 6 loại hỗ trợ trong MVP. Đây là KHUNG MẪU, mọi số liệu là CHỖ TRỐNG.",
+    "⚠️ TUYỆT ĐỐI không đoán rate/cap_amount. Thiếu số → để null → benefit.computable=false.",
+    "Chỉ program đầu tiên được viết đầy đủ khung; 5 cái sau chỉ có vỏ — Thành điền tiếp.",
+    "",
+    "ĐỔI SO VỚI BẢN TRƯỚC (xem docs/contracts.md mục E):",
+    "  1. File từ MẢNG TRẦN → OBJECT BỌC { ruleset_version, programs: [...] } để mang được version.",
+    "  2. benefit.rate phẳng → benefit.tiers theo hạng DN (sieu_nho/nho/vua).",
+    "  3. benefit.basis (chuỗi mô tả) → thêm basis_field trỏ vào trường chi phí thật trong profile.",
+    "  4. availability toàn cục → availability.by_province (NĐ 80 triển khai qua UBND tỉnh).",
+    "  5. program.agency → chuyển vào khối submission (thêm where/forms/deadline/processing_time_days).",
+    "  6. Thêm effective_from / effective_to."
+  ],
+
+  "ruleset_version": "0.1.0-draft",
+
+  "_TODO_CHON_TINH": [
+    "⭐ QUYẾT ĐỊNH CẦN CHỐT: MVP xác minh availability cho TỈNH NÀO?",
+    "Đề xuất: chọn ĐÚNG MỘT tỉnh, xác minh thật (gọi Sở KH&ĐT / cổng dịch vụ công), điền by_province.",
+    "Mọi tỉnh khác rơi vào `default` → status unknown → PROGRAM_UNAVAILABLE. Đó là hành vi ĐÚNG,",
+    "không phải bug: ta thà nói 'chưa xác minh ở tỉnh bạn' còn hơn suy bừa từ tỉnh khác.",
+    "'hanoi' dưới đây chỉ là CHỖ TRỐNG — thay bằng tỉnh đội thật sự xác minh được."
+  ],
+
+  "programs": [
+    {
+      "program_id": "coworking_rent_support",
+      "name": "Hỗ trợ thuê cơ sở ươm tạo / khu làm việc chung",
+
+      "requires_qualification": "dnnvv_khoi_nghiep_sang_tao",
+
+      "rules": {
+        "all": [
+          {
+            "rule_id": "coworking_has_contract",
+            "field": "has_coworking_contract",
+            "operator": "==",
+            "value": true,
+            "description": "Có hợp đồng thuê mặt bằng tại cơ sở ươm tạo/khu làm việc chung",
+            "hard": false,
+            "evaluation": "auto",
+            "source_document": "Nghị định 80/2021/NĐ-CP",
+            "article": "<TODO>",
+            "source_url": "<TODO>",
+            "interpretation_note": "<TODO>",
+            "review_status": "draft",
+            "effective_from": "<TODO>",
+            "effective_to": null
+          }
+        ]
+      },
+
+      "required_documents": [
+        { "doc_id": "lease_contract", "name": "Hợp đồng thuê mặt bằng", "profile_field": "has_coworking_contract" },
+        { "doc_id": "business_registration", "name": "Giấy chứng nhận đăng ký doanh nghiệp", "profile_field": "has_business_registration" }
+      ],
+
+      "benefit": {
+        "_TODO": [
+          "Điền rate/cap_amount/max_duration_months cho ĐỦ CẢ 3 HẠNG từ NĐ 80/2021.",
+          "Nếu văn bản KHÔNG phân biệt hạng → vẫn điền cả 3 giống nhau, và ghi rõ ở note",
+          "rằng đã ĐỌC và XÁC NHẬN văn bản không phân biệt. Không để trống rồi giả định."
+        ],
+        "type": "percentage_of_cost",
+        "basis": "chi phí thuê mặt bằng tại cơ sở ươm tạo/khu làm việc chung",
+        "basis_field": "coworking_monthly_cost_vnd",
+        "cap_period": "month",
+        "tiers": {
+          "sieu_nho": { "rate": null, "cap_amount": null, "max_duration_months": null },
+          "nho":      { "rate": null, "cap_amount": null, "max_duration_months": null },
+          "vua":      { "rate": null, "cap_amount": null, "max_duration_months": null }
+        },
+        "note": "CHƯA ĐIỀN — lấy đúng tỉ lệ/mức trần/thời hạn từ NĐ 80/2021. Không đoán."
+      },
+
+      "availability": {
+        "scope": "province",
+        "by_province": {
+          "hanoi": {
+            "status": "unknown",
+            "local_program_code": null,
+            "deadline": null,
+            "note": "<TODO: gọi Sở KH&ĐT / tra cổng dịch vụ công. Xác minh được đang mở → status: open>"
+          }
+        },
+        "default": {
+          "status": "unknown",
+          "note": "Chưa xác minh chương trình tại tỉnh này → PROGRAM_UNAVAILABLE (Case 5)"
+        }
+      },
+
+      "submission": {
+        "agency": "<TODO: cơ quan tiếp nhận>",
+        "where": "<TODO: địa chỉ / cổng dịch vụ công>",
+        "forms": [
+          { "form_id": "<TODO>", "name": "<TODO: tên biểu mẫu đề nghị hỗ trợ>", "url": "<TODO>" }
+        ],
+        "processing_time_days": null,
+        "deadline": null,
+        "note": "<TODO: điền sau khi xác minh với cơ quan — đây là câu 'rồi sao nữa?' của DN>"
+      },
+
+      "conflicts_with": [],
+
+      "source_document": "Nghị định 80/2021/NĐ-CP",
+      "article": "<TODO>",
+      "source_url": "<TODO>",
+      "review_status": "draft",
+      "effective_from": "<TODO>",
+      "effective_to": null
+    },
+
+    { "program_id": "product_testing_support", "name": "Hỗ trợ thử nghiệm, hoàn thiện sản phẩm", "_TODO": "điền theo khung của program đầu", "_BASIS_FIELD_DU_KIEN": "product_testing_cost_vnd" },
+    { "program_id": "ip_consulting_support",   "name": "Hỗ trợ tư vấn sở hữu trí tuệ",           "_TODO": "điền theo khung của program đầu", "_BASIS_FIELD_DU_KIEN": "ip_consulting_cost_vnd" },
+    { "program_id": "tech_transfer_support",   "name": "Hỗ trợ tư vấn/chuyển giao công nghệ",    "_TODO": "điền theo khung của program đầu", "_BASIS_FIELD_DU_KIEN": "tech_transfer_cost_vnd" },
+    { "program_id": "training_support",        "name": "Hỗ trợ đào tạo chuyên sâu",              "_TODO": "điền theo khung của program đầu", "_BASIS_FIELD_DU_KIEN": "training_cost_vnd", "_GHI_CHU": "Có thể là type: in_kind (suất đào tạo miễn phí) thay vì percentage_of_cost — đọc văn bản rồi quyết, đừng mặc định." },
+    { "program_id": "trade_promotion_support", "name": "Hỗ trợ xúc tiến thương mại",             "_TODO": "điền theo khung của program đầu", "_BASIS_FIELD_DU_KIEN": "trade_promotion_cost_vnd", "_GHI_CHU": "Có thể là in_kind (gian hàng) — xem ghi chú ở training_support." }
+  ]
+}

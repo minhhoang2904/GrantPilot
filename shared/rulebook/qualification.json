@@ -1,0 +1,131 @@
+{
+  "_HUONG_DAN": [
+    "TẦNG 1 — tư cách gốc. Không đạt tầng này thì mọi program tầng 2 đều tắt.",
+    "⚠️ Đây là KHUNG MẪU. Mọi value/article dưới đây là CHỖ TRỐNG cần Thành điền từ văn bản gốc.",
+    "LUẬT: không có nguồn → không có rule. Rule chỉ được bật khi review_status = manually_reviewed (2 người đồng ý).",
+    "Xem docs/contracts.md mục B & D, docs/field-dictionary.md."
+  ],
+
+  "ruleset_version": "0.1.0-draft",
+
+  "qualification_id": "dnnvv_khoi_nghiep_sang_tao",
+  "name": "DNNVV khởi nghiệp sáng tạo",
+  "description": "Tư cách gốc để tiếp cận các hỗ trợ theo Nghị định 80/2021/NĐ-CP",
+  "source_documents": [
+    "Luật Hỗ trợ doanh nghiệp nhỏ và vừa 04/2017/QH14",
+    "Nghị định 80/2021/NĐ-CP"
+  ],
+
+  "rules": {
+    "all": [
+      {
+        "_GHI_CHU": [
+          "ĐỔI SO VỚI BẢN TRƯỚC: cụm rule ngưỡng DNNVV lồng nhau (LĐ BHXH + any[doanh thu|nguồn vốn])",
+          "đã được thay bằng MỘT leaf duy nhất dưới đây.",
+          "Lý do: ngưỡng DNNVV phụ thuộc LĨNH VỰC, mà leaf chỉ có value scalar → không biểu diễn được.",
+          "Ngưỡng nay nằm ở data/sme_classification.json, do classifier.py tra ra sme_size_category.",
+          "Xem docs/contracts.md mục B3."
+        ],
+        "rule_id": "is_dnnvv",
+        "field": "sme_size_category",
+        "operator": "in",
+        "value": ["sieu_nho", "nho", "vua"],
+        "description": "Thuộc diện doanh nghiệp nhỏ và vừa",
+        "hard": false,
+        "evaluation": "auto",
+        "source_document": "Nghị định 80/2021/NĐ-CP",
+        "article": "<TODO: Điều 5 — XÁC MINH>",
+        "source_url": "<TODO>",
+        "interpretation_note": "Hạng do classifier tra từ data/sme_classification.json (lĩnh vực + LĐ BHXH + doanh thu HOẶC nguồn vốn). Ngưỡng chưa xác minh → UNKNOWN, không phải trượt.",
+        "review_status": "draft",
+        "effective_from": "<TODO>",
+        "effective_to": null
+      },
+      {
+        "rule_id": "startup_age_limit",
+        "field": "company_age_years",
+        "operator": "<=",
+        "value": 5,
+        "description": "Thành lập không quá 5 năm",
+        "hard": true,
+        "evaluation": "auto",
+        "source_document": "Luật 04/2017/QH14",
+        "article": "<TODO: Điều 17, Khoản 1, Điểm a — XÁC MINH LẠI>",
+        "source_url": "<TODO>",
+        "interpretation_note": "Tính từ ngày cấp Giấy chứng nhận đăng ký doanh nghiệp lần đầu",
+        "review_status": "draft",
+        "effective_from": "<TODO>",
+        "effective_to": null
+      },
+      {
+        "rule_id": "not_public_offering",
+        "field": "is_public_offering",
+        "operator": "==",
+        "value": false,
+        "description": "Chưa chào bán chứng khoán ra công chúng",
+        "hard": true,
+        "evaluation": "auto",
+        "source_document": "Luật 04/2017/QH14",
+        "article": "<TODO>",
+        "source_url": "<TODO>",
+        "interpretation_note": "<TODO>",
+        "review_status": "draft",
+        "effective_from": "<TODO>",
+        "effective_to": null
+      },
+      {
+        "_GHI_CHU": "Tính đổi mới sáng tạo: chấp nhận nhiều cách chứng minh → dùng any. Nhánh cuối là human_review vì luật mô tả định tính.",
+        "any": [
+          {
+            "rule_id": "innovative_product_type",
+            "field": "product_type",
+            "operator": "in",
+            "value": ["software", "mobile_app", "cloud", "ai", "platform"],
+            "description": "Sản phẩm là phần mềm/công nghệ",
+            "hard": false,
+            "evaluation": "auto",
+            "source_document": "<TODO>",
+            "article": "<TODO>",
+            "source_url": "<TODO>",
+            "interpretation_note": "<TODO: đây là cách đội DIỄN GIẢI 'khai thác tài sản trí tuệ/công nghệ/mô hình KD mới' — cần chuyên gia xác nhận>",
+            "review_status": "draft",
+            "effective_from": "<TODO>",
+            "effective_to": null
+          },
+          {
+            "rule_id": "has_patent",
+            "field": "has_patent",
+            "operator": "==",
+            "value": true,
+            "description": "Có bằng sáng chế / giải pháp hữu ích",
+            "hard": false,
+            "evaluation": "auto",
+            "source_document": "<TODO>",
+            "article": "<TODO>",
+            "source_url": "<TODO>",
+            "interpretation_note": "<TODO>",
+            "review_status": "draft",
+            "effective_from": "<TODO>",
+            "effective_to": null
+          },
+          {
+            "rule_id": "is_innovative_qualitative",
+            "field": "is_innovative",
+            "operator": "==",
+            "value": true,
+            "description": "Có tính đổi mới sáng tạo theo đánh giá của cơ quan có thẩm quyền",
+            "hard": false,
+            "evaluation": "human_review",
+            "source_document": "<TODO>",
+            "article": "<TODO>",
+            "source_url": "<TODO>",
+            "interpretation_note": "Điều kiện định tính — máy KHÔNG tự kết luận được, phải để cơ quan xác minh",
+            "review_status": "draft",
+            "effective_from": "<TODO>",
+            "effective_to": null
+          }
+        ]
+      }
+    ]
+  }
+}
