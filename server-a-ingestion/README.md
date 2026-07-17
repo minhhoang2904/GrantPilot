@@ -49,11 +49,35 @@ python pipeline.py all --force-ocr --force-policy --force-embed
 Output:
 
 - `data/processed/ocr/<pdf>/pages.jsonl`: text OCR theo trang.
-- `data/processed/legal_units.jsonl`: records Điều/Khoản/Điểm cho RAG.
-- `data/policies.json`: policies có `evidence_unit_ids`.
-- `data/chroma`: vector database collection `legal_units`.
+- `shared/legal/legal_units.jsonl`: records Điều/Khoản/Điểm cho RAG.
+- `shared/legal/policies.json`: canonical policy records.
+- `shared/legal/policy_candidates.json`: policy records do LLM sinh, cần review.
+- Pinecone namespace `legal_units`: vector database cho các `legal_units`.
 
-## 3. Test retrieval
+## 3. MongoDB và API nội bộ
+
+Luồng ingest là `PDF -> OCR/parse -> MongoDB -> embedding -> Pinecone`. MongoDB lưu hai collection:
+
+- `legal_documents`: `document_id`, `version`, `is_current`, `document_number`, `document_title`, `issued_date`, `effective_from`, `effective_to`, `status`, `source_url`, `checksum`, `ingested_at`.
+- `legal_units`: `unit_id`, `document_id`, `version`, `is_current`, Điều/Khoản/Điểm/Chương/Mục, `page_start`, `page_end`, `text`, `normalized_text`, `source_url` và metadata hiệu lực.
+
+Chạy API:
+
+```bash
+uvicorn api:app --host 0.0.0.0 --port 8000
+```
+
+Hai endpoint cho Server B:
+
+```bash
+curl -X POST http://localhost:8000/internal/legal-units/batch \
+  -H 'content-type: application/json' \
+  -d '{"unit_ids":["law-04-2017-qh14_art-8_cl-3"]}'
+
+curl 'http://localhost:8000/internal/legal-units/exact?document_number=04%2F2017%2FQH14&article=12&clause=3&point=b'
+```
+
+## 4. Test retrieval
 
 ```bash
 python retrieve.py "Startup công nghệ được hỗ trợ những gì?" --top-k 5

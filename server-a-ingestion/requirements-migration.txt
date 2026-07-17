@@ -1,0 +1,2 @@
+chromadb>=1,<2
+pinecone>=6,<8
