@@ -1,2 +1,4 @@
-# server-a-ingestion chỉ dùng thư viện chuẩn của Python (json, sqlite3, pathlib).
-# Thêm dependency ở đây khi cần (vd: pandas để xử lý dữ liệu nguồn, requests để crawl).
+requests>=2.31,<3
+pytesseract>=0.3.13,<1
+Pillow>=10,<13
+chromadb>=1,<2
