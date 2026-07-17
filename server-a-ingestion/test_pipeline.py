@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from pipeline import FptClient, normalize_policy, parse_pages
+from pipeline import FptClient, embedding_text, normalize_policy, parse_pages
 
 
 SOURCE = {
@@ -99,6 +99,23 @@ class FptClientTest(unittest.TestCase):
         self.assertEqual(captured["payload"]["temperature"], 0)
         self.assertEqual(captured["payload"]["response_format"], {"type": "json_object"})
         self.assertEqual(captured["payload"]["max_tokens"], 3000)
+
+
+class EmbeddingTextTest(unittest.TestCase):
+    def test_includes_document_and_article_context(self):
+        unit = {
+            "document_title": "Luật mẫu",
+            "document_number": "01/2026/QH",
+            "article": "17",
+            "article_title": "Hỗ trợ startup",
+            "clause": "2",
+            "point": "b",
+            "text": "Nội dung hỗ trợ.",
+        }
+        text = embedding_text(unit)
+        self.assertIn("Luật mẫu, số 01/2026/QH", text)
+        self.assertIn("Điều 17. Hỗ trợ startup", text)
+        self.assertIn("Khoản 2, điểm b", text)
 
 
 if __name__ == "__main__":

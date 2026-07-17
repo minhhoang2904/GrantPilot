@@ -1,4 +1,4 @@
-"""Pipeline: PDF scan -> OCR -> legal_units.jsonl -> policies.json -> Chroma.
+"""Pipeline: PDF scan -> OCR -> legal_units.jsonl -> policies.json -> Pinecone.
 
 Chạy toàn bộ tài liệu trong data/raw:
     python pipeline.py all
@@ -6,7 +6,7 @@ Chạy toàn bộ tài liệu trong data/raw:
 Chạy riêng từng bước:
     python pipeline.py ocr
     python pipeline.py parse
-    python pipeline.py policies
+    python pipeline.py mongo
     python pipeline.py embed
 """
 
@@ -40,10 +40,13 @@ except ImportError:
 DATA_DIR = BASE_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 OCR_DIR = DATA_DIR / "processed" / "ocr"
-LEGAL_UNITS_PATH = DATA_DIR / "processed" / "legal_units.jsonl"
-POLICIES_PATH = DATA_DIR / "policies.json"
+SHARED_DIR = Path(os.getenv("SHARED_DIR", BASE_DIR.parent / "shared"))
+LEGAL_DIR = Path(os.getenv("LEGAL_OUTPUT_DIR", SHARED_DIR / "legal"))
+LEGAL_UNITS_PATH = LEGAL_DIR / "legal_units.jsonl"
+POLICIES_PATH = LEGAL_DIR / "policies.json"
+POLICY_CANDIDATES_PATH = LEGAL_DIR / "policy_candidates.json"
 POLICY_CACHE_DIR = DATA_DIR / "processed" / "policy_candidates"
-CHROMA_DIR = DATA_DIR / "chroma"
+PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE", "legal_units")
 SOURCES_PATH = BASE_DIR / "source_documents.json"
 
 FPT_BASE_URL = os.getenv("FPT_BASE_URL", "https://mkp-api.fptcloud.com").rstrip("/")
@@ -56,6 +59,11 @@ CHAPTER_RE = re.compile(OCR_PREFIX + r"Chương\s+([IVXLCDM]+|\d+)[\.:]?\s*(.*)$
 SECTION_RE = re.compile(OCR_PREFIX + r"Mục\s+(\d+)[\.:]?\s*(.*)$", re.IGNORECASE)
 CLAUSE_RE = re.compile(r"^(\d{1,2})[\.\)]\s+(.+)$")
 POINT_RE = re.compile(r"^([a-zđ])\)\s+(.+)$", re.IGNORECASE)
+
+
+def pinecone_id(unit_id: str) -> str:
+    """Pinecone IDs must be ASCII; keep the original ID in metadata."""
+    return unit_id if unit_id.isascii() else "u_" + unit_id.encode("utf-8").hex()
 
 
 def load_sources() -> dict[str, dict]:
@@ -74,6 +82,11 @@ def source_for(pdf: Path, sources: dict[str, dict]) -> dict:
         "document_title": configured.get("document_title", pdf.stem),
         "document_number": configured.get("document_number", ""),
         "source_url": configured.get("source_url", ""),
+        "issued_date": configured.get("issued_date"),
+        "effective_from": configured.get("effective_from"),
+        "effective_to": configured.get("effective_to"),
+        "status": configured.get("status", "unknown"),
+        "legal_status_checked_at": configured.get("legal_status_checked_at"),
     }
 
 
@@ -148,6 +161,7 @@ def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
 
 
 def unit_id(document_id: str, article: str, clause: str, point: str) -> str:
+    point = point.translate(str.maketrans({"đ": "d", "Đ": "D"}))
     parts = [document_id, f"art-{article}"]
     if clause:
         parts.append(f"cl-{clause}")
@@ -182,6 +196,11 @@ def parse_pages(pages: list[dict], source: dict) -> list[dict]:
             "document_number": source["document_number"],
             "source_file": f"data/raw/{source['file']}",
             "source_url": source["source_url"],
+            "issued_date": source.get("issued_date"),
+            "effective_from": source.get("effective_from"),
+            "effective_to": source.get("effective_to"),
+            "document_status": source.get("status", "unknown"),
+            "legal_status_checked_at": source.get("legal_status_checked_at"),
             "chapter": chapter,
             "section": section,
             "article": article,
@@ -350,6 +369,11 @@ def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> d
             "document_number": source["document_number"],
             "url": source["source_url"],
             "local_file": f"data/raw/{source['file']}",
+            "issued_date": source.get("issued_date"),
+            "effective_from": source.get("effective_from"),
+            "effective_to": source.get("effective_to"),
+            "status": source.get("status", "unknown"),
+            "legal_status_checked_at": source.get("legal_status_checked_at"),
         },
         "evidence_unit_ids": evidence,
         "rules": policy.get("rules", {"all": []}),
@@ -362,6 +386,51 @@ def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> d
         },
         "pipeline": {"document_id": source["document_id"], "model": POLICY_MODEL},
     }
+
+
+def enrich_policy_source(policy: dict, source: dict) -> dict:
+    """Cập nhật metadata văn bản cho policy lấy từ cache/ingest cũ."""
+    policy = dict(policy)
+    legal_source = dict(policy.get("legal_source") or {})
+    legal_source.update(
+        {
+            "document": source["document_title"],
+            "document_number": source["document_number"],
+            "url": source["source_url"],
+            "local_file": f"data/raw/{source['file']}",
+            "issued_date": source.get("issued_date"),
+            "effective_from": source.get("effective_from"),
+            "effective_to": source.get("effective_to"),
+            "status": source.get("status", "unknown"),
+            "legal_status_checked_at": source.get("legal_status_checked_at"),
+        }
+    )
+    policy["legal_source"] = legal_source
+    pipeline = dict(policy.get("pipeline") or {})
+    pipeline.setdefault("document_id", source["document_id"])
+    pipeline.setdefault("model", POLICY_MODEL)
+    policy["pipeline"] = pipeline
+    return policy
+
+
+def canonicalize_legacy_policy(policy: dict, source: dict | None) -> dict:
+    """Giữ policy cũ nhưng đưa về schema chung, không coi là policy AI đã duyệt."""
+    policy = dict(policy)
+    policy.setdefault("evidence_unit_ids", [])
+    policy.setdefault("pipeline", {"source": "legacy_manual"})
+    if source:
+        legal_source = dict(policy.get("legal_source") or {})
+        legal_source.update(
+            {
+                "issued_date": source.get("issued_date"),
+                "effective_from": source.get("effective_from"),
+                "effective_to": source.get("effective_to"),
+                "status": source.get("status", "unknown"),
+                "legal_status_checked_at": source.get("legal_status_checked_at"),
+            }
+        )
+        policy["legal_source"] = legal_source
+    return policy
 
 
 def run_ocr(pdfs: list[Path], force: bool = False) -> None:
@@ -389,6 +458,28 @@ def run_parse(pdfs: list[Path]) -> list[dict]:
     return all_units
 
 
+def run_mongo(pdfs: list[Path]) -> list[dict]:
+    """Persist parsed legal units as immutable MongoDB document versions."""
+    from mongo_store import database, ensure_indexes, ingest_document
+
+    all_units = read_jsonl(LEGAL_UNITS_PATH)
+    sources = load_sources()
+    client, db = database()
+    try:
+        ensure_indexes(db)
+        results = []
+        for pdf in pdfs:
+            source = source_for(pdf, sources)
+            units = [u for u in all_units if u["document_id"] == source["document_id"]]
+            result = ingest_document(db, pdf, source, units)
+            results.append(result)
+            state = "created" if result["created"] else "unchanged"
+            print(f"[MONGO] {source['file']}: {state}, version={result['version']}, units={result.get('units', len(units))}")
+        return results
+    finally:
+        client.close()
+
+
 def run_policies(document_ids: set[str] | None = None, force: bool = False) -> list[dict]:
     units = read_jsonl(LEGAL_UNITS_PATH)
     if document_ids:
@@ -409,13 +500,22 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
             (POLICY_MODEL + json.dumps(article_units, ensure_ascii=False, sort_keys=True)).encode()
         ).hexdigest()
         cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
-        if not force and cache.get("fingerprint") == fingerprint:
-            policies = cache["policies"]
+        # Cache cũ được tạo trước khi bổ sung metadata ngày tháng có fingerprint
+        # khác dù nội dung pháp lý không đổi; vẫn tái sử dụng để tránh gọi LLM lại.
+        cache_is_usable = "policies" in cache and (
+            cache.get("fingerprint") == fingerprint or "schema_version" not in cache
+        )
+        if not force and cache_is_usable:
+            policies = [enrich_policy_source(p, sources[document_id]) for p in cache["policies"]]
             label = "POLICY cache"
         else:
             policies = client.extract_policies(sources[document_id], article_units)
             cache_path.write_text(
-                json.dumps({"fingerprint": fingerprint, "policies": policies}, ensure_ascii=False, indent=2),
+                json.dumps(
+                    {"schema_version": 2, "fingerprint": fingerprint, "policies": policies},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
                 encoding="utf-8",
             )
             label = "POLICY"
@@ -424,40 +524,66 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
 
     existing = json.loads(POLICIES_PATH.read_text(encoding="utf-8")) if POLICIES_PATH.exists() else []
     generated_documents = {document_id for document_id, _ in grouped}
-    kept = [p for p in existing if p.get("pipeline", {}).get("document_id") not in generated_documents]
+    source_by_file = {source["file"]: source for source in sources.values()}
+    kept = []
+    for policy in existing:
+        if policy.get("pipeline", {}).get("document_id") in generated_documents:
+            continue
+        local_file = Path(policy.get("legal_source", {}).get("local_file", "")).name
+        kept.append(canonicalize_legacy_policy(policy, source_by_file.get(local_file)))
     merged = {p["policy_id"]: p for p in kept}
     merged.update({p["policy_id"]: p for p in generated})
-    POLICIES_PATH.write_text(json.dumps(list(merged.values()), ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[POLICY] Đã lưu {len(merged)} records vào {POLICIES_PATH}")
-    return list(merged.values())
+    all_policies = list(merged.values())
+    POLICIES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    POLICIES_PATH.write_text(json.dumps(all_policies, ensure_ascii=False, indent=2), encoding="utf-8")
+    candidates = [p for p in all_policies if p.get("review", {}).get("status") == "ai_extracted_requires_review"]
+    POLICY_CANDIDATES_PATH.write_text(json.dumps(candidates, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[POLICY] Đã lưu {len(all_policies)} records vào {POLICIES_PATH}")
+    print(f"[POLICY] Candidate records: {len(candidates)} -> {POLICY_CANDIDATES_PATH}")
+    return all_policies
 
 
 def embedding_text(unit: dict) -> str:
-    location = f"{unit['document_title']} | Điều {unit['article']}"
+    location = f"{unit['document_title']}"
+    if unit.get("document_number"):
+        location += f", số {unit['document_number']}"
+    location += f"\nĐiều {unit['article']}"
+    if unit.get("article_title"):
+        location += f". {unit['article_title']}"
     if unit["clause"]:
-        location += f" Khoản {unit['clause']}"
+        location += f"\nKhoản {unit['clause']}"
     if unit["point"]:
-        location += f" Điểm {unit['point']}"
-    return f"{location}\n{unit['text']}"
+        location += f", điểm {unit['point']}"
+    return f"{location}\n{unit.get('normalized_text') or unit['text']}"
 
 
 def run_embed(batch_size: int = 32, force: bool = False) -> None:
     try:
-        import chromadb
+        from pinecone import Pinecone
     except ImportError as exc:
-        raise RuntimeError("Thiếu chromadb. Chạy: pip install -r requirements.txt") from exc
-    units = read_jsonl(LEGAL_UNITS_PATH)
+        raise RuntimeError("Thiếu pinecone. Chạy: pip install -r requirements.txt") from exc
+    api_key = os.getenv("PINECONE_API_KEY", "").strip()
+    index_name = os.getenv("PINECONE_INDEX_NAME", "").strip()
+    index_host = os.getenv("PINECONE_INDEX_HOST", "").strip()
+    if not api_key or not index_name:
+        raise RuntimeError("Cần đặt PINECONE_API_KEY và PINECONE_INDEX_NAME")
+    pc = Pinecone(api_key=api_key)
+    index = pc.Index(host=index_host) if index_host else pc.Index(index_name)
+    from mongo_store import database, current_units
+
+    mongo_client, db = database()
+    units = current_units(db)
+    mongo_client.close()
     if not units:
         raise RuntimeError("legal_units.jsonl đang rỗng. Hãy chạy parse trước.")
-    collection = chromadb.PersistentClient(path=str(CHROMA_DIR)).get_or_create_collection(
-        "legal_units", metadata={"hnsw:space": "cosine"}
-    )
     client = FptClient()
     pending = []
     for unit in units:
         fingerprint = hashlib.sha1((EMBEDDING_MODEL + embedding_text(unit)).encode()).hexdigest()
-        existing = collection.get(ids=[unit["unit_id"]], include=["metadatas"])
-        old_metadata = existing["metadatas"][0] if existing["ids"] else {}
+        vector_id = pinecone_id(unit["unit_id"])
+        existing = index.fetch(ids=[vector_id], namespace=PINECONE_NAMESPACE)
+        old_vector = existing.vectors.get(vector_id) if hasattr(existing, "vectors") else None
+        old_metadata = (old_vector.metadata or {}) if old_vector else {}
         if force or old_metadata.get("embedding_fingerprint") != fingerprint:
             unit["embedding_fingerprint"] = fingerprint
             pending.append(unit)
@@ -474,24 +600,35 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
                 "clause": u["clause"],
                 "point": u["point"],
                 "page_start": u["page_start"],
+                "page_end": u["page_end"],
                 "source_file": u["source_file"],
+                "source_url": u["source_url"],
+                "document_number": u["document_number"],
+                "article_title": u["article_title"],
+                "issued_date": u["issued_date"] or "",
+                "effective_from": u["effective_from"] or "",
+                "effective_to": u["effective_to"] or "",
+                "document_status": u["document_status"],
+                "legal_status_checked_at": u["legal_status_checked_at"] or "",
+                "version": u.get("version", 1),
+                "is_current": bool(u.get("is_current", True)),
                 "embedding_model": EMBEDDING_MODEL,
                 "embedding_fingerprint": u["embedding_fingerprint"],
+                "original_unit_id": u["unit_id"],
             }
             for u in batch
         ]
-        collection.upsert(
-            ids=[u["unit_id"] for u in batch],
-            documents=texts,
-            embeddings=embeddings,
-            metadatas=metadatas,
-        )
+        vectors = [
+            {"id": pinecone_id(u["unit_id"]), "values": vector, "metadata": {**metadata, "text": text}}
+            for u, vector, metadata, text in zip(batch, embeddings, metadatas, texts)
+        ]
+        index.upsert(vectors=vectors, namespace=PINECONE_NAMESPACE)
         print(f"[EMBED] {min(start + batch_size, len(pending))}/{len(pending)}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="OCR và ingest văn bản pháp luật")
-    parser.add_argument("stage", choices=["ocr", "parse", "policies", "embed", "all"])
+    parser.add_argument("stage", choices=["ocr", "parse", "mongo", "policies", "embed", "all"])
     parser.add_argument("--pdf", help="Chỉ ingest một file, ví dụ 04.signed.pdf")
     parser.add_argument("--force-ocr", action="store_true")
     parser.add_argument("--force-policy", action="store_true")
@@ -506,6 +643,8 @@ def main() -> None:
         run_ocr(selected_pdfs, force=args.force_ocr)
     if args.stage in {"parse", "all"}:
         run_parse(selected_pdfs)
+    if args.stage in {"mongo", "all"}:
+        run_mongo(selected_pdfs)
     if args.stage in {"policies", "all"}:
         run_policies(document_ids=selected_document_ids if args.pdf else None, force=args.force_policy)
     if args.stage in {"embed", "all"}:

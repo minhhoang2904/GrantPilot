@@ -1,4 +1,7 @@
 requests>=2.31,<3
 pytesseract>=0.3.13,<1
 Pillow>=10,<13
-chromadb>=1,<2
+pinecone>=6,<8
+pymongo>=4.8,<5
+fastapi==0.115.0
+uvicorn[standard]==0.30.6

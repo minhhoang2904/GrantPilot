@@ -1,0 +1,4617 @@
+[
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_tiep_can_tin_dung_883251d2",
+    "policy_name": "Hỗ trợ tiếp cận tín dụng",
+    "category": "Tín dụng",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-8",
+      "law-04-2017-qh14_art-8_cl-1",
+      "law-04-2017-qh14_art-8_cl-2",
+      "law-04-2017-qh14_art-8_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "bảo lãnh tín dụng",
+      "calculation_status": "theo quy định",
+      "note": "theo Điều 9 của Luật này"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_hsdnd_muc_thue_thu_nhap_doanh_nghiep_6ab3492c",
+    "policy_name": "Hỗ trợ doanh nghiệp nhỏ và vừa về mức thuế suất thuế thu nhập doanh nghiệp",
+    "category": "Hỗ trợ thuế",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-10",
+      "law-04-2017-qh14_art-10_cl-1",
+      "law-04-2017-qh14_art-10_cl-2"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "giảm thuế",
+      "calculation_status": "theo quy định của pháp luật về thuế thu nhập doanh nghiệp",
+      "note": "Mức thuế suất thấp hơn mức thuế suất thông thường"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_hsdnd_thu_tuc_hanh_chinh_thue_6ab3492c",
+    "policy_name": "Hỗ trợ doanh nghiệp siêu nhỏ về thủ tục hành chính thuế",
+    "category": "Hỗ trợ thuế",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-10",
+      "law-04-2017-qh14_art-10_cl-1",
+      "law-04-2017-qh14_art-10_cl-2"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp siêu nhỏ",
+          "description": "Doanh nghiệp phải là doanh nghiệp siêu nhỏ"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "đơn giản hóa thủ tục",
+      "calculation_status": "theo quy định của pháp luật về thuế",
+      "note": "Áp dụng các thủ tục hành chính thuế đơn giản"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_hsdnd_che_do_ke_toan_6ab3492c",
+    "policy_name": "Hỗ trợ doanh nghiệp siêu nhỏ về chế độ kế toán",
+    "category": "Hỗ trợ kế toán",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-10",
+      "law-04-2017-qh14_art-10_cl-1",
+      "law-04-2017-qh14_art-10_cl-2"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp siêu nhỏ",
+          "description": "Doanh nghiệp phải là doanh nghiệp siêu nhỏ"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "đơn giản hóa chế độ kế toán",
+      "calculation_status": "theo quy định của pháp luật về kế toán",
+      "note": "Áp dụng chế độ kế toán đơn giản"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_mat_bang_san_xuat_e442e485",
+    "policy_name": "Hỗ trợ mặt bằng sản xuất",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-11",
+      "law-04-2017-qh14_art-11_cl-1",
+      "law-04-2017-qh14_art-11_cl-2",
+      "law-04-2017-qh14_art-11_cl-3",
+      "law-04-2017-qh14_art-11_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "!=",
+          "value": "doanh nghiệp nhỏ và vừa có vốn đầu tư nước ngoài",
+          "description": "Không áp dụng đối với doanh nghiệp nhỏ và vừa có vốn đầu tư nước ngoài"
+        },
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "!=",
+          "value": "doanh nghiệp nhỏ và vừa có vốn nhà nước",
+          "description": "Không áp dụng đối với doanh nghiệp nhỏ và vừa có vốn nhà nước"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ giá thuê mặt bằng",
+      "calculation_status": "theo quyết định của Ủy ban nhân dân cấp tỉnh",
+      "note": "thời gian hỗ trợ tối đa là 05 năm"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_cong_nghe_41f66c3c",
+    "policy_name": "Hỗ trợ công nghệ",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-12",
+      "law-04-2017-qh14_art-12_cl-1",
+      "law-04-2017-qh14_art-12_cl-2",
+      "law-04-2017-qh14_art-12_cl-3",
+      "law-04-2017-qh14_art-12_cl-3_pt-a",
+      "law-04-2017-qh14_art-12_cl-3_pt-b"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ nghiên cứu, đào tạo, tư vấn",
+      "calculation_status": "không rõ",
+      "note": "hỗ trợ thông qua các hoạt động nghiên cứu, đào tạo, tư vấn"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_co_so_uom_tao_41f66c3c",
+    "policy_name": "Hỗ trợ cơ sở ươm tạo, cơ sở kỹ thuật, khu làm việc chung",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-12",
+      "law-04-2017-qh14_art-12_cl-1",
+      "law-04-2017-qh14_art-12_cl-2",
+      "law-04-2017-qh14_art-12_cl-3",
+      "law-04-2017-qh14_art-12_cl-3_pt-a",
+      "law-04-2017-qh14_art-12_cl-3_pt-b"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn, giảm tiền thuê đất, tiền sử dụng đất",
+      "calculation_status": "theo quy định của pháp luật",
+      "note": "miễn, giảm tiền thuê đất, tiền sử dụng đất theo quy định của pháp luật"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_thue_41f66c3c",
+    "policy_name": "Hỗ trợ thuế",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-12",
+      "law-04-2017-qh14_art-12_cl-1",
+      "law-04-2017-qh14_art-12_cl-2",
+      "law-04-2017-qh14_art-12_cl-3",
+      "law-04-2017-qh14_art-12_cl-3_pt-a",
+      "law-04-2017-qh14_art-12_cl-3_pt-b"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn, giảm thuế thu nhập doanh nghiệp",
+      "calculation_status": "theo quy định của pháp luật",
+      "note": "miễn, giảm thuế thu nhập doanh nghiệp theo quy định của pháp luật"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_mo_rong_thi_truong_6741c139",
+    "policy_name": "Hỗ trợ mở rộng thị trường",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-13",
+      "law-04-2017-qh14_art-13_cl-2",
+      "law-04-2017-qh14_art-13_cl-2_pt-a",
+      "law-04-2017-qh14_art-13_cl-2_pt-b",
+      "law-04-2017-qh14_art-13_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "ty_le_tham_gia_cung_ung",
+          "operator": ">=",
+          "value": 0.8,
+          "description": "Tỷ lệ doanh nghiệp nhỏ và vừa tham gia cung ứng cho chuỗi sản phẩm sản xuất tại Việt Nam"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn giảm thuế",
+      "calculation_status": "theo quy định của pháp luật",
+      "note": "Miễn, giảm tiền thuê đất, tiền sử dụng đất, thuế sử dụng đất phi nông nghiệp; miễn, giảm thuế thu nhập doanh nghiệp có thời hạn"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_uu_dai_lua_chon_nha_thau_6741c139",
+    "policy_name": "Ưu đãi trong lựa chọn nhà thầu",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-13",
+      "law-04-2017-qh14_art-13_cl-2",
+      "law-04-2017-qh14_art-13_cl-2_pt-a",
+      "law-04-2017-qh14_art-13_cl-2_pt-b",
+      "law-04-2017-qh14_art-13_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "siêu nhỏ",
+            "nhỏ"
+          ],
+          "description": "Loại hình doanh nghiệp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "ưu đãi",
+      "calculation_status": "theo quy định của pháp luật",
+      "note": "Ưu đãi trong lựa chọn nhà thầu"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_thong_tin_455a7046",
+    "policy_name": "Hỗ trợ thông tin",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-14",
+      "law-04-2017-qh14_art-14_cl-1",
+      "law-04-2017-qh14_art-14_cl-1_pt-a",
+      "law-04-2017-qh14_art-14_cl-1_pt-b",
+      "law-04-2017-qh14_art-14_cl-1_pt-c",
+      "law-04-2017-qh14_art-14_cl-2",
+      "law-04-2017-qh14_art-14_cl-3",
+      "law-04-2017-qh14_art-14_cl-3_occ-2",
+      "law-04-2017-qh14_art-14_cl-3_pt-b",
+      "law-04-2017-qh14_art-14_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ thông tin",
+      "calculation_status": "không tính toán",
+      "note": "cung cấp thông tin về kế hoạch, chương trình, dự án, hoạt động hỗ trợ doanh nghiệp nhỏ và vừa"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_mieng_giam_chi_phi_tu_van_455a7046",
+    "policy_name": "Miễn, giảm chi phí tư vấn",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-14",
+      "law-04-2017-qh14_art-14_cl-1",
+      "law-04-2017-qh14_art-14_cl-1_pt-a",
+      "law-04-2017-qh14_art-14_cl-1_pt-b",
+      "law-04-2017-qh14_art-14_cl-1_pt-c",
+      "law-04-2017-qh14_art-14_cl-2",
+      "law-04-2017-qh14_art-14_cl-3",
+      "law-04-2017-qh14_art-14_cl-3_occ-2",
+      "law-04-2017-qh14_art-14_cl-3_pt-b",
+      "law-04-2017-qh14_art-14_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "su_dung_dich_vu",
+          "operator": "==",
+          "value": "dịch vụ tư vấn thuộc mạng lưới tư vấn viên",
+          "description": "Doanh nghiệp phải sử dụng dịch vụ tư vấn thuộc mạng lưới tư vấn viên"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn, giảm chi phí",
+      "calculation_status": "không tính toán",
+      "note": "miễn, giảm chi phí tư vấn khi sử dụng dịch vụ tư vấn thuộc mạng lưới tư vấn viên"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_phap_ly_455a7046",
+    "policy_name": "Hỗ trợ pháp lý",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-14",
+      "law-04-2017-qh14_art-14_cl-1",
+      "law-04-2017-qh14_art-14_cl-1_pt-a",
+      "law-04-2017-qh14_art-14_cl-1_pt-b",
+      "law-04-2017-qh14_art-14_cl-1_pt-c",
+      "law-04-2017-qh14_art-14_cl-2",
+      "law-04-2017-qh14_art-14_cl-3",
+      "law-04-2017-qh14_art-14_cl-3_occ-2",
+      "law-04-2017-qh14_art-14_cl-3_pt-b",
+      "law-04-2017-qh14_art-14_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ pháp lý",
+      "calculation_status": "không tính toán",
+      "note": "cung cấp thông tin, bồi dưỡng kiến thức pháp luật, tư vấn pháp luật"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_miengiam_chi_phi_dao_tao_b9a75529",
+    "policy_name": "Miễn, giảm chi phí tham gia các khóa đào tạo",
+    "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-15",
+      "law-04-2017-qh14_art-15_cl-1",
+      "law-04-2017-qh14_art-15_cl-2",
+      "law-04-2017-qh14_art-15_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "khoa_dao_tao",
+          "operator": "in",
+          "value": [
+            "khởi sự kinh doanh",
+            "quản trị doanh nghiệp",
+            "đào tạo nghề"
+          ],
+          "description": "Khóa đào tạo phải là một trong các khóa đào tạo có sử dụng ngân sách nhà nước"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn, giảm chi phí",
+      "calculation_status": "unknown",
+      "note": "Chính phủ quy định chi tiết"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_dao_tao_truc_tuyen_b9a75529",
+    "policy_name": "Hỗ trợ đào tạo trực tuyến",
+    "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-15",
+      "law-04-2017-qh14_art-15_cl-1",
+      "law-04-2017-qh14_art-15_cl-2",
+      "law-04-2017-qh14_art-15_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ đào tạo",
+      "calculation_status": "unknown",
+      "note": "Chính phủ quy định chi tiết"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_ho_tro_dao_tao_truc_tiep_b9a75529",
+    "policy_name": "Hỗ trợ đào tạo trực tiếp tại doanh nghiệp",
+    "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-15",
+      "law-04-2017-qh14_art-15_cl-1",
+      "law-04-2017-qh14_art-15_cl-2",
+      "law-04-2017-qh14_art-15_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "linh_vuc_hoat_dong",
+          "operator": "==",
+          "value": "sản xuất, chế biến",
+          "description": "Lĩnh vực hoạt động phải là sản xuất, chế biến"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ đào tạo",
+      "calculation_status": "unknown",
+      "note": "Chính phủ quy định chi tiết"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_chuyen_doi_ho_kinh_doanh_674a2dad",
+    "policy_name": "Hỗ trợ doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-16",
+      "law-04-2017-qh14_art-16_cl-1",
+      "law-04-2017-qh14_art-16_cl-1_pt-a",
+      "law-04-2017-qh14_art-16_cl-2",
+      "law-04-2017-qh14_art-16_cl-2_pt-a",
+      "law-04-2017-qh14_art-16_cl-2_pt-b",
+      "law-04-2017-qh14_art-16_cl-2_pt-c",
+      "law-04-2017-qh14_art-16_cl-2_pt-d",
+      "law-04-2017-qh14_art-16_cl-2_pt-đ",
+      "law-04-2017-qh14_art-16_cl-3",
+      "law-04-2017-qh14_art-16_cl-4",
+      "law-04-2017-qh14_art-16_cl-5"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "trước_đó_là_hộ_kinh_doanh",
+          "operator": "==",
+          "value": true,
+          "description": "Doanh nghiệp phải chuyển đổi từ hộ kinh doanh"
+        },
+        {
+          "field": "đã_đăng_ký_và_hoạt_động",
+          "operator": "==",
+          "value": true,
+          "description": "Hộ kinh doanh đã đăng ký và hoạt động theo quy định của pháp luật"
+        },
+        {
+          "field": "hoạt_động_liên_tục",
+          "operator": ">=",
+          "value": 1,
+          "description": "Hộ kinh doanh có hoạt động sản xuất, kinh doanh liên tục ít nhất 01 năm"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Miễn phí và giảm thuế",
+      "calculation_status": "theo quy định của pháp luật",
+      "note": "Miễn lệ phí đăng ký doanh nghiệp, phí cung cấp thông tin doanh nghiệp, phí thẩm định, lệ phí cấp phép kinh doanh, miễn giảm thuế thu nhập doanh nghiệp và tiền sử dụng đất"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_khoi_nghiep_sang_tao_3d915105",
+    "policy_name": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-17",
+      "law-04-2017-qh14_art-17_pt-a",
+      "law-04-2017-qh14_art-17_pt-b",
+      "law-04-2017-qh14_art-17_cl-2",
+      "law-04-2017-qh14_art-17_cl-2_pt-a",
+      "law-04-2017-qh14_art-17_cl-2_pt-b",
+      "law-04-2017-qh14_art-17_cl-2_pt-c",
+      "law-04-2017-qh14_art-17_cl-2_pt-đ",
+      "law-04-2017-qh14_art-17_cl-2_pt-đ_occ-2",
+      "law-04-2017-qh14_art-17_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "thoi_gian_hoat_dong",
+          "operator": "<=",
+          "value": 5,
+          "description": "Có thời gian hoạt động không quá 05 năm kể từ ngày được cấp Giấy chứng nhận đăng ký doanh nghiệp lần đầu"
+        },
+        {
+          "field": "chao_ban_chung_khoan",
+          "operator": "==",
+          "value": false,
+          "description": "Chưa thực hiện chào bán chứng khoán ra công chúng"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ đa dạng",
+      "calculation_status": "Không rõ",
+      "note": "Bao gồm hỗ trợ ứng dụng, chuyển giao công nghệ; hỗ trợ đào tạo, huấn luyện; hỗ trợ thông tin, truyền thông; hỗ trợ thương mại hóa; cấp bù lãi suất"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_dh_khoi_nghiep_sang_tao_73c4e55f",
+    "policy_name": "Đầu tư cho doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-18",
+      "law-04-2017-qh14_art-18_cl-1",
+      "law-04-2017-qh14_art-18_cl-2",
+      "law-04-2017-qh14_art-18_cl-8",
+      "law-04-2017-qh14_art-18_cl-8_pt-b",
+      "law-04-2017-qh14_art-18_cl-4",
+      "law-04-2017-qh14_art-18_cl-4_pt-b",
+      "law-04-2017-qh14_art-18_cl-5"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn, giảm thuế",
+      "calculation_status": "theo quy định của pháp luật về thuế thu nhập doanh nghiệp",
+      "note": "Miễn, giảm thuế thu nhập doanh nghiệp có thời hạn đối với thu nhập từ khoản đầu tư vào doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "law_04_2017_qh14_dsnv_tham_gia_cum_lien_ket_506f19bb",
+    "policy_name": "Hỗ trợ doanh nghiệp nhỏ và vừa tham gia cụm liên kết ngành, chuỗi giá trị",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "04/2017/QH14",
+      "url": "https://vbpl.vn/boquocphong/Pages/vbpq-print.aspx?ItemID=128706",
+      "local_file": "data/raw/04.signed.pdf",
+      "issued_date": "2017-06-12",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "law-04-2017-qh14_art-19",
+      "law-04-2017-qh14_art-19_cl-1",
+      "law-04-2017-qh14_art-19_cl-1_pt-a",
+      "law-04-2017-qh14_art-19_cl-1_pt-b",
+      "law-04-2017-qh14_art-19_cl-2",
+      "law-04-2017-qh14_art-19_cl-2_pt-a",
+      "law-04-2017-qh14_art-19_cl-2_pt-b",
+      "law-04-2017-qh14_art-19_cl-2_pt-đ",
+      "law-04-2017-qh14_art-19_cl-2_pt-đ_occ-2",
+      "law-04-2017-qh14_art-19_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "lĩnh_vực_hoạt động",
+          "operator": "==",
+          "value": "sản xuất, chế biến",
+          "description": "Doanh nghiệp hoạt động trong lĩnh vực sản xuất, chế biến"
+        },
+        {
+          "field": "điều_kiện_1",
+          "operator": "in",
+          "value": [
+            "tạo_ra_sản_phẩm_có_lợi_thế_cạnh_tranh",
+            "có_đổi_mới_sáng_tạo"
+          ],
+          "description": "Doanh nghiệp tạo ra sản phẩm có lợi thế cạnh tranh hoặc có đổi mới sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ_trợ_kinh_phí",
+      "calculation_status": "theo_quyết_định_của_Chính_phủ",
+      "note": "Nội dung hỗ trợ bao gồm đào tạo, tư vấn, cung cấp thông tin, hỗ trợ phát triển thương hiệu, sản xuất thử nghiệm..."
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "law-04-2017-qh14",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_cong_nghe_48284a5c",
+    "policy_name": "Hỗ trợ công nghệ",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-7",
+      "circular-06-2022-tt-bkhdt_art-7_cl-1",
+      "circular-06-2022-tt-bkhdt_art-7_cl-2",
+      "circular-06-2022-tt-bkhdt_art-7_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ chi phí",
+      "calculation_status": "theo quy định",
+      "note": "Theo nội dung và mức hỗ trợ quy định tại khoản 1, 2, 3, 4 Điều 11 Nghị định số 80/2021/NĐ-CP"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_tu_van_88c43b8f",
+    "policy_name": "Hỗ trợ tư vấn",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-10"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ tư vấn",
+      "calculation_status": "theo quy định",
+      "note": "theo nội dung và mức hỗ trợ quy định tại khoản 2 Điều 13 Nghị định số 80/2021/NĐ-CP"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_dao_tao_khoi_su_kinh_doanh_44d90942",
+    "policy_name": "Hỗ trợ đào tạo trực tiếp về khởi sự kinh doanh và quản trị doanh nghiệp",
+    "category": "Đào tạo và hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-12"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "thoi_gian_thanh_lap",
+          "operator": "<=",
+          "value": 5,
+          "description": "Thời gian thành lập không quá 5 năm"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ đào tạo",
+      "calculation_status": "known",
+      "note": "Hỗ trợ đào tạo trực tiếp về khởi sự kinh doanh và quản trị doanh nghiệp"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_kh_nvs_t_b410ae9b",
+    "policy_name": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-14",
+      "circular-06-2022-tt-bkhdt_art-14_cl-1",
+      "circular-06-2022-tt-bkhdt_art-14_cl-1_pt-a",
+      "circular-06-2022-tt-bkhdt_art-14_cl-1_pt-b",
+      "circular-06-2022-tt-bkhdt_art-14_cl-2",
+      "circular-06-2022-tt-bkhdt_art-14_cl-2_pt-a",
+      "circular-06-2022-tt-bkhdt_art-14_cl-2_pt-b",
+      "circular-06-2022-tt-bkhdt_art-14_cl-2_pt-c",
+      "circular-06-2022-tt-bkhdt_art-14_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh_nghiệp_nho_và_vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_hoat_dong",
+          "operator": "contains",
+          "value": "khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải hoạt động trong lĩnh vực khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "Mức hỗ trợ theo quy định tại khoản 1, 2, 3 Điều 21 Nghị định số 80/2021/NĐ-CP"
+    },
+    "required_documents": [
+      "giay_chung_nhan_dai_giai_thuong",
+      "van_bang_bao_ho",
+      "hop_dong_gop_von",
+      "van_ban_cam_ket"
+    ],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_hoc_vien_dnnvv_khoi_nghiep_sang_tao_03df358f",
+    "policy_name": "Hỗ trợ học viên của DNNVV khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-15",
+      "circular-06-2022-tt-bkhdt_art-15_cl-1",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2_pt-a",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2_pt-b",
+      "circular-06-2022-tt-bkhdt_art-15_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải là DNNVV khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "học phí, tài liệu, ăn, ở, đi lại (bao gồm vé máy bay)"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_dnnvv_duy_tri_tai_khoan_san_thuong_mai_dien_tu_03df358f",
+    "policy_name": "Hỗ trợ DNNVV duy trì tài khoản trên các sàn thương mại điện tử",
+    "category": "Hỗ trợ thương mại điện tử",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-15",
+      "circular-06-2022-tt-bkhdt_art-15_cl-1",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2_pt-a",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2_pt-b",
+      "circular-06-2022-tt-bkhdt_art-15_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "phí thanh toán, phí cố định và phí dịch vụ người bán phải trả cho sàn thương mại điện tử (trong nước); phí tài khoản người bán, phí giới thiệu, phí hoàn thiện đơn hàng, phí lưu kho, chỉ phí đăng ký mã vạch sản phẩm, chỉ phí thiết kế và chụp ảnh sản phẩm, chỉ phí quảng cáo trên sàn thương mại điện tử (quốc tế)"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_dnnvv_tham_gia_cac_cuoc_thi_quoc_te_03df358f",
+    "policy_name": "Hỗ trợ DNNVV tham gia các cuộc thi quốc tế về khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ tham gia cuộc thi",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-15",
+      "circular-06-2022-tt-bkhdt_art-15_cl-1",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2_pt-a",
+      "circular-06-2022-tt-bkhdt_art-15_cl-2_pt-b",
+      "circular-06-2022-tt-bkhdt_art-15_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "phí, lệ phí tham gia cuộc thi; ăn, ở tại nước sở tại; đi lại (bao gồm vé máy bay); vận chuyển tài liệu, sản phẩm, trang thiết bị phục vụ tham gia cuộc thi"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_tham_gia_chuoi_gia_tri_92e94734",
+    "policy_name": "Lựa chọn doanh nghiệp nhỏ và vừa tham gia chuỗi giá trị",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-17",
+      "circular-06-2022-tt-bkhdt_art-17_pt-a",
+      "circular-06-2022-tt-bkhdt_art-17_pt-b",
+      "circular-06-2022-tt-bkhdt_art-17_pt-c",
+      "circular-06-2022-tt-bkhdt_art-17_cl-2",
+      "circular-06-2022-tt-bkhdt_art-17_cl-2_pt-a",
+      "circular-06-2022-tt-bkhdt_art-17_cl-2_pt-b",
+      "circular-06-2022-tt-bkhdt_art-17_cl-2_pt-c"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loại_doanh_nghiệp",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "điều_kiện_tham_gia",
+          "operator": "in",
+          "value": [
+            "đầu_chuỗi",
+            "hợp đồng_mua_bán",
+            "đánh_giá_tiềm_năng"
+          ],
+          "description": "Doanh nghiệp phải đáp ứng một trong các điều kiện tham gia"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ_trợ_tài_chính",
+      "calculation_status": "chưa_xác định",
+      "note": "Mức hỗ trợ sẽ được xác định dựa trên các điều kiện cụ thể"
+    },
+    "required_documents": [
+      "tài_liệu_xác_định_quy_mô_là_DNNVV",
+      "hợp_đồng_mua_bán_sản_phẩm",
+      "xác_nhận_của_doanh_nghiệp_đầu_chuỗi"
+    ],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_dnnvv_tham_gia_cum_lien_ket_nganh_73df4f7a",
+    "policy_name": "Hỗ trợ DNNVV tham gia cụm liên kết ngành, chuỗi giá trị",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-18",
+      "circular-06-2022-tt-bkhdt_art-18_cl-1",
+      "circular-06-2022-tt-bkhdt_art-18_cl-2",
+      "circular-06-2022-tt-bkhdt_art-18_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "Theo nội dung và mức hỗ trợ quy định tại Điều 25 Nghị định số 80/2021/NĐ-CP"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_dao_tao_tai_doanh_nghiep_73df4f7a",
+    "policy_name": "Hỗ trợ đào tạo tại doanh nghiệp",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-18",
+      "circular-06-2022-tt-bkhdt_art-18_cl-1",
+      "circular-06-2022-tt-bkhdt_art-18_cl-2",
+      "circular-06-2022-tt-bkhdt_art-18_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "noi_dung_ho_tro",
+          "operator": "==",
+          "value": "đào tạo tại doanh nghiệp",
+          "description": "Nội dung hỗ trợ phải là đào tạo tại doanh nghiệp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "Theo quy định tại khoản 4 Điều 12 Thông tư này"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_hoc_vien_dnnvv_73df4f7a",
+    "policy_name": "Hỗ trợ học viên của DNNVV tham gia khóa đào tạo",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-18",
+      "circular-06-2022-tt-bkhdt_art-18_cl-1",
+      "circular-06-2022-tt-bkhdt_art-18_cl-2",
+      "circular-06-2022-tt-bkhdt_art-18_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "noi_dung_ho_tro",
+          "operator": "==",
+          "value": "học viên tham gia khóa đào tạo",
+          "description": "Nội dung hỗ trợ phải là học viên tham gia khóa đào tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "Hỗ trợ học phí, tài liệu, ăn, ở, đi lại (bao gồm vé máy bay)"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_dnnvv_duy_tri_tai_khoan_73df4f7a",
+    "policy_name": "Hỗ trợ DNNVV duy trì tài khoản trên các sàn thương mại điện tử",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn một số điều của Nghị định 80/2021/NĐ-CP",
+      "document_number": "06/2022/TT-BKHĐT",
+      "url": "",
+      "local_file": "data/raw/06-bkhdt.signed.pdf",
+      "issued_date": "2022-05-10",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-06-2022-tt-bkhdt_art-18",
+      "circular-06-2022-tt-bkhdt_art-18_cl-1",
+      "circular-06-2022-tt-bkhdt_art-18_cl-2",
+      "circular-06-2022-tt-bkhdt_art-18_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "noi_dung_ho_tro",
+          "operator": "==",
+          "value": "duy trì tài khoản trên các sàn thương mại điện tử",
+          "description": "Nội dung hỗ trợ phải là duy trì tài khoản trên các sàn thương mại điện tử"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ tài chính",
+      "calculation_status": "theo quy định",
+      "note": "Theo quy định tại khoản 2 Điều 15 Thông tư này"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-06-2022-tt-bkhdt",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_cong_nghe_0111715d",
+    "policy_name": "Hỗ trợ công nghệ cho DNNVV",
+    "category": "Hỗ trợ công nghệ",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-1",
+      "circular-52-2023-tt-btc_art-1_cl-1",
+      "circular-52-2023-tt-btc_art-1_cl-2",
+      "circular-52-2023-tt-btc_art-1_cl-3",
+      "circular-52-2023-tt-btc_art-1_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "dieu_kien_ho_tro",
+          "operator": "in",
+          "value": [
+            "khoản 1",
+            "khoản 2",
+            "khoản 3",
+            "khoản 4 Điều 11"
+          ],
+          "description": "Phải đáp ứng một trong các điều kiện hỗ trợ tại khoản 1, 2, 3 hoặc 4 Điều 11"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "kinh_phi",
+      "calculation_status": "chưa rõ",
+      "note": "Cần thêm thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_tu_van_0111715d",
+    "policy_name": "Hỗ trợ tư vấn cho DNNVV",
+    "category": "Hỗ trợ tư vấn",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-1",
+      "circular-52-2023-tt-btc_art-1_cl-1",
+      "circular-52-2023-tt-btc_art-1_cl-2",
+      "circular-52-2023-tt-btc_art-1_cl-3",
+      "circular-52-2023-tt-btc_art-1_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "dieu_kien_ho_tro",
+          "operator": "==",
+          "value": "Điều 13",
+          "description": "Phải đáp ứng điều kiện hỗ trợ tại Điều 13"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "kinh_phi",
+      "calculation_status": "chưa rõ",
+      "note": "Cần thêm thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_khoi_nghiep_sang_tao_0111715d",
+    "policy_name": "Hỗ trợ DNNVV khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ khởi nghiệp sáng tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-1",
+      "circular-52-2023-tt-btc_art-1_cl-1",
+      "circular-52-2023-tt-btc_art-1_cl-2",
+      "circular-52-2023-tt-btc_art-1_cl-3",
+      "circular-52-2023-tt-btc_art-1_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "dieu_kien_ho_tro",
+          "operator": "==",
+          "value": "Điều 22",
+          "description": "Phải đáp ứng điều kiện hỗ trợ tại Điều 22"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "kinh_phi",
+      "calculation_status": "chưa rõ",
+      "note": "Cần thêm thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_tham_gia_cum_lien_ket_nganh_0111715d",
+    "policy_name": "Hỗ trợ DNNVV tham gia cụm liên kết ngành, chuỗi giá trị",
+    "category": "Hỗ trợ tham gia cụm liên kết ngành",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-1",
+      "circular-52-2023-tt-btc_art-1_cl-1",
+      "circular-52-2023-tt-btc_art-1_cl-2",
+      "circular-52-2023-tt-btc_art-1_cl-3",
+      "circular-52-2023-tt-btc_art-1_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "dieu_kien_ho_tro",
+          "operator": "==",
+          "value": "Điều 25",
+          "description": "Phải đáp ứng điều kiện hỗ trợ tại Điều 25"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "kinh_phi",
+      "calculation_status": "chưa rõ",
+      "note": "Cần thêm thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_phat_trien_nguon_nhan_luc_0111715d",
+    "policy_name": "Hỗ trợ phát triển nguồn nhân lực cho DNNVV",
+    "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-1",
+      "circular-52-2023-tt-btc_art-1_cl-1",
+      "circular-52-2023-tt-btc_art-1_cl-2",
+      "circular-52-2023-tt-btc_art-1_cl-3",
+      "circular-52-2023-tt-btc_art-1_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "dieu_kien_ho_tro",
+          "operator": "==",
+          "value": "Điều 14",
+          "description": "Phải đáp ứng điều kiện hỗ trợ tại Điều 14"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "kinh_phi",
+      "calculation_status": "chưa rõ",
+      "note": "Cần thêm thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_thong_tin_0111715d",
+    "policy_name": "Hỗ trợ thông tin cho DNNVV",
+    "category": "Hỗ trợ thông tin",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-1",
+      "circular-52-2023-tt-btc_art-1_cl-1",
+      "circular-52-2023-tt-btc_art-1_cl-2",
+      "circular-52-2023-tt-btc_art-1_cl-3",
+      "circular-52-2023-tt-btc_art-1_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là DNNVV"
+        },
+        {
+          "field": "dieu_kien_ho_tro",
+          "operator": "==",
+          "value": "Điều 12",
+          "description": "Phải đáp ứng điều kiện hỗ trợ tại Điều 12"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "kinh_phi",
+      "calculation_status": "chưa rõ",
+      "note": "Cần thêm thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_theo_hop_dong_tu_van_a47492ea",
+    "policy_name": "Hỗ trợ theo hợp đồng tư vấn",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-6",
+      "circular-52-2023-tt-btc_art-6_cl-1",
+      "circular-52-2023-tt-btc_art-6_cl-2",
+      "circular-52-2023-tt-btc_art-6_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-6_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-6_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-6_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hop_dong",
+          "operator": "in",
+          "value": [
+            "hop_dong_tu_van"
+          ],
+          "description": "Hợp đồng tư vấn hỗ trợ DNNVV"
+        },
+        {
+          "field": "noi_dung_hop_dong",
+          "operator": "in",
+          "value": [
+            "thu_lao_ca_nhan_tu_van",
+            "chi_phi_di_lai_an_o",
+            "chi_phi_fien_dich",
+            "chi_phi_hoat_dong_quan_ly"
+          ],
+          "description": "Nội dung hỗ trợ theo hợp đồng tư vấn"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "kinh_phi_ngan_sach_nha_nuoc",
+      "calculation_status": "theo_ty_le_va_dinh_muc",
+      "note": "Tỷ lệ, định mức hỗ trợ đối với mỗi hợp đồng tư vấn quy định tại Nghị định số 80/2021/NĐ-CP"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_chi_phi_hoc_vien_2efbcb34",
+    "policy_name": "Hỗ trợ chi phí cho học viên của DNNVV khởi nghiệp sáng tạo, DNNVV tham gia cụm liên kết ngành, chuỗi giá trị",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-7",
+      "circular-52-2023-tt-btc_art-7_cl-1",
+      "circular-52-2023-tt-btc_art-7_cl-2",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-đ",
+      "circular-52-2023-tt-btc_art-7_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_khoa_dao_tao",
+          "operator": "in",
+          "value": [
+            "chuyên sâu trong nước được ngân sách nhà nước hỗ trợ",
+            "chuyên sâu trong nước không được ngân sách nhà nước hỗ trợ",
+            "chuyên sâu ngắn hạn ở nước ngoài"
+          ],
+          "description": "Loại khóa đào tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ chi phí",
+      "calculation_status": "theo quy định",
+      "note": "Học phí, chi phí đi lại, ăn, ở của học viên"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_to_chuc_khoa_dao_tao_2efbcb34",
+    "policy_name": "Hỗ trợ tổ chức khóa đào tạo nâng cao trình độ công nghệ, kỹ thuật sản xuất chuyên sâu tại DNNVV tham gia cụm liên kết ngành, chuỗi giá trị",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-7",
+      "circular-52-2023-tt-btc_art-7_cl-1",
+      "circular-52-2023-tt-btc_art-7_cl-2",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-đ",
+      "circular-52-2023-tt-btc_art-7_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_khoa_dao_tao",
+          "operator": "==",
+          "value": "nâng cao trình độ công nghệ, kỹ thuật sản xuất chuyên sâu",
+          "description": "Loại khóa đào tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ chi phí",
+      "calculation_status": "theo quy định",
+      "note": "Chi phí tổ chức"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_tham_gia_cuoc_thi_quoc_te_2efbcb34",
+    "policy_name": "Hỗ trợ tham gia cuộc thi quốc tế về khởi nghiệp sáng tạo của DNNVV khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ tham gia cuộc thi",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-7",
+      "circular-52-2023-tt-btc_art-7_cl-1",
+      "circular-52-2023-tt-btc_art-7_cl-2",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-đ",
+      "circular-52-2023-tt-btc_art-7_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_cuoc_thi",
+          "operator": "==",
+          "value": "quốc tế về khởi nghiệp sáng tạo",
+          "description": "Loại cuộc thi"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ chi phí",
+      "calculation_status": "theo quy định",
+      "note": "Phí, lệ phí tham gia cuộc thi; chi phí đi lại, ăn, ở tại nước sở tại"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_tham_gia_hoi_cho_2efbcb34",
+    "policy_name": "Hỗ trợ tham gia hội chợ triển lãm xúc tiến thương mại tổ chức ở trong nước hoặc ở nước ngoài của DNNVV khởi nghiệp sáng tạo, DNNVV tham gia cụm liên kết ngành, chuỗi giá trị",
+    "category": "Hỗ trợ tham gia hội chợ",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-7",
+      "circular-52-2023-tt-btc_art-7_cl-1",
+      "circular-52-2023-tt-btc_art-7_cl-2",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-7_cl-2_pt-đ",
+      "circular-52-2023-tt-btc_art-7_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hoi_cho",
+          "operator": "in",
+          "value": [
+            "trong nước",
+            "nước ngoài"
+          ],
+          "description": "Loại hội chợ"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ chi phí",
+      "calculation_status": "theo quy định",
+      "note": "Chi phí thuê địa điểm, thiết kế và dàn dựng gian hàng, vận chuyển sản phẩm trưng bày; chi phí đi lại, ăn, ở của đại diện DNNVV"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_dao_tao_quan_tri_doanh_nghiep_2d618b68",
+    "policy_name": "Hỗ trợ đào tạo quản trị doanh nghiệp",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-8",
+      "circular-52-2023-tt-btc_art-8_cl-1",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ_occ-2",
+      "circular-52-2023-tt-btc_art-8_cl-2",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-3",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_khoa_dao_tao",
+          "operator": "==",
+          "value": "quản trị doanh nghiệp",
+          "description": "Khóa đào tạo quản trị doanh nghiệp"
+        },
+        {
+          "field": "hinh_thuc_dao_tao",
+          "operator": "in",
+          "value": [
+            "trực tiếp",
+            "kết hợp"
+          ],
+          "description": "Hình thức đào tạo trực tiếp hoặc kết hợp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ kinh phí",
+      "calculation_status": "theo quy định",
+      "note": "Tối đa 100% chi phí tổ chức khóa đào tạo"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_dao_tao_khoi_su_kinh_doanh_2d618b68",
+    "policy_name": "Hỗ trợ đào tạo khởi sự kinh doanh",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-8",
+      "circular-52-2023-tt-btc_art-8_cl-1",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ_occ-2",
+      "circular-52-2023-tt-btc_art-8_cl-2",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-3",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_khoa_dao_tao",
+          "operator": "==",
+          "value": "khởi sự kinh doanh",
+          "description": "Khóa đào tạo khởi sự kinh doanh"
+        },
+        {
+          "field": "hinh_thuc_dao_tao",
+          "operator": "in",
+          "value": [
+            "trực tiếp",
+            "kết hợp"
+          ],
+          "description": "Hình thức đào tạo trực tiếp hoặc kết hợp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ kinh phí",
+      "calculation_status": "theo quy định",
+      "note": "Tối đa 100% chi phí tổ chức khóa đào tạo"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_dao_tao_tai_dnnvv_2d618b68",
+    "policy_name": "Hỗ trợ đào tạo tại DNNVV",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-8",
+      "circular-52-2023-tt-btc_art-8_cl-1",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ_occ-2",
+      "circular-52-2023-tt-btc_art-8_cl-2",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-3",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_khoa_dao_tao",
+          "operator": "==",
+          "value": "đào tạo tại DNNVV",
+          "description": "Khóa đào tạo tại DNNVV"
+        },
+        {
+          "field": "hinh_thuc_dao_tao",
+          "operator": "in",
+          "value": [
+            "trực tiếp",
+            "kết hợp"
+          ],
+          "description": "Hình thức đào tạo trực tiếp hoặc kết hợp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ kinh phí",
+      "calculation_status": "theo quy định",
+      "note": "Tối đa 100% chi phí tổ chức khóa đào tạo"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_dao_tao_truc_tuyen_2d618b68",
+    "policy_name": "Hỗ trợ đào tạo trực tuyến",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-8",
+      "circular-52-2023-tt-btc_art-8_cl-1",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ",
+      "circular-52-2023-tt-btc_art-8_cl-1_pt-đ_occ-2",
+      "circular-52-2023-tt-btc_art-8_cl-2",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-c",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-d",
+      "circular-52-2023-tt-btc_art-8_cl-2_pt-e",
+      "circular-52-2023-tt-btc_art-8_cl-3",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-a",
+      "circular-52-2023-tt-btc_art-8_cl-3_pt-b",
+      "circular-52-2023-tt-btc_art-8_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_khoa_dao_tao",
+          "operator": "==",
+          "value": "đào tạo trực tuyến",
+          "description": "Khóa đào tạo trực tuyến"
+        },
+        {
+          "field": "hinh_thuc_dao_tao",
+          "operator": "==",
+          "value": "trực tuyến",
+          "description": "Hình thức đào tạo trực tuyến"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ kinh phí",
+      "calculation_status": "theo quy định",
+      "note": "Tối đa 100% chi phí tổ chức khóa đào tạo"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_dao_tao_nghe_c46bb5b0",
+    "policy_name": "Hỗ trợ đào tạo nghề cho lao động của DNNVV",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-10"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "dieu_kien_lao_dong",
+          "operator": "==",
+          "value": "đáp ứng điều kiện quy định tại khoản 4 Điều 14 Nghị định số 80/2021/NĐ-CP",
+          "description": "Lao động phải đáp ứng điều kiện quy định"
+        },
+        {
+          "field": "thoi_gian_dao_tao",
+          "operator": ">=",
+          "value": 3,
+          "description": "Thời gian đào tạo phải từ 03 tháng trở lên"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ chi phí đào tạo",
+      "calculation_status": "theo thông báo của cơ sở đào tạo nghề nghiệp",
+      "note": "tối đa không quá mức quy định tại điểm đ khoản 1 Điều 7 Thông tư số 152/2016/TT-BTC"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "circular_52_2023_tt_btc_ho_tro_dao_tao_43a2c449",
+    "policy_name": "Hỗ trợ đào tạo",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Thông tư hướng dẫn cơ chế sử dụng kinh phí ngân sách nhà nước hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "52/2023/TT-BTC",
+      "url": "",
+      "local_file": "data/raw/52-btc.signed.pdf",
+      "issued_date": "2023-08-08",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "circular-52-2023-tt-btc_art-19"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "DNNVV",
+          "description": "Doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_nghe_kinh_doanh",
+          "operator": "in",
+          "value": [
+            "san_xuat",
+            "che_bien"
+          ],
+          "description": "Ngành nghề kinh doanh chính"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "ho_tro_kinh_phi",
+      "calculation_status": "known",
+      "note": "Hỗ trợ kinh phí đào tạo"
+    },
+    "required_documents": [
+      "giay_chung_nhan_dang_ky_kinh_doanh",
+      "giay_chung_nhan_dao_tao"
+    ],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "circular-52-2023-tt-btc",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hdct_50_tvdh_ab2d42ce",
+    "policy_name": "Hỗ trợ công nghệ cho doanh nghiệp nhỏ và vừa - Tư vấn giải pháp chuyển đổi số",
+    "category": "Hỗ trợ công nghệ",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-11",
+      "decree-80-2021-nd-cp_art-11_cl-1",
+      "decree-80-2021-nd-cp_art-11_cl-2",
+      "decree-80-2021-nd-cp_art-11_cl-3",
+      "decree-80-2021-nd-cp_art-11_cl-4",
+      "decree-80-2021-nd-cp_art-11_cl-5"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "siêu nhỏ",
+            "nhỏ",
+            "vừa"
+          ],
+          "description": "Doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "chi_phi",
+          "operator": "<=",
+          "value": 50,
+          "description": "Hỗ trợ tối đa 50% giá trị hợp đồng"
+        },
+        {
+          "field": "gia_tri_hop_dong",
+          "operator": "<=",
+          "value": {
+            "siêu nhỏ": null,
+            "nhỏ": 50000000,
+            "vừa": 100000000
+          },
+          "description": "Giá trị hợp đồng không quá 50 triệu đồng/hợp đồng/năm đối với doanh nghiệp nhỏ và không quá 100 triệu đồng/hợp đồng/năm đối với doanh nghiệp vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "tư vấn",
+      "calculation_status": "known",
+      "note": "Hỗ trợ tối đa 50% giá trị hợp đồng tư vấn giải pháp chuyển đổi số"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hdct_50_tmds_ab2d42ce",
+    "policy_name": "Hỗ trợ công nghệ cho doanh nghiệp nhỏ và vừa - Thuê, mua giải pháp chuyển đổi số",
+    "category": "Hỗ trợ công nghệ",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-11",
+      "decree-80-2021-nd-cp_art-11_cl-1",
+      "decree-80-2021-nd-cp_art-11_cl-2",
+      "decree-80-2021-nd-cp_art-11_cl-3",
+      "decree-80-2021-nd-cp_art-11_cl-4",
+      "decree-80-2021-nd-cp_art-11_cl-5"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "siêu nhỏ",
+            "nhỏ",
+            "vừa"
+          ],
+          "description": "Doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "chi_phi",
+          "operator": "<=",
+          "value": 50,
+          "description": "Hỗ trợ tối đa 50% chỉ phí"
+        },
+        {
+          "field": "gia_tri_hop_dong",
+          "operator": "<=",
+          "value": {
+            "siêu nhỏ": 20000000,
+            "nhỏ": 50,
+            "vừa": 100000000
+          },
+          "description": "Giá trị hợp đồng không quá 20 triệu đồng/năm đối với doanh nghiệp siêu nhỏ; không quá 50 triệu đồng/năm đối với doanh nghiệp nhỏ và không quá 100 triệu đồng/năm đối với doanh nghiệp vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "thuê, mua",
+      "calculation_status": "known",
+      "note": "Hỗ trợ tối đa 50% chỉ phí cho doanh nghiệp thuê, mua các giải pháp chuyển đổi số"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hdct_50_xlst_ab2d42ce",
+    "policy_name": "Hỗ trợ công nghệ cho doanh nghiệp nhỏ và vừa - Xác lập quyền sở hữu trí tuệ",
+    "category": "Hỗ trợ công nghệ",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-11",
+      "decree-80-2021-nd-cp_art-11_cl-1",
+      "decree-80-2021-nd-cp_art-11_cl-2",
+      "decree-80-2021-nd-cp_art-11_cl-3",
+      "decree-80-2021-nd-cp_art-11_cl-4",
+      "decree-80-2021-nd-cp_art-11_cl-5"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "siêu nhỏ",
+            "nhỏ",
+            "vừa"
+          ],
+          "description": "Doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "chi_phi",
+          "operator": "<=",
+          "value": 50,
+          "description": "Hỗ trợ tối đa 50% giá trị hợp đồng"
+        },
+        {
+          "field": "gia_tri_hop_dong",
+          "operator": "<=",
+          "value": 100000000,
+          "description": "Giá trị hợp đồng không quá 100 triệu đồng/hợp đồng/năm/doanh nghiệp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "xác lập",
+      "calculation_status": "known",
+      "note": "Hỗ trợ tối đa 50% giá trị hợp đồng tư vấn xác lập quyền sở hữu trí tuệ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hdct_50_ctcg_ab2d42ce",
+    "policy_name": "Hỗ trợ công nghệ cho doanh nghiệp nhỏ và vừa - Chuyển giao công nghệ",
+    "category": "Hỗ trợ công nghệ",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-11",
+      "decree-80-2021-nd-cp_art-11_cl-1",
+      "decree-80-2021-nd-cp_art-11_cl-2",
+      "decree-80-2021-nd-cp_art-11_cl-3",
+      "decree-80-2021-nd-cp_art-11_cl-4",
+      "decree-80-2021-nd-cp_art-11_cl-5"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "siêu nhỏ",
+            "nhỏ",
+            "vừa"
+          ],
+          "description": "Doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "chi_phi",
+          "operator": "<=",
+          "value": 50,
+          "description": "Hỗ trợ tối đa 50% giá trị hợp đồng"
+        },
+        {
+          "field": "gia_tri_hop_dong",
+          "operator": "<=",
+          "value": 100000000,
+          "description": "Giá trị hợp đồng không quá 100 triệu đồng/hợp đồng/năm/doanh nghiệp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "chuyển giao",
+      "calculation_status": "known",
+      "note": "Hỗ trợ tối đa 50% giá trị hợp đồng tư vấn chuyển giao công nghệ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_ho_tro_thong_tin_a26213ed",
+    "policy_name": "Hỗ trợ thông tin cho doanh nghiệp nhỏ và vừa",
+    "category": "Hỗ trợ thông tin",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-12",
+      "decree-80-2021-nd-cp_art-12_cl-1",
+      "decree-80-2021-nd-cp_art-12_cl-2",
+      "decree-80-2021-nd-cp_art-12_cl-3",
+      "decree-80-2021-nd-cp_art-12_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn phí truy cập thông tin",
+      "calculation_status": "không cần tính toán",
+      "note": "Miễn phí truy cập các thông tin quy định tại khoản 1 Điều 14 Luật Hỗ trợ doanh nghiệp nhỏ và vừa"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_ho_tro_tu_van_cho_doanh_nghiep_nho_va_vua_ed20064c",
+    "policy_name": "Hỗ trợ tư vấn cho doanh nghiệp nhỏ và vừa",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-13",
+      "decree-80-2021-nd-cp_art-13_cl-1",
+      "decree-80-2021-nd-cp_art-13_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-13_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-13_cl-1_pt-c",
+      "decree-80-2021-nd-cp_art-13_cl-1_pt-đ",
+      "decree-80-2021-nd-cp_art-13_cl-2",
+      "decree-80-2021-nd-cp_art-13_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-13_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-13_cl-2_pt-c"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "siêu nhỏ",
+            "nhỏ",
+            "vừa"
+          ],
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "có quy tắc tính toán",
+      "note": "Hỗ trợ 100% giá trị hợp đồng tư vấn nhưng không quá 50 triệu đồng/năm/doanh nghiệp đối với doanh nghiệp siêu nhỏ, hoặc không quá 70 triệu đồng/năm/doanh nghiệp đối với doanh nghiệp siêu nhỏ do phụ nữ làm chủ, doanh nghiệp siêu nhỏ sử dụng nhiều lao động nữ và doanh nghiệp siêu nhỏ là doanh nghiệp xã hội; Hỗ trợ tối đa 50% giá trị hợp đồng tư vấn nhưng không quá 100 triệu đồng/năm/doanh nghiệp đối với doanh nghiệp nhỏ hoặc không quá 150 triệu đồng/năm/doanh nghiệp đối với doanh nghiệp nhỏ do phụ nữ làm chủ, doanh nghiệp nhỏ sử dụng nhiều lao động nữ và doanh nghiệp nhỏ là doanh nghiệp xã hội; Hỗ trợ tối đa 30% giá trị hợp đồng tư vấn nhưng không quá 150 triệu đồng/năm/doanh nghiệp đối với doanh nghiệp vừa hoặc không quá 200 triệu đồng/năm/doanh nghiệp đối với doanh nghiệp vừa do phụ nữ làm chủ, doanh nghiệp vừa sử dụng nhiều lao động nữ và doanh nghiệp vừa là doanh nghiệp xã hội"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_phat_trien_nguon_nhan_luc_d470ff1d",
+    "policy_name": "Hỗ trợ phát triển nguồn nhân lực cho doanh nghiệp nhỏ và vừa",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-14",
+      "decree-80-2021-nd-cp_art-14_cl-1",
+      "decree-80-2021-nd-cp_art-14_cl-8",
+      "decree-80-2021-nd-cp_art-14_cl-8_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-2",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-3",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "theo tỷ lệ",
+      "note": "Tối đa 100% chi phí đào tạo cho một số trường hợp"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tuyen_d470ff1d",
+    "policy_name": "Hỗ trợ đào tạo trực tuyến về khởi sự kinh doanh và quản trị doanh nghiệp",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-14",
+      "decree-80-2021-nd-cp_art-14_cl-1",
+      "decree-80-2021-nd-cp_art-14_cl-8",
+      "decree-80-2021-nd-cp_art-14_cl-8_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-2",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-3",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn phí",
+      "calculation_status": "không cần tính toán",
+      "note": "Miễn phí truy cập và tham gia các bài giảng trực tuyến"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tiep_d470ff1d",
+    "policy_name": "Hỗ trợ đào tạo trực tiếp tại doanh nghiệp nhỏ và vừa",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-14",
+      "decree-80-2021-nd-cp_art-14_cl-1",
+      "decree-80-2021-nd-cp_art-14_cl-8",
+      "decree-80-2021-nd-cp_art-14_cl-8_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-2",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-3",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "theo tỷ lệ",
+      "note": "Tối đa 70% chi phí đào tạo cho một số trường hợp"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_nghe_d470ff1d",
+    "policy_name": "Hỗ trợ đào tạo nghề",
+    "category": "Hỗ trợ đào tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-14",
+      "decree-80-2021-nd-cp_art-14_cl-1",
+      "decree-80-2021-nd-cp_art-14_cl-8",
+      "decree-80-2021-nd-cp_art-14_cl-8_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-2",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-3",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-14_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-14_cl-4"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "thoi_gian_lam_viec",
+          "operator": ">=",
+          "value": 6,
+          "description": "Người lao động phải làm việc trong doanh nghiệp nhỏ và vừa tối thiểu 06 tháng liên tục trước khi tham gia khóa đào tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "theo tỷ lệ",
+      "note": "Hỗ trợ chi phí đào tạo cho người lao động"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_tvdh_eda7b4b7",
+    "policy_name": "Hỗ trợ tư vấn, hướng dẫn hồ sơ, thủ tục thành lập doanh nghiệp",
+    "category": "Hỗ trợ doanh nghiệp",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-15",
+      "decree-80-2021-nd-cp_art-15_cl-1",
+      "decree-80-2021-nd-cp_art-15_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-15_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-15_cl-2"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "Loại hình kinh doanh",
+          "operator": "==",
+          "value": "Hộ kinh doanh",
+          "description": "Chỉ áp dụng cho hộ kinh doanh đăng ký chuyển đổi thành doanh nghiệp"
+        },
+        {
+          "field": "Nhu cầu hỗ trợ",
+          "operator": "==",
+          "value": "Có nhu cầu tư vấn, hướng dẫn",
+          "description": "Hộ kinh doanh phải có nhu cầu tư vấn, hướng dẫn về trình tự, thủ tục, hồ sơ đăng ký thành lập doanh nghiệp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ tư vấn miễn phí",
+      "calculation_status": "Không áp dụng",
+      "note": "Hỗ trợ tư vấn, hướng dẫn miễn phí về trình tự, thủ tục, hồ sơ đăng ký thành lập doanh nghiệp"
+    },
+    "required_documents": [
+      "Bản sao hợp lệ Giấy đăng ký kinh doanh",
+      "Bản sao hợp lệ Giấy chứng nhận đăng ký mã số thuế",
+      "Bản sao hợp lệ chứng từ nộp lệ phí môn bài"
+    ],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_dang_ky_doanh_nghiep_8eef473a",
+    "policy_name": "Hỗ trợ đăng ký doanh nghiệp",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-16"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh"
+        },
+        {
+          "field": "trang_thai_dang_ky",
+          "operator": "==",
+          "value": "đăng ký doanh nghiệp lần đầu",
+          "description": "Doanh nghiệp phải đăng ký doanh nghiệp lần đầu"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn lệ phí",
+      "calculation_status": "không cần tính toán",
+      "note": "miễn lệ phí đăng ký doanh nghiệp lần đầu và miễn phí công bố nội dung đăng ký doanh nghiệp lần đầu"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_tsdn_kdcd_8aaa3ae0",
+    "policy_name": "Hỗ trợ thủ tục đăng ký ngành, nghề kinh doanh có điều kiện",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-17"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh"
+        },
+        {
+          "field": "nganh_nghe_kd",
+          "operator": "==",
+          "value": "ngành, nghề kinh doanh có điều kiện",
+          "description": "Doanh nghiệp phải hoạt động trong ngành, nghề kinh doanh có điều kiện"
+        },
+        {
+          "field": "quy_mo_kd",
+          "operator": "==",
+          "value": "không thay đổi",
+          "description": "Quy mô kinh doanh không thay đổi"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ thủ tục",
+      "calculation_status": "không áp dụng",
+      "note": "cấp văn bản liên quan đến điều kiện đầu tư kinh doanh trong thời hạn 03 ngày làm việc"
+    },
+    "required_documents": [
+      "đề nghị tới cơ quan quản lý nhà nước có thẩm quyền"
+    ],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_mi_n_l__ph__m_n_b_i_4b1fe7de",
+    "policy_name": "Hỗ trợ lệ phí môn bài",
+    "category": "Hỗ trợ tài chính",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-18"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loại_doanh_nghiệp",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh"
+        },
+        {
+          "field": "thời_hạn",
+          "operator": "<=",
+          "value": 3,
+          "description": "Thời hạn hỗ trợ không quá 03 năm kể từ ngày được cấp Giấy chứng nhận đăng ký doanh nghiệp lần đầu"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "miễn lệ phí",
+      "calculation_status": "không cần tính toán",
+      "note": "Miễn lệ phí môn bài trong thời hạn 03 năm"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_tvan_thue_ke_toan_5cd1883d",
+    "policy_name": "Hỗ trợ tư vấn, hướng dẫn thủ tục hành chính thuế và chế độ kế toán",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-19"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "Loại doanh nghiệp",
+          "operator": "==",
+          "value": "Doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa chuyển đổi từ hộ kinh doanh"
+        },
+        {
+          "field": "Thời gian hỗ trợ",
+          "operator": "<=",
+          "value": "03 năm",
+          "description": "Thời gian hỗ trợ tối đa 03 năm kể từ ngày được cấp Giấy chứng nhận đăng ký doanh nghiệp lần đầu"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Tư vấn miễn phí",
+      "calculation_status": "Không áp dụng",
+      "note": "Tư vấn miễn phí về thủ tục hành chính thuế và chế độ kế toán"
+    },
+    "required_documents": [
+      "Giấy chứng nhận đăng ký doanh nghiệp"
+    ],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hdskt_032b181e",
+    "policy_name": "Hỗ trợ sử dụng cơ sở kỹ thuật, cơ sở ươm tạo, khu làm việc chung",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-22",
+      "decree-80-2021-nd-cp_art-22_cl-1",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-3",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-4",
+      "decree-80-2021-nd-cp_art-22_cl-5",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-đ"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_hoat_dong",
+          "operator": "==",
+          "value": "khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải hoạt động trong lĩnh vực khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "cố định",
+      "note": "Hỗ trợ 100% chi phí sử dụng trang thiết bị tại cơ sở kỹ thuật, cơ sở ươm tạo, khu làm việc chung nhưng không quá 20 triệu đồng/năm/doanh nghiệp"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_htst_032b181e",
+    "policy_name": "Hỗ trợ tư vấn sở hữu trí tuệ, khai thác và phát triển tài sản trí tuệ",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-22",
+      "decree-80-2021-nd-cp_art-22_cl-1",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-3",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-4",
+      "decree-80-2021-nd-cp_art-22_cl-5",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-đ"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_hoat_dong",
+          "operator": "==",
+          "value": "khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải hoạt động trong lĩnh vực khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "cố định",
+      "note": "Hỗ trợ 100% giá trị hợp đồng tư vấn về thủ tục xác lập, chuyển giao, khai thác và bảo vệ quyền sở hữu trí tuệ ở trong nước nhưng không quá 30 triệu đồng/hợp đồng/năm/doanh nghiệp"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_httst_032b181e",
+    "policy_name": "Hỗ trợ thực hiện các thủ tục về tiêu chuẩn, quy chuẩn kỹ thuật, đo lường, chất lượng",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-22",
+      "decree-80-2021-nd-cp_art-22_cl-1",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-3",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-4",
+      "decree-80-2021-nd-cp_art-22_cl-5",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-đ"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_hoat_dong",
+          "operator": "==",
+          "value": "khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải hoạt động trong lĩnh vực khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "cố định",
+      "note": "Hỗ trợ 100% giá trị hợp đồng tư vấn để doanh nghiệp xây dựng, áp dụng tiêu chuẩn cơ sở nhưng không quá 10 triệu đồng/hợp đồng/năm/doanh nghiệp"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hc_032b181e",
+    "policy_name": "Hỗ trợ công nghệ",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-22",
+      "decree-80-2021-nd-cp_art-22_cl-1",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-3",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-4",
+      "decree-80-2021-nd-cp_art-22_cl-5",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-đ"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_hoat_dong",
+          "operator": "==",
+          "value": "khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải hoạt động trong lĩnh vực khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "cố định",
+      "note": "Hỗ trợ tối đa 50% giá trị hợp đồng tư vấn tìm kiếm, lựa chọn, giải mã và chuyển giao công nghệ phù hợp với doanh nghiệp nhưng không quá 100 triệu đồng/hợp đồng/năm/doanh nghiệp"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hdt_032b181e",
+    "policy_name": "Hỗ trợ đào tạo, huấn luyện chuyên sâu",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-22",
+      "decree-80-2021-nd-cp_art-22_cl-1",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-3",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-4",
+      "decree-80-2021-nd-cp_art-22_cl-5",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-đ"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_hoat_dong",
+          "operator": "==",
+          "value": "khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải hoạt động trong lĩnh vực khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "cố định",
+      "note": "Hỗ trợ tối đa 50% chi phí tham gia các khóa đào tạo chuyên sâu trong nước cho học viên của doanh nghiệp về xây dựng, phát triển sản phẩm"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_htt_032b181e",
+    "policy_name": "Hỗ trợ về thông tin, truyền thông, xúc tiến thương mại, kết nối mạng lưới khởi nghiệp sáng tạo",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-22",
+      "decree-80-2021-nd-cp_art-22_cl-1",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-2_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-3",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-4",
+      "decree-80-2021-nd-cp_art-22_cl-5",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-a_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-b_occ-2",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-c",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-d",
+      "decree-80-2021-nd-cp_art-22_cl-5_pt-đ"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_hinh_doanh_nghiep",
+          "operator": "==",
+          "value": "doanh nghiệp nhỏ và vừa",
+          "description": "Doanh nghiệp phải là doanh nghiệp nhỏ và vừa"
+        },
+        {
+          "field": "nganh_hoat_dong",
+          "operator": "==",
+          "value": "khởi nghiệp sáng tạo",
+          "description": "Doanh nghiệp phải hoạt động trong lĩnh vực khởi nghiệp sáng tạo"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "cố định",
+      "note": "Miễn phí tra cứu thông tin về hệ thống các tiêu chuẩn, quy chuẩn trong nước và quốc tế"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_cln_tieuchi_bed75c9e",
+    "policy_name": "Tiêu chí xác định cụm liên kết ngành",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-23",
+      "decree-80-2021-nd-cp_art-23_cl-1",
+      "decree-80-2021-nd-cp_art-23_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-23_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-23_cl-1_pt-c",
+      "decree-80-2021-nd-cp_art-23_cl-2",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-c",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-d"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "số_doanh_nghiệp",
+          "operator": ">=",
+          "value": 10,
+          "description": "Có tối thiểu 10 doanh nghiệp cùng hợp tác và cạnh tranh trong một địa giới hành chính xác định"
+        },
+        {
+          "field": "liên_kết_sản_xuất",
+          "operator": "==",
+          "value": true,
+          "description": "Có các doanh nghiệp liên kết sản xuất, kinh doanh trong cùng ngành, lĩnh vực hoặc trong các ngành, lĩnh vực có liên quan đến nhau"
+        },
+        {
+          "field": "tổ_chức_hỗ_trợ",
+          "operator": "==",
+          "value": true,
+          "description": "Có sự tham gia của các tổ chức hỗ trợ doanh nghiệp"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "calculation_status": "unknown",
+      "note": "Chưa có thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_cln_l_a_ch_n_bed75c9e",
+    "policy_name": "Lựa chọn doanh nghiệp nhỏ và vừa tham gia cụm liên kết ngành",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-23",
+      "decree-80-2021-nd-cp_art-23_cl-1",
+      "decree-80-2021-nd-cp_art-23_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-23_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-23_cl-1_pt-c",
+      "decree-80-2021-nd-cp_art-23_cl-2",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-c",
+      "decree-80-2021-nd-cp_art-23_cl-2_pt-d"
+    ],
+    "rules": {
+      "any": [
+        {
+          "field": "hợp_đồng_mua_chung",
+          "operator": "==",
+          "value": true,
+          "description": "Có hợp đồng mua chung nguyên vật liệu đầu vào"
+        },
+        {
+          "field": "hợp_đồng_bán_chung",
+          "operator": "==",
+          "value": true,
+          "description": "Có hợp đồng bán chung sản phẩm"
+        },
+        {
+          "field": "hợp_đồng_mua_bán_lien_kết",
+          "operator": "==",
+          "value": true,
+          "description": "Có hợp đồng mua bán, hợp tác liên kết giữa các doanh nghiệp trong cụm liên kết ngành"
+        },
+        {
+          "field": "xây_dựng_thương_hiệu_chung",
+          "operator": "==",
+          "value": true,
+          "description": "Cùng xây dựng và sử dụng thương hiệu"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "calculation_status": "unknown",
+      "note": "Chưa có thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_chuoi_gia_tri_9a07f417",
+    "policy_name": "Hỗ trợ doanh nghiệp nhỏ và vừa tham gia chuỗi giá trị",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-24",
+      "decree-80-2021-nd-cp_art-24_cl-1",
+      "decree-80-2021-nd-cp_art-24_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-24_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-24_cl-1_pt-c",
+      "decree-80-2021-nd-cp_art-24_cl-2",
+      "decree-80-2021-nd-cp_art-24_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-24_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-24_cl-2_pt-c"
+    ],
+    "rules": {
+      "any": [
+        {
+          "field": "vai_tro_trong_chuoi",
+          "operator": "==",
+          "value": "doanh_nghiệp_dau_chuoi",
+          "description": "Là doanh nghiệp đầu chuỗi trong chuỗi giá trị"
+        },
+        {
+          "field": "hop_dong",
+          "operator": "==",
+          "value": "hop_dong_mua_ban",
+          "description": "Có hợp đồng mua bán, hợp tác, liên kết với các doanh nghiệp đầu chuỗi"
+        },
+        {
+          "field": "danh_gia",
+          "operator": "==",
+          "value": "co_tiem_nang",
+          "description": "Được doanh nghiệp đầu chuỗi hoặc cơ quan, tổ chức hỗ trợ doanh nghiệp nhỏ và vừa đánh giá có tiềm năng trở thành nhà cung ứng cho doanh nghiệp đầu chuỗi"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tham gia chuỗi giá trị",
+      "calculation_status": "chưa rõ",
+      "note": "cần thêm thông tin về mức hỗ trợ"
+    },
+    "required_documents": [],
+    "document_requirements_status": "requires_implementing_document",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_1_470c5b94",
+    "policy_name": "Hỗ trợ đào tạo",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa tham gia cụm liên kết ngành, chuỗi giá trị",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-25",
+      "decree-80-2021-nd-cp_art-25_cl-1",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-2",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-đ",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-e",
+      "decree-80-2021-nd-cp_art-25_cl-4",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-5",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-c"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loại_hỗ_trợ",
+          "operator": "==",
+          "value": "đào tạo",
+          "description": "Doanh nghiệp được hỗ trợ đào tạo"
+        },
+        {
+          "field": "chi_phí_đào_tạo",
+          "operator": "<=",
+          "value": 50000000,
+          "description": "Chi phí đào tạo không quá 50 triệu đồng"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "tính_toán_dựa_trên_chi_phí",
+      "note": "Hỗ trợ tối đa 50% chi phí đào tạo"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_2_470c5b94",
+    "policy_name": "Hỗ trợ nâng cao năng lực liên kết sản xuất và kinh doanh",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa tham gia cụm liên kết ngành, chuỗi giá trị",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-25",
+      "decree-80-2021-nd-cp_art-25_cl-1",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-2",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-đ",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-e",
+      "decree-80-2021-nd-cp_art-25_cl-4",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-5",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-c"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loại_hỗ_trợ",
+          "operator": "==",
+          "value": "nâng cao năng lực",
+          "description": "Doanh nghiệp được hỗ trợ nâng cao năng lực"
+        },
+        {
+          "field": "giá_trị_hợp_đồng",
+          "operator": "<=",
+          "value": 30000000,
+          "description": "Giá trị hợp đồng không quá 30 triệu đồng"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "tính_toán_dựa_trên_giá_trị_hợp_đồng",
+      "note": "Hỗ trợ 100% giá trị hợp đồng"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_3_470c5b94",
+    "policy_name": "Hỗ trợ thông tin, phát triển thương hiệu, kết nối và mở rộng thị trường",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa tham gia cụm liên kết ngành, chuỗi giá trị",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-25",
+      "decree-80-2021-nd-cp_art-25_cl-1",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-2",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-đ",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-e",
+      "decree-80-2021-nd-cp_art-25_cl-4",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-5",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-c"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loại_hỗ_trợ",
+          "operator": "==",
+          "value": "thông tin và phát triển thương hiệu",
+          "description": "Doanh nghiệp được hỗ trợ thông tin và phát triển thương hiệu"
+        },
+        {
+          "field": "chi_phí_hỗ_trợ",
+          "operator": "<=",
+          "value": 100000000,
+          "description": "Chi phí hỗ trợ không quá 100 triệu đồng"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "tính_toán_dựa_trên_chi_phí",
+      "note": "Hỗ trợ tối đa 50% chi phí"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_4_470c5b94",
+    "policy_name": "Hỗ trợ tư vấn về tiêu chuẩn, quy chuẩn kỹ thuật, đo lường, chất lượng",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa tham gia cụm liên kết ngành, chuỗi giá trị",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-25",
+      "decree-80-2021-nd-cp_art-25_cl-1",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-2",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-đ",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-e",
+      "decree-80-2021-nd-cp_art-25_cl-4",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-5",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-c"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loại_hỗ_trợ",
+          "operator": "==",
+          "value": "tư vấn về tiêu chuẩn",
+          "description": "Doanh nghiệp được hỗ trợ tư vấn về tiêu chuẩn"
+        },
+        {
+          "field": "giá_trị_hợp_đồng",
+          "operator": "<=",
+          "value": 50000000,
+          "description": "Giá trị hợp đồng không quá 50 triệu đồng"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "tính_toán_dựa_trên_giá_trị_hợp_đồng",
+      "note": "Hỗ trợ 100% giá trị hợp đồng"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_5_470c5b94",
+    "policy_name": "Hỗ trợ thực hiện các thủ tục về sản xuất thử nghiệm, kiểm định, giám định, chứng nhận chất lượng",
+    "category": "Hỗ trợ doanh nghiệp nhỏ và vừa tham gia cụm liên kết ngành, chuỗi giá trị",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-25",
+      "decree-80-2021-nd-cp_art-25_cl-1",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-1_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-2",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-2_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-d",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-đ",
+      "decree-80-2021-nd-cp_art-25_cl-3_pt-e",
+      "decree-80-2021-nd-cp_art-25_cl-4",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-4_pt-c",
+      "decree-80-2021-nd-cp_art-25_cl-5",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-a",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-b",
+      "decree-80-2021-nd-cp_art-25_cl-5_pt-c"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loại_hỗ_trợ",
+          "operator": "==",
+          "value": "thực hiện thủ tục",
+          "description": "Doanh nghiệp được hỗ trợ thực hiện thủ tục"
+        },
+        {
+          "field": "chi_phí_thử_nghiệm",
+          "operator": "<=",
+          "value": 30000000,
+          "description": "Chi phí thử nghiệm không quá 30 triệu đồng"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ tài chính",
+      "calculation_status": "tính_toán_dựa_trên_chi_phí",
+      "note": "Hỗ trợ 100% chi phí"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_ho_tro_lai_suat_4dc8e4f0",
+    "policy_name": "Hỗ trợ lãi suất",
+    "category": "Tài chính",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-26",
+      "decree-80-2021-nd-cp_art-26_cl-2",
+      "decree-80-2021-nd-cp_art-26_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "khởi nghiệp sáng tạo",
+            "tham gia cụm liên kết ngành, chuỗi giá trị"
+          ],
+          "description": "Doanh nghiệp nhỏ và vừa khởi nghiệp sáng tạo hoặc tham gia cụm liên kết ngành, chuỗi giá trị"
+        },
+        {
+          "field": "da_nhan_uu_dai",
+          "operator": "==",
+          "value": false,
+          "description": "Chưa được hưởng chính sách ưu đãi về lãi suất của Nhà nước trong cùng một giai đoạn"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "hỗ trợ lãi suất",
+      "calculation_status": "theo phương thức hỗ trợ sau đầu tư",
+      "note": "Mỗi doanh nghiệp được hỗ trợ lãi suất đối với 01 phương án, dự án sản xuất - kinh doanh trong cùng một giai đoạn"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_ho_tro_lai_suat_3f033108",
+    "policy_name": "Hỗ trợ lãi suất",
+    "category": "Tài chính",
+    "legal_source": {
+      "document": "Nghị định quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+      "document_number": "80/2021/NĐ-CP",
+      "url": "",
+      "local_file": "data/raw/80.signed_01.pdf",
+      "issued_date": "2021-08-26",
+      "effective_from": null,
+      "effective_to": null,
+      "status": "unknown",
+      "legal_status_checked_at": null
+    },
+    "evidence_unit_ids": [
+      "decree-80-2021-nd-cp_art-27",
+      "decree-80-2021-nd-cp_art-27_cl-1",
+      "decree-80-2021-nd-cp_art-27_cl-2",
+      "decree-80-2021-nd-cp_art-27_cl-3"
+    ],
+    "rules": {
+      "all": [
+        {
+          "field": "loai_doanh_nghiep",
+          "operator": "in",
+          "value": [
+            "khởi nghiệp sáng tạo",
+            "tham gia cụm liên kết ngành, chuỗi giá trị"
+          ],
+          "description": "Doanh nghiệp nhỏ và vừa thuộc đối tượng hỗ trợ lãi suất"
+        },
+        {
+          "field": "ngan_sach_nha_nuoc",
+          "operator": "==",
+          "value": true,
+          "description": "Dự toán ngân sách nhà nước bố trí cho hỗ trợ lãi suất"
+        }
+      ]
+    },
+    "benefit_calculator": {
+      "type": "Hỗ trợ tài chính",
+      "calculation_status": "known",
+      "note": "Mức chênh lệch lãi suất được ngân sách nhà nước cấp bù là 2%/năm"
+    },
+    "required_documents": [],
+    "document_requirements_status": "known",
+    "review": {
+      "status": "ai_extracted_requires_review",
+      "evidence_repaired": true
+    },
+    "pipeline": {
+      "document_id": "decree-80-2021-nd-cp",
+      "model": "Llama-3.3-70B-Instruct"
+    }
+  }
+]
