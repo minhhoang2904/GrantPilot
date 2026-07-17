@@ -1,33 +1,87 @@
 import { useState } from 'react'
-import { setEmail } from '../auth'
+import { login, register, isRegistered } from '../auth'
 
 interface Props {
   onLogin: (email: string) => void
 }
 
+type Tab = 'login' | 'register'
+
+const inputCls =
+  'w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition'
+
 export default function LoginPage({ onLogin }: Props) {
-  const [value, setValue] = useState('')
+  const [tab, setTab] = useState<Tab>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  function reset() {
+    setError('')
+    setPassword('')
+    setConfirmPassword('')
+  }
+
+  function switchTab(t: Tab) {
+    setTab(t)
+    reset()
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const trimmed = value.trim()
-    if (!trimmed) {
-      setError('Vui lòng nhập email.')
-      return
-    }
-    if (!trimmed.includes('@')) {
+    setError('')
+
+    const trimEmail = email.trim().toLowerCase()
+    if (!trimEmail || !trimEmail.includes('@')) {
       setError('Địa chỉ email không hợp lệ.')
       return
     }
-    setEmail(trimmed)
-    onLogin(trimmed)
+    if (password.length < 6) {
+      setError('Mật khẩu tối thiểu 6 ký tự.')
+      return
+    }
+
+    if (tab === 'register') {
+      if (password !== confirmPassword) {
+        setError('Mật khẩu xác nhận không khớp.')
+        return
+      }
+      if (isRegistered(trimEmail)) {
+        setError('Email này đã được đăng ký. Vui lòng đăng nhập.')
+        setTab('login')
+        return
+      }
+      setSubmitting(true)
+      const ok = register(trimEmail, password)
+      setSubmitting(false)
+      if (ok) {
+        onLogin(trimEmail)
+      } else {
+        setError('Không thể tạo tài khoản. Vui lòng thử lại.')
+      }
+    } else {
+      setSubmitting(true)
+      const ok = login(trimEmail, password)
+      setSubmitting(false)
+      if (ok) {
+        onLogin(trimEmail)
+      } else {
+        if (!isRegistered(trimEmail)) {
+          setError('Email chưa được đăng ký. Vui lòng tạo tài khoản mới.')
+        } else {
+          setError('Mật khẩu không đúng. Vui lòng thử lại.')
+        }
+      }
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Logo / brand */}
+
+        {/* Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-brand rounded-2xl mb-4 shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,45 +90,95 @@ export default function LoginPage({ onLogin }: Props) {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">GrandPilot</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Tư vấn ưu đãi và chính sách doanh nghiệp
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Tư vấn ưu đãi và chính sách doanh nghiệp</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-1">Đăng nhập</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            Nhập email công ty để bắt đầu tư vấn chính sách.
-          </p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200">
+            {(['login', 'register'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => switchTab(t)}
+                className={`flex-1 py-3 text-sm font-medium transition ${
+                  tab === t
+                    ? 'text-brand border-b-2 border-brand bg-white'
+                    : 'text-gray-500 hover:text-gray-700 bg-gray-50'
+                }`}
+              >
+                {t === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}
+              </button>
+            ))}
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-8 space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email công ty
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email công ty</label>
               <input
-                id="email"
                 type="email"
                 autoFocus
-                value={value}
-                onChange={(e) => { setValue(e.target.value); setError('') }}
+                required
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError('') }}
                 placeholder="ten@congty.vn"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition"
+                className={inputCls}
               />
-              {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError('') }}
+                placeholder="Tối thiểu 6 ký tự"
+                className={inputCls}
+              />
+            </div>
+
+            {tab === 'register' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setError('') }}
+                  placeholder="Nhập lại mật khẩu"
+                  className={inputCls}
+                />
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full py-2.5 px-4 bg-brand hover:bg-brand-dark text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+              disabled={submitting}
+              className="w-full py-2.5 px-4 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
             >
-              Đăng nhập
+              {tab === 'login' ? 'Đăng nhập' : 'Tạo tài khoản →'}
             </button>
-          </form>
 
-          <p className="mt-4 text-xs text-center text-gray-400">
-            Chế độ dev — nhập email bất kỳ để thử nghiệm
-          </p>
+            <p className="text-center text-xs text-gray-400">
+              {tab === 'login'
+                ? <>Chưa có tài khoản?{' '}
+                    <button type="button" onClick={() => switchTab('register')}
+                      className="text-brand hover:underline font-medium">Đăng ký ngay</button></>
+                : <>Đã có tài khoản?{' '}
+                    <button type="button" onClick={() => switchTab('login')}
+                      className="text-brand hover:underline font-medium">Đăng nhập</button></>
+              }
+            </p>
+          </form>
         </div>
       </div>
     </div>

@@ -24,27 +24,47 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
+_STOP_WORDS = {"là", "và", "của", "cho", "có", "được", "trong", "với", "các", "không", "này", "về", "tôi", "bạn", "gì", "để"}
+
+def _tokenize(query: str) -> list[str]:
+    """Split query into significant tokens (≥2 chars, not stop-words)."""
+    tokens = [t.strip("?.,!") for t in query.split()]
+    return [t for t in tokens if len(t) >= 2 and t.lower() not in _STOP_WORDS]
+
+
 def search_policies(query: str, top_k: int = 5) -> list[dict[str, Any]]:
     """Tìm các policy có chứa từ khoá trong title/summary/content/category.
 
-    Đây là baseline đơn giản; có thể thay bằng semantic search sau này
-    mà không cần đổi interface (vẫn nhận query, trả list[dict] policy).
+    Tách query thành từng token rồi OR-match từng cái — tránh dùng toàn bộ
+    câu như một LIKE pattern duy nhất (không bao giờ khớp).
     """
-    like_query = f"%{query.strip()}%"
+    tokens = _tokenize(query)
+    if not tokens:
+        return []
+
+    fields = ["title", "summary", "content", "category"]
+    clauses = " OR ".join(f"{f} LIKE ?" for f in fields for _ in tokens)
+    params = [f"%{t}%" for _ in fields for t in tokens]
+    params.append(top_k)
+
     conn = get_connection()
     try:
         rows = conn.execute(
-            """
-            SELECT * FROM policies
-            WHERE title LIKE ? OR summary LIKE ? OR content LIKE ? OR category LIKE ?
-            ORDER BY updated_at DESC
-            LIMIT ?
-            """,
-            (like_query, like_query, like_query, like_query, top_k),
+            f"SELECT * FROM policies WHERE {clauses} ORDER BY updated_at DESC LIMIT ?",
+            params,
         ).fetchall()
     finally:
         conn.close()
-    return [dict(row) for row in rows]
+
+    # Deduplicate (a row may match multiple tokens)
+    seen: set[str] = set()
+    results = []
+    for row in rows:
+        d = dict(row)
+        if d["id"] not in seen:
+            seen.add(d["id"])
+            results.append(d)
+    return results
 
 
 def get_policy_by_id(policy_id: str) -> dict[str, Any] | None:

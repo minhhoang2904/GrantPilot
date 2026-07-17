@@ -24,6 +24,7 @@ export default function App() {
         setView('onboarding')
       }
     } catch {
+      // Server unreachable or error — proceed to onboarding so user isn't stuck
       setView('onboarding')
     }
   }

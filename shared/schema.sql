@@ -16,17 +16,33 @@ CREATE TABLE IF NOT EXISTS policies (
 );
 
 CREATE TABLE IF NOT EXISTS profiles (
-    id                TEXT PRIMARY KEY,
-    business_name     TEXT,
-    industry          TEXT,
-    business_type     TEXT,                  -- vd: ho_kinh_doanh, doanh_nghiep_nho, sme, startup...
-    num_employees     INTEGER,
-    province          TEXT,
-    annual_revenue    REAL,
-    founded_year      INTEGER,
-    extra_attributes  TEXT,                  -- JSON: thuộc tính bổ sung, linh hoạt theo policy
-    created_at        TEXT DEFAULT (datetime('now')),
-    updated_at        TEXT DEFAULT (datetime('now'))
+    id                          TEXT PRIMARY KEY,
+    company_name                TEXT,      -- chỉ hiển thị, không rule nào đọc
+
+    -- tầng 0: phân hạng DNNVV
+    sector                      TEXT,      -- enum: nong_lam_ngu_nghiep | cong_nghiep_xay_dung | thuong_mai_dich_vu
+    social_insurance_employees  INTEGER,   -- ⚠️ BHXH, KHÔNG phải tổng nhân sự
+    annual_revenue_vnd          INTEGER,   -- ⚠️ INTEGER, không REAL
+    total_capital_vnd           INTEGER,   -- doanh thu HOẶC nguồn vốn, chỉ cần một
+
+    -- tầng 1: tư cách
+    founded_year                INTEGER,   -- ⚠️ lưu NĂM, không lưu số tuổi
+    is_public_offering          INTEGER,   -- 0/1/NULL
+    product_type                TEXT,
+    has_patent                  INTEGER,   -- 0/1/NULL
+
+    -- địa bàn: tra availability
+    province                    TEXT,
+
+    -- tầng 2: hồ sơ chứng từ
+    has_coworking_contract      INTEGER,   -- 0/1/NULL
+    has_business_registration   INTEGER,   -- 0/1/NULL
+
+    -- chi phí thực tế: để tính tiền (thêm dần theo program Thành điền)
+    coworking_monthly_cost_vnd  INTEGER,
+
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS eligibility_results (
