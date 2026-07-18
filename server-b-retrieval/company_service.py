@@ -61,6 +61,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import certifi
 from pymongo import MongoClient, ASCENDING
 from pymongo.collection import Collection
 from pymongo.errors import DuplicateKeyError
@@ -91,7 +92,7 @@ _COMPANY_FIELDS = {
 def _get_db():
     global _client
     if _client is None:
-        _client = MongoClient(_MONGO_URI)
+        _client = MongoClient(_MONGO_URI, tlsCAFile=certifi.where())
     return _client[_MONGO_DB]
 
 
