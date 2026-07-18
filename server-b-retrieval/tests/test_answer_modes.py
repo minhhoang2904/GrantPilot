@@ -79,14 +79,20 @@ class AnswerModesTest(unittest.TestCase):
                 current_email="owner@example.test",
             )
         sent_facts = evaluate.call_args.args[0]
+        sent_policy_ids = evaluate.call_args.args[1]
         self.assertEqual(sent_facts["sector"], "thuong_mai_dich_vu")
         self.assertNotIn("company_name", sent_facts)
         self.assertNotIn("has_patent", sent_facts)
+        self.assertEqual(sent_policy_ids, [])
         self.assertEqual(response["mode"], "advisory")
         self.assertEqual(response["eligibility_results"][0]["policy_id"], "p1")
         self.assertEqual(response["results"][0]["status"], "partial")
         self.assertNotEqual(response["results"], response["legal_units"])
-        self.assertIn("Đánh giá theo hồ sơ doanh nghiệp", response["answer"])
+        self.assertIn("Đánh giá theo hồ sơ doanh nghiệp (rule engine)", response["answer"])
+        self.assertLess(
+            response["answer"].index("Đánh giá theo hồ sơ doanh nghiệp"),
+            response["answer"].index("Thông tin pháp lý tham khảo"),
+        )
 
     def test_ask_cannot_write_another_users_history(self):
         with self.assertRaises(HTTPException) as raised:

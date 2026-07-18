@@ -410,7 +410,12 @@ def ask(
         try:
             eligibility = eligibility_client.evaluate_company(
                 decision_facts(company),
-                result["candidate_policy_ids"],
+                # Advisory mode answers "what is this company eligible for?",
+                # so the MVP must evaluate the complete approved decision set.
+                # Retrieval candidates still ground the prose answer, but they
+                # are too narrow to be the eligibility scope for multi-intent
+                # questions (for example, digital transformation + training).
+                [],
                 top_k=min(payload.top_k, 10),
             )
         except Exception as exc:
@@ -422,7 +427,12 @@ def ask(
         frontend_results = eligibility_client.to_frontend_results(raw_results)
         explanation = str(eligibility.get("explanation") or "").strip()
         if explanation:
-            answer = f"{answer}\n\nĐánh giá theo hồ sơ doanh nghiệp:\n{explanation}"
+            answer = (
+                "Đánh giá theo hồ sơ doanh nghiệp (rule engine):\n"
+                f"{explanation}\n\n"
+                "Thông tin pháp lý tham khảo (RAG, không dùng để chấm điều kiện):\n"
+                f"{answer}"
+            )
 
     session_id = _persist_answer(
         payload,
