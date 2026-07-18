@@ -92,6 +92,9 @@ services:
     restart: unless-stopped
     ports:
       - "8501:8501"
+    depends_on:
+      server-b-retrieval:
+        condition: service_started
     environment:
       - SERVER_B_URL=http://server-b-retrieval:8001
       - SERVER_C_URL=http://server-c-eligibility:8002
