@@ -74,7 +74,7 @@ class NormalizePolicyTest(unittest.TestCase):
             ["sample-law_art-22_cl-1"],
         )
         self.assertEqual(policy["evidence_unit_ids"], ["sample-law_art-22_cl-1"])
-        self.assertTrue(policy["policy_id"].startswith("sample_law_credit_support_"))
+        self.assertEqual(policy["policy_id"], "credit-support")
         self.assertEqual(policy["pipeline"]["document_id"], "sample-law")
 
     def test_does_not_expand_unmatched_evidence_to_an_entire_article(self):
@@ -118,13 +118,16 @@ class RuleNormalizationTest(unittest.TestCase):
         self.assertEqual(rows[0]["policy_rule_schema_version"], "policy-rule-schema-v1")
         self.assertIn("canonical_policy_key", rows[0])
         self.assertEqual(rows[0]["review_status"], "candidate")
+        self.assertEqual(rows[0]["evidence_resolution"], "article_fallback")
+        self.assertFalse(rows[0]["eligible_for_decision"])
 
     def test_keeps_contains_distinct_from_in(self):
+        catalog = {"fields": {"sample_text": {"type": "string", "source": "direct", "operators": ["contains", "in"], "aliases": ["ngành nghề"]}}}
         contains, contains_warnings, contains_status = normalize_rules(
-            {"all": [{"field": "ngành nghề", "operator": "contains", "value": "công nghệ"}]}
+            {"all": [{"field": "ngành nghề", "operator": "contains", "value": "công nghệ"}]}, catalog
         )
         in_rule, in_warnings, in_status = normalize_rules(
-            {"all": [{"field": "ngành nghề", "operator": "in", "value": ["công nghệ", "nông nghiệp"]}]}
+            {"all": [{"field": "ngành nghề", "operator": "in", "value": ["công nghệ", "nông nghiệp"]}]}, catalog
         )
         self.assertEqual(contains["all"][0]["operator"], "contains")
         self.assertEqual(in_rule["all"][0]["operator"], "in")
@@ -164,7 +167,7 @@ class RuleNormalizationTest(unittest.TestCase):
             {"all": [{"field": "loại doanh nghiệp", "operator": "==", "value": "startup"}]}
         )
         self.assertEqual(status, "needs_schema_mapping")
-        self.assertIn("chưa có trong fact-catalog-v1", warnings[0])
+        self.assertIn("not in Fact Catalog", warnings[0])
 
     def test_wrong_type_or_operator_is_rejected(self):
         _, _, status = normalize_rules(
@@ -188,7 +191,7 @@ class RuleNormalizationTest(unittest.TestCase):
         )
         self.assertFalse(policy_is_decision_eligible(policy))
         policy["review_status"] = policy["review"]["status"] = "approved"
-        self.assertTrue(policy_is_decision_eligible(policy))
+        self.assertFalse(policy_is_decision_eligible(policy))
 
     def test_semantic_duplicates_are_grouped_even_with_different_ids(self):
         base = {

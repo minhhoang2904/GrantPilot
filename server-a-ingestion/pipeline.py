@@ -207,58 +207,6 @@ def _value_is_valid(value: object, field_type: str, operator: str, definition: d
     return False
 
 
-def normalize_rules(rules: object, catalog: dict | None = None) -> tuple[dict, list[str], str | None]:
-    """Return normalized rules, warnings, and a blocking review status if needed."""
-    catalog = catalog or load_fact_catalog()
-    aliases = fact_aliases(catalog)
-    warnings: list[str] = []
-    blocking_status: str | None = None
-
-    def visit(node: object, path: str = "rules") -> object:
-        nonlocal blocking_status
-        if not isinstance(node, dict):
-            warnings.append(f"{path}: rule phải là object")
-            blocking_status = "rejected"
-            return node
-        groups = [key for key in ("all", "any") if key in node]
-        if groups:
-            if len(groups) != 1 or not isinstance(node[groups[0]], list) or not node[groups[0]]:
-                warnings.append(f"{path}: all/any phải là danh sách không rỗng")
-                blocking_status = "rejected"
-                return node
-            return {groups[0]: [visit(item, f"{path}.{groups[0]}[{index}]") for index, item in enumerate(node[groups[0]])]}
-
-        required = {"field", "operator", "value"}
-        if not required.issubset(node):
-            warnings.append(f"{path}: thiếu field, operator hoặc value")
-            blocking_status = "rejected"
-            return node
-        raw_field = str(node["field"])
-        field = aliases.get(_field_token(raw_field))
-        if not field:
-            warnings.append(f"{path}: field '{raw_field}' chưa có trong fact-catalog-v1")
-            if blocking_status != "rejected":
-                blocking_status = "needs_schema_mapping"
-            return dict(node)
-        operator = node["operator"]
-        definition = catalog["fields"][field]
-        if operator not in ALLOWED_OPERATORS or operator not in definition.get("operators", []):
-            warnings.append(f"{path}: operator '{operator}' không dùng được với {field} ({definition['type']})")
-            blocking_status = "rejected"
-        elif not _value_is_valid(node["value"], definition["type"], operator, definition):
-            warnings.append(f"{path}: value không đúng kiểu/enum của {field}")
-            blocking_status = "rejected"
-        normalized = dict(node)
-        normalized["field"] = field
-        normalized["fact_source"] = definition["source"]
-        return normalized
-
-    normalized = visit(rules)
-    if not isinstance(normalized, dict) or not ({"all", "any"} & normalized.keys()):
-        blocking_status = "rejected"
-    return normalized if isinstance(normalized, dict) else {"all": []}, warnings, blocking_status
-
-
 def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
@@ -451,113 +399,6 @@ Tài liệu: {source['document_title']} ({source['document_number']})
         return [item["embedding"] for item in sorted(data["data"], key=lambda item: item["index"])]
 
 
-def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> dict:
-    """Normalize an extracted policy without silently making it decision-ready."""
-    raw_evidence = policy.get("evidence_unit_ids", []) or []
-    evidence = list(dict.fromkeys(candidate for candidate in raw_evidence if candidate in valid_evidence))
-    evidence_resolution = "precise"
-    requires_evidence_review = False
-    if not evidence:
-        # Deliberately do not expand an article prefix to all of its clauses/points.
-        evidence_resolution = "unresolved"
-        requires_evidence_review = True
-    elif any("_cl-" not in unit_id and "_pt-" not in unit_id for unit_id in evidence):
-        evidence_resolution = "article_fallback"
-        requires_evidence_review = True
-
-    normalized_rules, warnings, rule_status = normalize_rules(policy.get("rules", {"all": []}))
-    raw_id = policy.get("policy_id") or policy.get("policy_name", "policy")
-    clean_id = re.sub(r"[^a-z0-9_]+", "_", raw_id.lower()).strip("_")
-    if not clean_id:
-        clean_id = "policy_" + hashlib.sha1(raw_id.encode()).hexdigest()[:10]
-    document_prefix = source["document_id"].replace("-", "_")
-    evidence_suffix = hashlib.sha1("|".join(evidence or ["unresolved"]).encode()).hexdigest()[:8]
-    clean_id = f"{document_prefix}_{clean_id}_{evidence_suffix}"
-    support_type = str((policy.get("benefit_calculator") or {}).get("type") or policy.get("category") or "other")
-    first_evidence = evidence[0] if evidence else ""
-    location = re.search(r"_art-([^_]+)(?:_cl-([^_]+))?(?:_pt-([^_]+))?", first_evidence)
-    article, clause, point = location.groups("") if location else ("", "", "")
-    rules_hash = hashlib.sha256(
-        json.dumps(normalized_rules, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
-    canonical_policy_key = "|".join([source["document_id"], article, clause, point, _field_token(support_type), rules_hash])
-    review_status = rule_status or "candidate"
-    result = {
-        "policy_id": clean_id,
-        "policy_name": policy.get("policy_name", "Chưa đặt tên"),
-        "category": policy.get("category", "Khác"),
-        "legal_source": {
-            "document": source["document_title"],
-            "document_number": source["document_number"],
-            "url": source["source_url"],
-            "local_file": f"data/raw/{source['file']}",
-            "issued_date": source.get("issued_date"),
-            "effective_from": source.get("effective_from"),
-            "effective_to": source.get("effective_to"),
-            "status": source.get("status", "unknown"),
-            "legal_status_checked_at": source.get("legal_status_checked_at"),
-        },
-        "evidence_unit_ids": evidence,
-        "evidence_resolution": evidence_resolution,
-        "requires_evidence_review": requires_evidence_review,
-        "rules": normalized_rules,
-        "normalized_rules": normalized_rules,
-        "policy_rule_schema_version": POLICY_RULE_SCHEMA_VERSION,
-        "canonical_policy_key": canonical_policy_key,
-        "normalized_rule_hash": rules_hash,
-        "normalization_warnings": warnings,
-        "source_document_version": source.get("version", 1),
-        "benefit_calculator": policy.get("benefit_calculator", {}),
-        "required_documents": policy.get("required_documents", []),
-        "document_requirements_status": policy.get("document_requirements_status", "requires_implementing_document"),
-        "review": {
-            "status": review_status,
-            "evidence_repaired": False,
-        },
-        "review_status": review_status,
-        "is_current": bool(evidence),
-        "eligible_for_decision": False,
-        "pipeline": {"document_id": source["document_id"], "model": POLICY_MODEL},
-    }
-    result["eligible_for_decision"] = policy_is_decision_eligible(result)
-    return result
-
-
-def policy_is_decision_eligible(policy: dict) -> bool:
-    """The only gate Server C may use when selecting executable policies."""
-    review_status = policy.get("review_status") or (policy.get("review") or {}).get("status")
-    return bool(
-        policy.get("is_current", True)
-        and review_status == "approved"
-        and policy.get("evidence_unit_ids")
-        and policy.get("evidence_resolution") == "precise"
-        and not policy.get("requires_evidence_review", False)
-        and not policy.get("normalization_warnings", [])
-    )
-
-
-def apply_duplicate_metadata(policies: list[dict]) -> list[dict]:
-    """Group semantic duplicates even when their display IDs/names differ."""
-    groups: dict[str, list[dict]] = defaultdict(list)
-    for policy in policies:
-        groups[policy.get("canonical_policy_key", policy["policy_id"])].append(policy)
-    for key, matches in groups.items():
-        if len(matches) < 2:
-            continue
-        duplicate_group_id = "duplicate_" + hashlib.sha256(key.encode()).hexdigest()[:16]
-        primary = sorted(matches, key=lambda item: item["policy_id"])[0]
-        for policy in matches:
-            policy["duplicate_group_id"] = duplicate_group_id
-            if policy is primary:
-                continue
-            policy["supersedes_policy_id"] = primary["policy_id"]
-            policy["review_status"] = "superseded"
-            policy.setdefault("review", {})["status"] = "superseded"
-            policy["is_current"] = False
-            policy["eligible_for_decision"] = False
-    return policies
-
-
 def enrich_policy_source(policy: dict, source: dict) -> dict:
     """Cập nhật metadata văn bản cho policy lấy từ cache/ingest cũ."""
     policy = dict(policy)
@@ -581,64 +422,6 @@ def enrich_policy_source(policy: dict, source: dict) -> dict:
     pipeline.setdefault("model", POLICY_MODEL)
     policy["pipeline"] = pipeline
     return policy
-
-
-def canonicalize_legacy_policy(policy: dict, source: dict | None, valid_evidence: list[str]) -> dict:
-    """Migrate old shapes into the same guarded schema; never auto-approve them."""
-    policy = dict(policy)
-    if not source:
-        source = {
-            "document_id": (policy.get("pipeline") or {}).get("document_id", "unmapped"),
-            "document_title": (policy.get("legal_source") or {}).get("document", "Chưa rõ văn bản"),
-            "document_number": (policy.get("legal_source") or {}).get("document_number", ""),
-            "source_url": (policy.get("legal_source") or {}).get("url", ""),
-            "file": Path((policy.get("legal_source") or {}).get("local_file", "unknown.pdf")).name,
-            "status": "unknown",
-        }
-    # Some historic records placed executable data under payload; lift it first.
-    payload = policy.get("payload") or {}
-    for field in ("rules", "benefit_calculator", "required_documents", "evidence_unit_ids"):
-        if field not in policy and field in payload:
-            policy[field] = payload[field]
-    normalized = normalize_policy(policy, source, valid_evidence)
-    normalized["pipeline"] = {**(policy.get("pipeline") or {"source": "legacy_manual"}), "document_id": source["document_id"]}
-    # A previous extracted/manual label is not an approval record under the new gate.
-    legacy_status = policy.get("review_status") or (policy.get("review") or {}).get("status")
-    if legacy_status == "approved":
-        normalized["review_status"] = "approved"
-        normalized["review"]["status"] = "approved"
-    normalized["eligible_for_decision"] = policy_is_decision_eligible(normalized)
-    return normalized
-
-
-def normalize_policy_artifact(policies: list[dict], units: list[dict], sources: dict[str, dict]) -> list[dict]:
-    """Upgrade old policies.json records before either ingestion entrypoint writes Mongo."""
-    source_by_document = {source["document_id"]: source for source in sources.values()}
-    normalized: list[dict] = []
-    for policy in policies:
-        document_id = (policy.get("pipeline") or {}).get("document_id")
-        local_file = Path((policy.get("legal_source") or {}).get("local_file", "")).name
-        source = source_by_document.get(document_id) or sources.get(local_file)
-        effective_document_id = (source or {}).get("document_id", document_id)
-        valid_evidence = [unit["unit_id"] for unit in units if unit["document_id"] == effective_document_id]
-        if policy.get("policy_rule_schema_version") == POLICY_RULE_SCHEMA_VERSION:
-            # Re-check current catalog without changing an already stable policy_id.
-            row = dict(policy)
-            rules, warnings, blocking = normalize_rules(row.get("rules", {"all": []}))
-            row["rules"] = row["normalized_rules"] = rules
-            row["normalization_warnings"] = list(dict.fromkeys([*(row.get("normalization_warnings") or []), *warnings]))
-            if blocking:
-                row["review_status"] = blocking
-                row.setdefault("review", {})["status"] = blocking
-            elif row.get("review_status") not in REVIEW_STATUSES:
-                row["review_status"] = "candidate"
-                row.setdefault("review", {})["status"] = "candidate"
-                row["normalization_warnings"].append("review_status cũ đã được chuyển thành candidate")
-            row["eligible_for_decision"] = policy_is_decision_eligible(row)
-            normalized.append(row)
-        else:
-            normalized.append(canonicalize_legacy_policy(policy, source, valid_evidence))
-    return apply_duplicate_metadata(normalized)
 
 
 def run_ocr(pdfs: list[Path], force: bool = False) -> None:
@@ -730,16 +513,13 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
 
     existing = json.loads(POLICIES_PATH.read_text(encoding="utf-8")) if POLICIES_PATH.exists() else []
     generated_documents = {document_id for document_id, _ in grouped}
-    source_by_file = {source["file"]: source for source in sources.values()}
     kept = []
     for policy in existing:
         if policy.get("pipeline", {}).get("document_id") in generated_documents:
             continue
-        local_file = Path(policy.get("legal_source", {}).get("local_file", "")).name
-        source = source_by_file.get(local_file)
-        document_id = (source or {}).get("document_id")
-        valid_evidence = [unit["unit_id"] for unit in units if unit["document_id"] == document_id]
-        kept.append(canonicalize_legacy_policy(policy, source, valid_evidence))
+        # The canonical normalizer below handles both current and legacy shapes.
+        # Missing source mapping intentionally becomes a non-decision candidate.
+        kept.append(policy)
     merged = {p["policy_id"]: p for p in kept}
     merged.update({p["policy_id"]: p for p in generated})
     all_policies = normalize_policy_artifact(list(merged.values()), units, sources)
@@ -854,6 +634,55 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
         ]
         index.upsert(vectors=vectors, namespace=PINECONE_NAMESPACE)
         print(f"[EMBED] {min(start + batch_size, len(pending))}/{len(pending)}")
+
+
+# Policy normalization is intentionally centralized. These compatibility wrappers
+# keep the OCR/LLM pipeline API stable while Mongo recomputes evidence at write time.
+from policy_normalization import (  # noqa: E402
+    SCHEMA_VERSION as POLICY_RULE_SCHEMA_VERSION,
+    apply_duplicates as apply_duplicate_metadata,
+    dry_run as policy_dry_run,
+    prepare_policy_for_ingest as _prepare_policy_for_ingest,
+)
+
+
+def normalize_rules(rules: object, catalog: dict | None = None):
+    from policy_normalization import normalize_rules as canonical_normalize_rules
+    normalized, issues, _ = canonical_normalize_rules(rules, catalog)
+    status = "needs_schema_mapping" if any(i["code"] == "unknown_field" for i in issues) else ("rejected" if any(i["severity"] == "blocking" for i in issues) else None)
+    return normalized, [i["message"] for i in issues], status
+
+
+def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> dict:
+    policy = {**policy, "pipeline": {**(policy.get("pipeline") or {}), "document_id": source["document_id"]}}
+    policy["evidence_unit_ids"] = [x for x in policy.get("evidence_unit_ids", []) if x in valid_evidence]
+    result = _prepare_policy_for_ingest(policy, None, source)
+    if not result["evidence_unit_ids"]:
+        result["evidence_resolution"] = "unresolved"
+    elif any("_cl-" not in x and "_pt-" not in x for x in result["evidence_unit_ids"]):
+        result["evidence_resolution"] = "article_fallback"
+    else:
+        result["evidence_resolution"] = "precise"
+    result["requires_evidence_review"] = result["evidence_resolution"] != "precise"
+    result["eligible_for_decision"] = False
+    return result
+
+
+def policy_is_decision_eligible(policy: dict) -> bool:
+    from policy_normalization import approval_valid, load_catalog
+    return bool(policy.get("eligible_for_decision") and approval_valid(policy, load_catalog()))
+
+
+def normalize_policy_artifact(policies: list[dict], units: list[dict], sources: dict[str, dict]) -> list[dict]:
+    source_by_document = {row["document_id"]: row for row in sources.values()}
+    normalized = []
+    for policy in policies:
+        document_id = (policy.get("pipeline") or {}).get("document_id") or policy.get("document_id")
+        source = source_by_document.get(document_id, {})
+        evidence_ids = set(policy.get("evidence_unit_ids") or (policy.get("payload") or {}).get("evidence_unit_ids") or [])
+        evidence_rows = [unit for unit in units if unit.get("unit_id") in evidence_ids]
+        normalized.append(_prepare_policy_for_ingest(policy, None, source, evidence_rows=evidence_rows))
+    return apply_duplicate_metadata(normalized)
 
 
 def main() -> None:
