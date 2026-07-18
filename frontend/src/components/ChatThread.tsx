@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { ChatMode, Message } from '../types'
 import ResultsTable from './ResultsTable'
+import SourcesPanel from './SourcesPanel'
+import AdvisoryPanel from './AdvisoryPanel'
 
 function UserBubble({ content }: { content: string }) {
   return (
@@ -12,7 +14,21 @@ function UserBubble({ content }: { content: string }) {
   )
 }
 
-function AssistantBubble({ content, results }: { content: string; results?: Message['results'] }) {
+function AssistantBubble({
+  content,
+  results,
+  sources,
+  advisoryResult,
+  warning,
+  onOpenPdf,
+}: {
+  content: string
+  results?: Message['results']
+  sources?: Message['sources']
+  advisoryResult?: Message['advisoryResult']
+  warning?: string
+  onOpenPdf?: (url: string, label: string) => void
+}) {
   return (
     <div className="flex gap-3 items-start">
       <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand to-purple-500 rounded-full flex items-center justify-center shadow-sm">
@@ -25,7 +41,23 @@ function AssistantBubble({ content, results }: { content: string; results?: Mess
         <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed text-gray-800 shadow-sm whitespace-pre-wrap">
           {content}
         </div>
-        {results && results.length > 0 && <ResultsTable results={results} />}
+        {warning && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            {warning}
+          </div>
+        )}
+        {/* New: lookup sources */}
+        {sources && sources.length > 0 && (
+          <SourcesPanel items={sources} onOpenPdf={onOpenPdf} />
+        )}
+        {/* New: advisory result */}
+        {advisoryResult && <AdvisoryPanel result={advisoryResult} />}
+        {/* Legacy: old eligibility results from history */}
+        {results && results.length > 0 && <ResultsTable results={results} onOpenPdf={onOpenPdf} />}
       </div>
     </div>
   )
@@ -56,14 +88,19 @@ interface Props {
   loading: boolean
   mode?: ChatMode
   onSend?: (question: string) => void
+  onOpenPdf?: (url: string, label: string) => void
 }
 
-export default function ChatThread({ messages, loading, mode = 'rag', onSend }: Props) {
+export default function ChatThread({ messages, loading, mode = 'lookup', onSend, onOpenPdf }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  // Show typing indicator only when loading and the assistant hasn't started responding yet
+  const lastMsg = messages[messages.length - 1]
+  const showTyping = loading && (!lastMsg || lastMsg.role === 'user')
 
   if (messages.length === 0 && !loading) {
     return (
@@ -76,7 +113,7 @@ export default function ChatThread({ messages, loading, mode = 'rag', onSend }: 
         </div>
         <h3 className="text-base font-semibold text-gray-700 mb-1">Bắt đầu tư vấn chính sách</h3>
         <p className="text-sm text-gray-400 max-w-xs">
-          {mode === 'eligibility'
+          {mode === 'advisory'
             ? 'Hỏi về ưu đãi / chính sách — chế độ Tư vấn sâu đối chiếu với hồ sơ doanh nghiệp để xem bạn đủ điều kiện hay chưa.'
             : 'Hỏi về ưu đãi hay chính sách hỗ trợ. Chế độ Tra cứu nhanh không yêu cầu hồ sơ doanh nghiệp.'}
         </p>
@@ -107,10 +144,18 @@ export default function ChatThread({ messages, loading, mode = 'rag', onSend }: 
         msg.role === 'user' ? (
           <UserBubble key={msg.id} content={msg.content} />
         ) : (
-          <AssistantBubble key={msg.id} content={msg.content} results={msg.results} />
+          <AssistantBubble
+            key={msg.id}
+            content={msg.content}
+            results={msg.results}
+            sources={msg.sources}
+            advisoryResult={msg.advisoryResult}
+            warning={msg.warning}
+            onOpenPdf={onOpenPdf}
+          />
         ),
       )}
-      {loading && <TypingIndicator />}
+      {showTyping && <TypingIndicator />}
       <div ref={bottomRef} />
     </div>
   )

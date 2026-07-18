@@ -23,6 +23,14 @@ const STATUS_CONFIG: Record<PolicyStatus, { label: string; className: string }> 
     label: 'Đã hết hạn',
     className: 'bg-gray-100 text-gray-600',
   },
+  needs_more_information: {
+    label: 'Cần thêm thông tin',
+    className: 'bg-yellow-100 text-yellow-800',
+  },
+  manual_review: {
+    label: 'Cần xem xét thêm',
+    className: 'bg-blue-100 text-blue-700',
+  },
 }
 
 function StatusBadge({ status }: { status: PolicyStatus }) {
@@ -34,20 +42,29 @@ function StatusBadge({ status }: { status: PolicyStatus }) {
   )
 }
 
-function SourceLink({ source }: { source: PolicyResult['source'] }) {
+function SourceLink({
+  source,
+  onOpenPdf,
+}: {
+  source: PolicyResult['source']
+  onOpenPdf?: (url: string, label: string) => void
+}) {
   if (!source) return <span className="text-gray-400">—</span>
   const parts = [source.dieu, source.khoan, source.thong_tu].filter(Boolean).join(', ')
   const label = parts || 'Nguồn'
   if (source.url) {
     return (
-      <a
-        href={source.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-brand hover:text-brand-dark text-xs underline underline-offset-2"
+      <button
+        type="button"
+        onClick={() => onOpenPdf?.(source.url!, label)}
+        className="flex items-center gap-1 text-brand hover:text-brand-dark text-xs underline underline-offset-2 text-left transition"
       >
         {label}
-      </a>
+        <svg className="w-3 h-3 opacity-60 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </button>
     )
   }
   return <span className="text-xs text-gray-600">{label}</span>
@@ -55,9 +72,10 @@ function SourceLink({ source }: { source: PolicyResult['source'] }) {
 
 interface Props {
   results: PolicyResult[]
+  onOpenPdf?: (url: string, label: string) => void
 }
 
-export default function ResultsTable({ results }: Props) {
+export default function ResultsTable({ results, onOpenPdf }: Props) {
   if (!results || results.length === 0) return null
 
   return (
@@ -86,7 +104,7 @@ export default function ResultsTable({ results }: Props) {
                   {formatVND(r.value)}
                 </td>
                 <td className="px-4 py-3 align-top">
-                  <SourceLink source={r.source} />
+                  <SourceLink source={r.source} onOpenPdf={onOpenPdf} />
                 </td>
               </tr>
             ))}

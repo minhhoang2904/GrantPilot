@@ -1,4 +1,11 @@
-import type { AskResponse, Company, FlatAskResponse, ChatMode } from './types'
+import type {
+  AdvisoryResult,
+  AskResponse,
+  ChatMode,
+  Company,
+  FlatAskResponse,
+  SourceItem,
+} from './types'
 import { getToken, clearSession } from './auth'
 
 // In dev, Vite proxies /api/* -> http://localhost:8001/* (see vite.config.ts).
@@ -19,6 +26,21 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+async function responseErrorDetail(res: Response): Promise<string> {
+  const fallback = res.statusText || 'Không thể xử lý yêu cầu.'
+  try {
+    const body = (await res.json()) as unknown
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) return fallback
+
+    const { detail, message } = body as Record<string, unknown>
+    if (typeof detail === 'string' && detail.trim()) return detail.trim()
+    if (typeof message === 'string' && message.trim()) return message.trim()
+  } catch {
+    // Non-JSON error bodies are intentionally not exposed to the UI.
+  }
+  return fallback
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T | null> {
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -36,8 +58,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     return null
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new ApiError(res.status, `Server lỗi ${res.status}: ${text}`)
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
   }
   return res.json() as Promise<T>
 }
@@ -87,7 +109,7 @@ export async function updateCompany(
   return result
 }
 
-// ── Chat ──────────────────────────────────────────────────────────────────────
+// ── Chat history ──────────────────────────────────────────────────────────────
 
 export interface HistoryTurn {
   role: 'user' | 'assistant'
@@ -115,6 +137,136 @@ export async function deleteSession(email: string, sessionId: string): Promise<v
   if (!result) throw new ApiError(404, 'Không tìm thấy phiên chat.')
 }
 
+// ── New streaming chat API (/v1/chat/stream) ──────────────────────────────────
+
+type StartedEvent = {
+  type: 'started'
+  request_id: string
+  conversation_id: string
+  mode: ChatMode
+}
+
+type AnswerDeltaEvent = {
+  type: 'answer_delta'
+  text: string
+}
+
+type SourcesEvent = {
+  type: 'sources'
+  items: SourceItem[]
+}
+
+type AdvisoryResultEvent = {
+  type: 'advisory_result'
+  data: AdvisoryResult
+}
+
+type CompletedEvent = {
+  type: 'completed'
+  message_id: string
+}
+
+type ErrorEvent = {
+  type: 'error'
+  error: {
+    code: string
+    message: string
+    retryable: boolean
+  }
+}
+
+type WarningEvent = {
+  type: 'warning'
+  code: string
+  message: string
+}
+
+export type ChatStreamEvent =
+  | StartedEvent
+  | AnswerDeltaEvent
+  | SourcesEvent
+  | AdvisoryResultEvent
+  | CompletedEvent
+  | ErrorEvent
+  | WarningEvent
+
+export async function* chatStream(
+  message: string,
+  mode: ChatMode,
+  conversationId: string | null,
+): AsyncGenerator<ChatStreamEvent> {
+  const res = await fetch(`${BASE}/v1/chat/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/x-ndjson',
+      ...authHeaders(),
+    },
+    body: JSON.stringify({
+      mode,
+      message,
+      conversation_id: conversationId,
+      options: { top_k: 5 },
+    }),
+  })
+
+  if (res.status === 401) {
+    clearSession()
+    window.location.reload()
+    return
+  }
+
+  if (res.status === 409) {
+    throw new ApiError(409, 'Cần hồ sơ doanh nghiệp để dùng chế độ tư vấn.')
+  }
+
+  if (!res.ok) {
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
+  }
+
+  if (!res.body) {
+    throw new ApiError(500, 'Không nhận được phản hồi từ server.')
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (trimmed) {
+          try {
+            yield JSON.parse(trimmed) as ChatStreamEvent
+          } catch {
+            // ignore malformed lines
+          }
+        }
+      }
+    }
+    // flush remaining buffer
+    const trimmed = buffer.trim()
+    if (trimmed) {
+      try {
+        yield JSON.parse(trimmed) as ChatStreamEvent
+      } catch {
+        // ignore
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+// ── Legacy non-streaming API (kept for backward compat) ───────────────────────
+
 type RawAskResponse = {
   answer: string
   results?: AskResponse['results']
@@ -134,7 +286,7 @@ export async function ask(
   email: string,
   question: string,
   sessionId?: string,
-  mode: ChatMode = 'rag',
+  mode: ChatMode = 'lookup',
 ): Promise<AskResponse> {
   const result = await request<RawAskResponse>('POST', '/ask', {
     email,
