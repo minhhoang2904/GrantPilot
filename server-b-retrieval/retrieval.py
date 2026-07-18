@@ -119,81 +119,152 @@ def reciprocal_rank_fusion(
             dense_rank=rank,
             fusion_score=merged[unit_id].get("fusion_score", 0.0) + 1 / (rrf_k + rank),
         )
-    if rows:
-        try:
-            response = requests.post(
-                f"{SERVER_A_URL}/internal/legal-units/batch",
-                json={"unit_ids": [row["id"] for row in rows]},
-                timeout=30,
+    for rank, (unit_id, score) in enumerate(sparse, start=1):
+        merged[unit_id].setdefault("unit_id", unit_id)
+        merged[unit_id]["bm25_score"] = score
+        merged[unit_id]["bm25_rank"] = rank
+        merged[unit_id]["fusion_score"] = (
+            merged[unit_id].get("fusion_score", 0.0) + 1 / (rrf_k + rank)
+        )
+    return sorted(merged.values(), key=lambda c: c.get("fusion_score", 0.0), reverse=True)
+
+
+# ── LegalRetriever ────────────────────────────────────────────────────────────
+
+class LegalRetriever:
+    """Hybrid retriever: dense (Pinecone) + sparse (BM25) -> RRF -> rerank."""
+
+    def __init__(self) -> None:
+        self.fpt = FptClient()
+        self._dense = PineconeDenseIndex()
+        self._store: Any = None
+        self._bm25: BM25Index | None = None
+        self._bm25_loaded = False
+
+    @property
+    def store(self) -> Any:
+        if self._store is None:
+            self._store = build_legal_unit_store()
+        return self._store
+
+    def _get_bm25(self) -> BM25Index | None:
+        """BM25 chỉ khả dụng khi backend JSONL (toàn bộ units trong RAM)."""
+        if self._bm25_loaded:
+            return self._bm25
+        self._bm25_loaded = True
+        units = getattr(self.store, "units", None)
+        if units:
+            self._bm25 = BM25Index(units)
+        return self._bm25
+
+    def retrieve(
+        self,
+        question: str,
+        *,
+        history: list[dict[str, str]] | None = None,
+        top_k: int = 5,
+    ) -> RetrievalResult:
+        history = history or []
+        route, filters = detect_route(question, bool(history))
+        diagnostics: dict[str, Any] = {}
+
+        # Rewrite câu hỏi follow-up thành câu độc lập
+        if route == "follow_up" and history:
+            retrieval_query = self.fpt.rewrite_query(question, history)
+        else:
+            retrieval_query = question
+
+        legal_units: list[dict[str, Any]] = []
+
+        if route == "exact_citation":
+            legal_units = self.store.exact_lookup(**filters)
+            # Thêm context cấp cha (điều/khoản)
+            seen = {u.get("unit_id") for u in legal_units}
+            for unit in list(legal_units):
+                for parent in self.store.parents(unit):
+                    pid = parent.get("unit_id")
+                    if pid and pid not in seen:
+                        legal_units.append(parent)
+                        seen.add(pid)
+            legal_units = legal_units[:top_k]
+            diagnostics["exact_hits"] = len(legal_units)
+
+        else:
+            # Dense search (Pinecone)
+            dense_results: list[tuple[str, float]] = []
+            if self._dense.enabled and self.fpt.enabled:
+                try:
+                    vectors = self.fpt.embed([retrieval_query])
+                    dense_results = self._dense.search(vectors[0], top_k=config.DENSE_TOP_K)
+                except Exception as exc:
+                    diagnostics["dense_error"] = str(exc)
+
+            # Sparse search (BM25, JSONL backend only)
+            sparse_results: list[tuple[str, float]] = []
+            bm25 = self._get_bm25()
+            if bm25:
+                sparse_results = bm25.search(retrieval_query, top_k=config.BM25_TOP_K)
+
+            diagnostics.update(
+                dense_count=len(dense_results),
+                sparse_count=len(sparse_results),
             )
-            response.raise_for_status()
-            hydrated = {item["unit_id"]: item for item in response.json().get("items", [])}
-            for row in rows:
-                unit = hydrated.get(row["id"])
-                if unit:
-                    row["content"] = unit.get("text", "")
-                    row["summary"] = unit.get("normalized_text", row["content"])
-                    row["version"] = unit.get("version")
-                    row["is_current"] = unit.get("is_current")
-        except Exception:
-            pass
-    return rows
+
+            # Fuse + hydrate
+            if dense_results or sparse_results:
+                fused = reciprocal_rank_fusion(
+                    dense_results, sparse_results, rrf_k=config.RRF_K
+                )
+                top_ids = [c["unit_id"] for c in fused[: config.FUSION_TOP_K]]
+                hydrated = self.store.get_many(top_ids)
+            else:
+                hydrated = []
+
+            diagnostics["hydrated_count"] = len(hydrated)
+
+            # Rerank
+            if hydrated and self.fpt.enabled and config.FPT_RERANK_MODEL:
+                docs = [embedding_text(u) for u in hydrated]
+                try:
+                    ranked = self.fpt.rerank(retrieval_query, docs, top_n=top_k)
+                    scored = [(hydrated[idx], score) for idx, score in ranked]
+                    if config.RERANK_MIN_SCORE >= 0:
+                        scored = [(u, s) for u, s in scored if s >= config.RERANK_MIN_SCORE]
+                    for u, score in scored:
+                        u["rerank_score"] = score
+                    legal_units = [u for u, _ in scored]
+                except Exception as exc:
+                    diagnostics["rerank_error"] = str(exc)
+                    legal_units = hydrated[:top_k]
+            else:
+                legal_units = hydrated[:top_k]
+
+        # Tìm candidate policy IDs từ unit_ids
+        unit_ids = [u.get("unit_id") for u in legal_units if u.get("unit_id")]
+        candidate_policy_ids = self.store.policy_ids_for(unit_ids) if unit_ids else []
+
+        return RetrievalResult(
+            original_query=question,
+            retrieval_query=retrieval_query,
+            route=route,
+            legal_units=legal_units,
+            candidate_policy_ids=candidate_policy_ids,
+            diagnostics=diagnostics,
+        )
 
 
-def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+# ── Singleton + helpers ───────────────────────────────────────────────────────
+
+_retriever: LegalRetriever | None = None
 
 
-_STOP_WORDS = {"là", "và", "của", "cho", "có", "được", "trong", "với", "các", "không", "này", "về", "tôi", "bạn", "gì", "để"}
+def get_retriever() -> LegalRetriever:
+    global _retriever
+    if _retriever is None:
+        _retriever = LegalRetriever()
+    return _retriever
 
 
-def _tokenize(query: str) -> list[str]:
-    tokens = [t.strip("?.,!") for t in query.split()]
-    return [t for t in tokens if len(t) >= 2 and t.lower() not in _STOP_WORDS]
-
-
-def _legacy_search(query: str, top_k: int) -> list[dict[str, Any]]:
-    tokens = _tokenize(query)
-    if not tokens:
-        return []
-
-    fields = ["title", "summary", "content", "category"]
-    clauses = " OR ".join(f"{f} LIKE ?" for f in fields for _ in tokens)
-    params = [f"%{t}%" for _ in fields for t in tokens]
-    params.append(top_k)
-
-    conn = get_connection()
-    try:
-        rows = conn.execute(
-            f"SELECT * FROM policies WHERE {clauses} ORDER BY updated_at DESC LIMIT ?",
-            params,
-        ).fetchall()
-    finally:
-        conn.close()
-
-    seen: set[str] = set()
-    results = []
-    for row in rows:
-        d = dict(row)
-        if d["id"] not in seen:
-            seen.add(d["id"])
-            results.append(d)
-    return results
-
-
-def search_policies(query: str, top_k: int = 5) -> list[dict[str, Any]]:
-    """Dùng semantic Pinecone khi đã cấu hình; SQLite là fallback khi chưa ingest."""
-    if os.getenv("PINECONE_API_KEY") and os.getenv("PINECONE_INDEX_NAME"):
-        return _semantic_search(query, top_k)
-    return _legacy_search(query, top_k)
-
-
-def get_policy_by_id(policy_id: str) -> dict[str, Any] | None:
-    conn = get_connection()
-    try:
-        row = conn.execute("SELECT * FROM policies WHERE id = ?", (policy_id,)).fetchone()
-    finally:
-        conn.close()
-    return dict(row) if row else None
+def search_legal_units(query: str, top_k: int = 5) -> list[dict[str, Any]]:
+    """Wrapper cho /search endpoint."""
+    return get_retriever().retrieve(query, top_k=top_k)["legal_units"]

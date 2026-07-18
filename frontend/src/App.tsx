@@ -46,7 +46,7 @@ export default function App() {
     setCompany(c)
     if (onboardingRequired) {
       try {
-        localStorage.setItem('gp_chat_mode', 'eligibility')
+        localStorage.setItem('gp_chat_mode', 'advisory')
       } catch {
         /* ignore */
       }
@@ -57,7 +57,7 @@ export default function App() {
 
   function handleOnboardingSkip() {
     try {
-      localStorage.setItem('gp_chat_mode', 'rag')
+      localStorage.setItem('gp_chat_mode', 'lookup')
     } catch {
       /* ignore */
     }

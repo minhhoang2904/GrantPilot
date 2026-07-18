@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { ChatMode, Company, Message, Sector } from '../types'
-import { ask, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
+import { chatStream, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
 import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
 import ChatInput from '../components/ChatInput'
@@ -56,11 +56,14 @@ export function isProfileComplete(company: Company | null | undefined): boolean 
 function loadStoredMode(): ChatMode {
   try {
     const v = localStorage.getItem(MODE_KEY)
-    if (v === 'eligibility' || v === 'rag') return v
+    if (v === 'lookup' || v === 'advisory') return v
+    // Migrate old values
+    if (v === 'eligibility') return 'advisory'
+    if (v === 'rag') return 'lookup'
   } catch {
     /* ignore */
   }
-  return 'rag'
+  return 'lookup'
 }
 
 function sessionTitle(session: HistorySession, index: number): string {
@@ -130,10 +133,10 @@ export default function MainPage({
     }
   }
 
-  // Eligibility mode needs a complete profile — fall back to RAG otherwise
+  // Advisory mode needs a complete profile — fall back to lookup otherwise
   useEffect(() => {
-    if (mode === 'eligibility' && !profileComplete) {
-      persistMode('rag')
+    if (mode === 'advisory' && !profileComplete) {
+      persistMode('lookup')
     }
   }, [mode, profileComplete])
 
@@ -164,7 +167,7 @@ export default function MainPage({
   }, [email])
 
   function handleModeChange(next: ChatMode) {
-    if (next === 'eligibility' && !profileComplete) {
+    if (next === 'advisory' && !profileComplete) {
       onOpenOnboarding(true)
       return
     }
@@ -208,7 +211,7 @@ export default function MainPage({
   }
 
   async function handleSend(question: string) {
-    if (mode === 'eligibility' && !profileComplete) {
+    if (mode === 'advisory' && !profileComplete) {
       onOpenOnboarding(true)
       return
     }
@@ -220,28 +223,87 @@ export default function MainPage({
     }
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
+
+    const assistantId = `a-${Date.now()}`
+    let assistantStarted = false
+
     try {
-      const res = await ask(email, question, sessionId, mode)
-      if (res.session_id) {
-        setSessionId(res.session_id)
-        // Refresh session list so new / updated session appears
-        const list = await getHistory(email)
-        setSessions(list)
+      for await (const event of chatStream(question, mode, sessionId ?? null)) {
+        switch (event.type) {
+          case 'started':
+            setSessionId(event.conversation_id)
+            break
+
+          case 'answer_delta':
+            if (!assistantStarted) {
+              assistantStarted = true
+              setMessages((prev) => [
+                ...prev,
+                { id: assistantId, role: 'assistant', content: event.text },
+              ])
+            } else {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, content: m.content + event.text } : m,
+                ),
+              )
+            }
+            break
+
+          case 'sources':
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, sources: event.items } : m,
+              ),
+            )
+            break
+
+          case 'advisory_result':
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, advisoryResult: event.data } : m,
+              ),
+            )
+            break
+
+          case 'warning':
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, warning: event.message } : m,
+              ),
+            )
+            break
+
+          case 'error':
+            if (!assistantStarted) {
+              assistantStarted = true
+              setMessages((prev) => [
+                ...prev,
+                { id: assistantId, role: 'assistant', content: event.error.message },
+              ])
+            }
+            break
+
+          case 'completed':
+            void getHistory(email).then(setSessions)
+            break
+        }
       }
-      const assistantMsg: Message = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: res.answer,
-        results: mode === 'eligibility' ? res.results : undefined,
-      }
-      setMessages((prev) => [...prev, assistantMsg])
     } catch (err) {
-      const errMsg: Message = {
-        id: `e-${Date.now()}`,
-        role: 'assistant',
-        content: err instanceof ApiError ? err.message : 'Đã xảy ra lỗi, vui lòng thử lại.',
+      const errText =
+        err instanceof ApiError ? err.message : 'Đã xảy ra lỗi, vui lòng thử lại.'
+      if (!assistantStarted) {
+        setMessages((prev) => [
+          ...prev,
+          { id: assistantId, role: 'assistant', content: errText },
+        ])
+      } else {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId && !m.content ? { ...m, content: errText } : m,
+          ),
+        )
       }
-      setMessages((prev) => [...prev, errMsg])
     } finally {
       setLoading(false)
     }
@@ -272,9 +334,9 @@ export default function MainPage({
           <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-white/5">
             <button
               type="button"
-              onClick={() => handleModeChange('rag')}
+              onClick={() => handleModeChange('lookup')}
               className={`px-2 py-2 rounded-md text-xs font-medium transition leading-tight ${
-                mode === 'rag'
+                mode === 'lookup'
                   ? 'bg-brand text-white shadow-sm'
                   : 'text-gray-400 hover:text-white hover:bg-white/10'
               }`}
@@ -283,9 +345,9 @@ export default function MainPage({
             </button>
             <button
               type="button"
-              onClick={() => handleModeChange('eligibility')}
+              onClick={() => handleModeChange('advisory')}
               className={`px-2 py-2 rounded-md text-xs font-medium transition leading-tight ${
-                mode === 'eligibility'
+                mode === 'advisory'
                   ? 'bg-brand text-white shadow-sm'
                   : 'text-gray-400 hover:text-white hover:bg-white/10'
               }`}
@@ -293,7 +355,7 @@ export default function MainPage({
               Tư vấn sâu
             </button>
           </div>
-          {mode === 'eligibility' && !profileComplete && (
+          {mode === 'advisory' && !profileComplete && (
             <p className="mt-2 text-[11px] text-amber-400/90 leading-snug">
               Cần hồ sơ doanh nghiệp đầy đủ để dùng chế độ này.
             </p>
@@ -446,7 +508,7 @@ export default function MainPage({
       <main className="flex-1 flex flex-col min-w-0">
         <div
           className={`flex-shrink-0 border-b px-6 py-4 transition-colors ${
-            mode === 'eligibility'
+            mode === 'advisory'
               ? 'bg-teal-50 border-teal-200'
               : 'bg-sky-50 border-sky-200'
           }`}
@@ -456,35 +518,35 @@ export default function MainPage({
               <div className="flex items-center gap-2.5">
                 <span
                   className={`w-1 h-5 rounded-full shrink-0 ${
-                    mode === 'eligibility' ? 'bg-teal-600' : 'bg-sky-600'
+                    mode === 'advisory' ? 'bg-teal-600' : 'bg-sky-600'
                   }`}
                 />
                 <h2
                   className={`text-base font-semibold ${
-                    mode === 'eligibility' ? 'text-teal-900' : 'text-sky-900'
+                    mode === 'advisory' ? 'text-teal-900' : 'text-sky-900'
                   }`}
                 >
-                  {mode === 'eligibility' ? 'Tư vấn sâu theo hồ sơ' : 'Tra cứu chính sách nhanh'}
+                  {mode === 'advisory' ? 'Tư vấn sâu theo hồ sơ' : 'Tra cứu chính sách nhanh'}
                 </h2>
               </div>
               <p
                 className={`text-xs mt-1.5 pl-[14px] ${
-                  mode === 'eligibility' ? 'text-teal-700/80' : 'text-sky-700/80'
+                  mode === 'advisory' ? 'text-teal-700/80' : 'text-sky-700/80'
                 }`}
               >
-                {mode === 'eligibility'
+                {mode === 'advisory'
                   ? 'Đối chiếu ưu đãi với hồ sơ doanh nghiệp của bạn — biết ngay đủ điều kiện hay còn thiếu gì.'
                   : 'Hỏi đáp chính sách hỗ trợ nhanh, không cần điền hồ sơ doanh nghiệp.'}
               </p>
             </div>
             <span
               className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-md ${
-                mode === 'eligibility'
+                mode === 'advisory'
                   ? 'bg-teal-600 text-white'
                   : 'bg-sky-600 text-white'
               }`}
             >
-              {mode === 'eligibility' ? 'Tư vấn sâu' : 'Tra cứu nhanh'}
+              {mode === 'advisory' ? 'Tư vấn sâu' : 'Tra cứu nhanh'}
             </span>
           </div>
         </div>
