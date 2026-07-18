@@ -2,6 +2,7 @@ services:
   redis:
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
     volumes:
       - redis-data:/data
     healthcheck:
@@ -26,6 +27,7 @@ services:
   server-a-api:
     build: ./server-a-ingestion
     command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
     env_file:
       - .env
       - ./server-a-ingestion/.env
@@ -37,6 +39,7 @@ services:
 
   server-b-retrieval:
     build: ./server-b-retrieval
+    restart: unless-stopped
     env_file:
       - .env
       - ./server-a-ingestion/.env
@@ -86,6 +89,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     ports:
       - "8501:8501"
     environment:
