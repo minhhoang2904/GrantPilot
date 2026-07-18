@@ -10,7 +10,7 @@ from typing import Iterable
 
 import certifi
 from dotenv import load_dotenv
-from pymongo import MongoClient
+from pymongo import MongoClient, ReplaceOne
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -34,6 +34,8 @@ def checksum_file(path) -> str:
 
 def database():
     options = {"serverSelectionTimeoutMS": 5000}
+    # Atlas uses TLS. Some local Python installations do not know the Atlas CA
+    # chain unless it is explicitly supplied from certifi.
     if MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower():
         options["tlsCAFile"] = os.getenv("MONGO_TLS_CA_FILE", certifi.where())
     client = MongoClient(MONGO_URI, **options)
@@ -146,3 +148,45 @@ def current_units(db, document_ids: set[str] | None = None) -> list[dict]:
     if document_ids:
         query["document_id"] = {"$in": list(document_ids)}
     return list(db.legal_units.find(query, {"_id": 0}))
+
+
+def ingest_policies(db, policies: Iterable[dict]) -> dict:
+    """Upsert policy records while preserving their original payload and review state."""
+    current_versions = {
+        row["document_id"]: row["version"]
+        for row in db.legal_documents.find({"is_current": True}, {"_id": 0, "document_id": 1, "version": 1})
+    }
+    operations = []
+    now = utcnow()
+    for policy in policies:
+        pipeline = policy.get("pipeline") or {}
+        legal_source = policy.get("legal_source") or {}
+        document_id = pipeline.get("document_id")
+        if not document_id:
+            local_file = str(legal_source.get("local_file", "")).split("/")[-1]
+            document = db.legal_documents.find_one({"source_file": local_file, "is_current": True}, {"document_id": 1})
+            document_id = document.get("document_id") if document else "unmapped"
+        document_version = current_versions.get(document_id)
+        row = {
+            "policy_id": policy["policy_id"],
+            "document_id": document_id,
+            "document_version": document_version,
+            "is_current": document_id in current_versions,
+            "policy_name": policy.get("policy_name", ""),
+            "category": policy.get("category", ""),
+            "review_status": (policy.get("review") or {}).get("status", "unknown"),
+            "evidence_unit_ids": policy.get("evidence_unit_ids", []),
+            "payload": policy,
+            "updated_at": now,
+        }
+        operations.append(
+            ReplaceOne(
+                {"policy_id": row["policy_id"], "document_id": document_id, "document_version": document_version},
+                {**row, "ingested_at": now},
+                upsert=True,
+            )
+        )
+    if not operations:
+        return {"upserted": 0}
+    result = db.policies.bulk_write(operations, ordered=False)
+    return {"upserted": result.upserted_count, "updated": result.modified_count, "total": len(operations)}

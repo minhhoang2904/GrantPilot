@@ -77,6 +77,16 @@ curl -X POST http://localhost:8000/internal/legal-units/batch \
 curl 'http://localhost:8000/internal/legal-units/exact?document_number=04%2F2017%2FQH14&article=12&clause=3&point=b'
 ```
 
+Nạp dữ liệu hiện có vào MongoDB (không lưu binary PDF):
+
+```bash
+python ingest_mongodb.py
+```
+
+Script tính SHA-256 cho mỗi PDF để tránh trùng, lưu metadata/version vào `legal_documents`,
+đẩy units vào `legal_units`, rồi upsert toàn bộ `policies.json` vào collection `policies`.
+Nó nhận cả tên biến `MONGO_URI`/`MONGO_DB` và `MONGODB_URI`/`MONGODB_DB`.
+
 ## 4. Test retrieval
 
 ```bash
