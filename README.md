@@ -1,4 +1,4 @@
-# GrandPilot
+# GrantPilot
 
 Hệ thống tư vấn chính sách hỗ trợ doanh nghiệp: tra cứu chính sách, kiểm tra điều kiện hưởng (eligibility) và trả lời câu hỏi dựa trên hồ sơ doanh nghiệp.
 
