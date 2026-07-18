@@ -4,6 +4,7 @@ import { ask, deleteSession, getHistory, ApiError, type HistorySession } from '.
 import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
 import ChatInput from '../components/ChatInput'
+import PdfSidePanel from '../components/PdfSidePanel'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -121,6 +122,13 @@ export default function MainPage({
   const [sessionId, setSessionId] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(true)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfLabel, setPdfLabel] = useState<string>('')
+
+  function handleOpenPdf(url: string, label: string) {
+    setPdfUrl(url)
+    setPdfLabel(label)
+  }
 
   const profileComplete = isProfileComplete(company)
 
@@ -501,10 +509,20 @@ export default function MainPage({
             loading={loading}
             mode={mode}
             onSend={loading || historyLoading ? undefined : handleSend}
+            onOpenPdf={handleOpenPdf}
           />
         )}
         <ChatInput onSend={handleSend} disabled={loading || historyLoading} />
       </main>
+
+      {/* PDF side panel */}
+      {pdfUrl && (
+        <PdfSidePanel
+          url={pdfUrl}
+          label={pdfLabel}
+          onClose={() => setPdfUrl(null)}
+        />
+      )}
     </div>
   )
 }
