@@ -1,0 +1,47 @@
+[
+  {
+    "policy_id": "decree_80_2021_nd_cp_ho_tro_thong_tin_a26213ed",
+    "policy_name": "Hỗ trợ thông tin cho doanh nghiệp nhỏ và vừa",
+    "category": "Hỗ trợ thông tin",
+    "pipeline": {"document_id": "decree-80-2021-nd-cp", "source": "golden_mvp_review"},
+    "evidence_unit_ids": ["decree-80-2021-nd-cp_art-12_cl-1"],
+    "rules": {"all": [{"field": "is_sme", "operator": "==", "value": true}]},
+    "benefit_calculator": {"type": "Miễn phí truy cập thông tin", "note": "Truy cập thông tin hỗ trợ DNNVV trên Cổng thông tin và trang thông tin điện tử theo quy định."},
+    "required_documents": []
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tuyen_d470ff1d",
+    "policy_name": "Hỗ trợ đào tạo trực tuyến về khởi sự kinh doanh và quản trị doanh nghiệp",
+    "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "pipeline": {"document_id": "decree-80-2021-nd-cp", "source": "golden_mvp_review"},
+    "evidence_unit_ids": ["decree-80-2021-nd-cp_art-14_cl-2_pt-a", "decree-80-2021-nd-cp_art-14_cl-2_pt-b"],
+    "rules": {"all": [{"field": "is_sme", "operator": "==", "value": true}]},
+    "benefit_calculator": {"type": "Miễn phí đào tạo trực tuyến", "note": "Miễn phí truy cập bài giảng và tham gia khóa đào tạo trực tuyến."},
+    "required_documents": []
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tiep_d470ff1d",
+    "policy_name": "Hỗ trợ đào tạo trực tiếp tại DNNVV lĩnh vực sản xuất, chế biến",
+    "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "pipeline": {"document_id": "decree-80-2021-nd-cp", "source": "golden_mvp_review"},
+    "evidence_unit_ids": ["decree-80-2021-nd-cp_art-14_cl-3"],
+    "rules": {"all": [
+      {"field": "is_sme", "operator": "==", "value": true},
+      {"field": "primary_business_activity_group", "operator": "in", "value": ["manufacturing", "processing"]}
+    ]},
+    "benefit_calculator": {"type": "Hỗ trợ đào tạo trực tiếp", "note": "Áp dụng cho DNNVV trong lĩnh vực sản xuất, chế biến."},
+    "required_documents": []
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_cong_nghe_48284a5c",
+    "policy_name": "Hỗ trợ thuê hoặc mua giải pháp chuyển đổi số",
+    "category": "Hỗ trợ công nghệ và chuyển đổi số",
+    "pipeline": {"document_id": "circular-06-2022-tt-bkhdt", "source": "golden_mvp_review"},
+    "evidence_unit_ids": ["circular-06-2022-tt-bkhdt_art-7_cl-1"],
+    "rules": {"all": [{"field": "is_sme", "operator": "==", "value": true}]},
+    "support_scope": {"solution_type": "digital_transformation", "eligible_action": ["rent", "purchase"], "publication_requirement": "Giải pháp được công bố trên cổng/trang thông tin theo quy định."},
+    "application_requirements": ["Giải pháp chuyển đổi số phải được công bố trên cổng hoặc trang thông tin hợp lệ theo quy định."],
+    "benefit_calculator": {"type": "Hỗ trợ chi phí thuê hoặc mua giải pháp chuyển đổi số", "note": "Phạm vi chỉ gồm thuê hoặc mua giải pháp chuyển đổi số được công bố theo quy định."},
+    "required_documents": []
+  }
+]
