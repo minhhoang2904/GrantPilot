@@ -1,17 +1,28 @@
 import { useState, useEffect } from 'react'
-import type { Company, Message, Sector } from '../types'
-import { ask, getHistory, ApiError } from '../api'
+import type { ChatMode, Company, LegalForm, Message, Sector } from '../types'
+import { ask, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
 import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
 import ChatInput from '../components/ChatInput'
-import BenchmarkPanel from '../components/BenchmarkPanel'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
+const MODE_KEY = 'gp_chat_mode'
 
 const SECTOR_LABELS: Record<Sector, string> = {
   nong_lam_ngu_nghiep: 'Nông / Lâm / Ngư',
   cong_nghiep_xay_dung: 'CN & Xây dựng',
   thuong_mai_dich_vu: 'TM & Dịch vụ',
+}
+
+const LEGAL_FORM_LABELS: Record<LegalForm, string> = {
+  joint_stock_company: 'Công ty cổ phần',
+  limited_liability_company: 'Công ty TNHH',
+  partnership: 'Công ty hợp danh',
+  private_enterprise: 'Doanh nghiệp tư nhân',
+  cooperative: 'Hợp tác xã',
+  household_business: 'Hộ kinh doanh',
+  other: 'Khác',
 }
 
 function sectorLabel(s?: Sector | null) {
@@ -24,49 +35,130 @@ function triboolLabel(v?: boolean | null) {
   return null
 }
 
+function compactVnd(n?: number | null) {
+  if (n == null) return null
+  return (
+    new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(n) +
+    ' ₫'
+  )
+}
+
+/** Profile is complete when all eligibility-required fields are filled. */
+export function isProfileComplete(company: Company | null | undefined): boolean {
+  if (!company?.company_name?.trim()) return false
+  if (company.profile_schema_version !== 'company-profile-v1') return false
+  if (!company.sector) return false
+  if (!company.primary_business_activity_group) return false
+  if (!company.legal_form) return false
+  if (company.social_insurance_employees == null) return false
+  if (company.annual_revenue_vnd == null) return false
+  if (company.total_capital_vnd == null) return false
+  if (!company.first_business_registration_date) return false
+  if (!company.business_description?.trim()) return false
+  if (company.has_public_offering == null) return false
+  if (!company.province_name?.trim()) return false
+  if (company.has_coworking_contract == null) return false
+  if (company.has_business_registration == null) return false
+  if (company.has_coworking_contract && company.coworking_monthly_cost_vnd == null) return false
+  return true
+}
+
+function loadStoredMode(): ChatMode {
+  try {
+    const v = localStorage.getItem(MODE_KEY)
+    if (v === 'eligibility' || v === 'rag') return v
+  } catch {
+    /* ignore */
+  }
+  return 'rag'
+}
+
+function sessionTitle(session: HistorySession, index: number): string {
+  const firstUser = session.turns.find((t) => t.role === 'user')
+  if (firstUser?.content?.trim()) {
+    const t = firstUser.content.trim()
+    return t.length > 42 ? t.slice(0, 42) + '…' : t
+  }
+  return `Cuộc trò chuyện ${index + 1}`
+}
+
+function turnsToMessages(turns: HistorySession['turns']): Message[] {
+  return turns.map((t, i) => ({
+    id: `h-${i}`,
+    role: t.role,
+    content: t.content,
+    results: t.results as Message['results'],
+  }))
+}
+
 function SidebarStat({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="flex justify-between text-xs">
-      <span className="text-gray-400">{label}</span>
-      <span className={value ? 'text-gray-300' : 'text-gray-600 italic'}>{value ?? '—'}</span>
+    <div className="flex justify-between gap-2 text-xs">
+      <span className="text-gray-400 shrink-0">{label}</span>
+      <span className={`text-right truncate ${value ? 'text-gray-200' : 'text-gray-600 italic'}`}>
+        {value ?? 'null'}
+      </span>
     </div>
   )
 }
 
-type Tab = 'chat' | 'benchmark'
-
 interface Props {
   email: string
-  company: Company
+  company: Company | null
   onLogout: () => void
+  onOpenOnboarding: (required: boolean) => void
 }
 
-export default function MainPage({ email, company, onLogout }: Props) {
-  const [tab, setTab] = useState<Tab>('chat')
+export default function MainPage({
+  email,
+  company,
+  onLogout,
+  onOpenOnboarding,
+}: Props) {
+  const [mode, setMode] = useState<ChatMode>(loadStoredMode)
+  const [sessions, setSessions] = useState<HistorySession[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [sessionId, setSessionId] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(true)
 
-  // Load most recent session on mount
+  const profileComplete = isProfileComplete(company)
+
+  function persistMode(next: ChatMode) {
+    setMode(next)
+    try {
+      localStorage.setItem(MODE_KEY, next)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Eligibility mode needs a complete profile — fall back to RAG otherwise
+  useEffect(() => {
+    if (mode === 'eligibility' && !profileComplete) {
+      persistMode('rag')
+    }
+  }, [mode, profileComplete])
+
   useEffect(() => {
     async function loadHistory() {
+      setHistoryLoading(true)
       try {
-        const sessions = await getHistory(email)
-        if (sessions.length > 0) {
-          // Use the most recent session
-          const latest = sessions[sessions.length - 1]
+        const list = await getHistory(email)
+        // Newest last from API — show newest first in sidebar
+        setSessions(list)
+        if (list.length > 0) {
+          const latest = list[list.length - 1]
           setSessionId(latest.session_id)
-          const restored: Message[] = latest.turns.map((t, i) => ({
-            id: `h-${i}`,
-            role: t.role,
-            content: t.content,
-            results: t.results as Message['results'],
-          }))
-          setMessages(restored)
+          setMessages(turnsToMessages(latest.turns))
+        } else {
+          setSessionId(undefined)
+          setMessages([])
         }
       } catch {
-        // History unavailable — start fresh session
+        setSessions([])
+        setSessionId(undefined)
+        setMessages([])
       } finally {
         setHistoryLoading(false)
       }
@@ -74,12 +166,56 @@ export default function MainPage({ email, company, onLogout }: Props) {
     void loadHistory()
   }, [email])
 
+  function handleModeChange(next: ChatMode) {
+    if (next === 'eligibility' && !profileComplete) {
+      onOpenOnboarding(true)
+      return
+    }
+    persistMode(next)
+  }
+
   function handleLogout() {
     clearSession()
     onLogout()
   }
 
+  function selectSession(session: HistorySession) {
+    setSessionId(session.session_id)
+    setMessages(turnsToMessages(session.turns))
+  }
+
+  function handleNewChat() {
+    setSessionId(undefined)
+    setMessages([])
+  }
+
+  async function handleDeleteSession(e: React.MouseEvent, sid: string) {
+    e.stopPropagation()
+    try {
+      await deleteSession(email, sid)
+      const next = sessions.filter((s) => s.session_id !== sid)
+      setSessions(next)
+      if (sessionId === sid) {
+        if (next.length > 0) {
+          const latest = next[next.length - 1]
+          setSessionId(latest.session_id)
+          setMessages(turnsToMessages(latest.turns))
+        } else {
+          setSessionId(undefined)
+          setMessages([])
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   async function handleSend(question: string) {
+    if (mode === 'eligibility' && !profileComplete) {
+      onOpenOnboarding(true)
+      return
+    }
+
     const userMsg: Message = {
       id: `u-${Date.now()}`,
       role: 'user',
@@ -88,14 +224,18 @@ export default function MainPage({ email, company, onLogout }: Props) {
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
     try {
-      const res = await ask(email, question, sessionId)
-      // Server returns the session_id used — keep it for next message
-      if (res.session_id) setSessionId(res.session_id)
+      const res = await ask(email, question, sessionId, mode)
+      if (res.session_id) {
+        setSessionId(res.session_id)
+        // Refresh session list so new / updated session appears
+        const list = await getHistory(email)
+        setSessions(list)
+      }
       const assistantMsg: Message = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         content: res.answer,
-        results: res.results,
+        results: mode === 'eligibility' ? res.results : undefined,
       }
       setMessages((prev) => [...prev, assistantMsg])
     } catch (err) {
@@ -110,10 +250,12 @@ export default function MainPage({ email, company, onLogout }: Props) {
     }
   }
 
+  const sessionsNewestFirst = [...sessions].reverse()
+
   return (
     <div className="h-screen flex overflow-hidden bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 flex-shrink-0 bg-sidebar flex flex-col">
+      <aside className="w-72 flex-shrink-0 bg-sidebar flex flex-col">
         {/* Brand */}
         <div className="px-5 py-5 border-b border-white/10">
           <div className="flex items-center gap-2.5">
@@ -127,66 +269,166 @@ export default function MainPage({ email, company, onLogout }: Props) {
           </div>
         </div>
 
-        {/* Company info */}
-        <div className="px-5 py-4 border-b border-white/10">
-          <p className="text-xs text-gray-400 mb-0.5">Doanh nghiệp</p>
-          <p className="text-sm font-semibold text-white truncate">{company.company_name}</p>
-          <p className="text-xs text-gray-400 truncate">{email}</p>
+        {/* Mode toggle */}
+        <div className="px-4 py-3 border-b border-white/10">
+          <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">Chế độ tư vấn</p>
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-white/5">
+            <button
+              type="button"
+              onClick={() => handleModeChange('rag')}
+              className={`px-2 py-2 rounded-md text-xs font-medium transition leading-tight ${
+                mode === 'rag'
+                  ? 'bg-brand text-white shadow-sm'
+                  : 'text-gray-400 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Tra cứu nhanh
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange('eligibility')}
+              className={`px-2 py-2 rounded-md text-xs font-medium transition leading-tight ${
+                mode === 'eligibility'
+                  ? 'bg-brand text-white shadow-sm'
+                  : 'text-gray-400 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Tư vấn sâu
+            </button>
+          </div>
+          {mode === 'eligibility' && !profileComplete && (
+            <p className="mt-2 text-[11px] text-amber-400/90 leading-snug">
+              Cần hồ sơ doanh nghiệp đầy đủ để dùng chế độ này.
+            </p>
+          )}
         </div>
 
-        {/* Nav tabs */}
-        <nav className="px-3 py-4 flex-1 space-y-1">
-          <button
-            onClick={() => setTab('chat')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-              tab === 'chat'
-                ? 'bg-white/15 text-white'
-                : 'text-gray-400 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            Tư vấn chính sách
-          </button>
-          <button
-            onClick={() => setTab('benchmark')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-              tab === 'benchmark'
-                ? 'bg-white/15 text-white'
-                : 'text-gray-400 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            So sánh benchmark
-          </button>
-        </nav>
+        {/* Sessions */}
+        <div className="flex-1 min-h-0 flex flex-col border-b border-white/10">
+          <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] uppercase tracking-wide text-gray-500">Cuộc trò chuyện</p>
+            <button
+              type="button"
+              onClick={handleNewChat}
+              className="text-[11px] font-medium text-brand hover:text-white transition"
+            >
+              + Mới
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto chat-scroll px-2 pb-2 space-y-0.5">
+            {historyLoading ? (
+              <p className="px-2 py-3 text-xs text-gray-500">Đang tải...</p>
+            ) : sessionsNewestFirst.length === 0 ? (
+              <p className="px-2 py-3 text-xs text-gray-500 italic">Chưa có phiên chat</p>
+            ) : (
+              sessionsNewestFirst.map((s, i) => {
+                const active = s.session_id === sessionId
+                const idx = sessions.length - 1 - i
+                return (
+                  <div
+                    key={s.session_id}
+                    className={`group w-full text-left px-2.5 py-2 rounded-lg transition flex items-start gap-2 ${
+                      active
+                        ? 'bg-white/15 text-white'
+                        : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => selectSession(s)}
+                      className="flex-1 min-w-0 flex items-start gap-2 text-left"
+                    >
+                      <svg className="w-3.5 h-3.5 mt-0.5 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-xs font-medium truncate">
+                          {sessionTitle(s, idx)}
+                        </span>
+                        <span className="block text-[10px] text-gray-500 mt-0.5">
+                          {s.started_at
+                            ? new Date(s.started_at).toLocaleDateString('vi-VN')
+                            : '—'}
+                          {' · '}
+                          {s.turns.length} tin
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => void handleDeleteSession(e, s.session_id)}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-gray-500 hover:text-red-400 transition shrink-0"
+                      title="Xóa phiên"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })
+            )}
+            {/* Draft new chat indicator */}
+            {!historyLoading && sessionId === undefined && (
+              <div className="px-2.5 py-2 rounded-lg bg-white/10 text-white text-xs font-medium">
+                Cuộc trò chuyện mới
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Company stats */}
-        <div className="px-5 py-4 border-t border-white/10">
-          <p className="text-xs text-gray-500 mb-2">Hồ sơ eligibility</p>
+        {/* Profile */}
+        <div className="px-4 py-3 border-b border-white/10 max-h-56 overflow-y-auto chat-scroll">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] uppercase tracking-wide text-gray-500">Hồ sơ cá nhân</p>
+            <button
+              type="button"
+              onClick={() => onOpenOnboarding(false)}
+              className="text-[11px] font-medium text-brand hover:text-white transition"
+            >
+              {profileComplete ? 'Sửa' : 'Điền hồ sơ'}
+            </button>
+          </div>
+          <p className="text-sm font-semibold text-white truncate mb-0.5">
+            {company?.company_name?.trim() || 'Chưa có tên DN'}
+          </p>
+          <p className="text-xs text-gray-400 truncate mb-2">{email}</p>
           <div className="space-y-1">
-            <SidebarStat label="Lĩnh vực" value={sectorLabel(company.sector)} />
-            <SidebarStat label="Thành lập" value={company.founded_year ? `${company.founded_year}` : null} />
-            <SidebarStat label="LĐ BHXH" value={company.social_insurance_employees != null ? String(company.social_insurance_employees) : null} />
+            <SidebarStat label="Lĩnh vực" value={sectorLabel(company?.sector)} />
+            <SidebarStat label="Loại hình" value={company?.legal_form ? LEGAL_FORM_LABELS[company.legal_form] : null} />
+            <SidebarStat label="Đăng ký lần đầu" value={company?.first_business_registration_date ?? null} />
             <SidebarStat
-              label="Doanh thu"
-              value={company.annual_revenue_vnd != null
-                ? new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(company.annual_revenue_vnd) + ' ₫'
-                : null}
+              label="LĐ BHXH"
+              value={
+                company?.social_insurance_employees != null
+                  ? String(company.social_insurance_employees)
+                  : null
+              }
             />
-            <SidebarStat label="Tỉnh / TP" value={company.province ?? null} />
-            <SidebarStat label="ĐKKD" value={triboolLabel(company.has_business_registration)} />
-            <SidebarStat label="Bằng sáng chế" value={triboolLabel(company.has_patent)} />
+            <SidebarStat label="Doanh thu" value={compactVnd(company?.annual_revenue_vnd)} />
+            <SidebarStat label="Tổng vốn" value={compactVnd(company?.total_capital_vnd)} />
+            <SidebarStat label="SP / DV" value={company?.business_description ?? null} />
+            <SidebarStat label="Tỉnh / TP" value={company?.province_name ?? null} />
+            <SidebarStat
+              label="Chào bán CK"
+              value={triboolLabel(company?.has_public_offering)}
+            />
+            <SidebarStat label="ĐKKD" value={triboolLabel(company?.has_business_registration)} />
+            <SidebarStat
+              label="Coworking"
+              value={triboolLabel(company?.has_coworking_contract)}
+            />
+            <SidebarStat
+              label="Chi phí CW"
+              value={compactVnd(company?.coworking_monthly_cost_vnd)}
+            />
           </div>
         </div>
 
         {/* Logout */}
-        <div className="px-3 py-3 border-t border-white/10">
+        <div className="px-3 py-3">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-white/10 hover:text-white transition"
@@ -202,41 +444,66 @@ export default function MainPage({ email, company, onLogout }: Props) {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0">
-        {tab === 'chat' ? (
-          <>
-            {/* Chat header */}
-            <div className="flex-shrink-0 border-b border-gray-200 bg-white px-6 py-4">
-              <h2 className="text-base font-semibold text-gray-800">Tư vấn chính sách</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Hỏi về ưu đãi và chính sách hỗ trợ doanh nghiệp — hệ thống sẽ kiểm tra điều kiện theo hồ sơ của bạn
-              </p>
-            </div>
-            {historyLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-                  <p className="text-xs text-gray-400">Đang tải lịch sử...</p>
-                </div>
+        <div
+          className={`flex-shrink-0 border-b px-6 py-4 transition-colors ${
+            mode === 'eligibility'
+              ? 'bg-teal-50 border-teal-200'
+              : 'bg-sky-50 border-sky-200'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={`w-1 h-5 rounded-full shrink-0 ${
+                    mode === 'eligibility' ? 'bg-teal-600' : 'bg-sky-600'
+                  }`}
+                />
+                <h2
+                  className={`text-base font-semibold ${
+                    mode === 'eligibility' ? 'text-teal-900' : 'text-sky-900'
+                  }`}
+                >
+                  {mode === 'eligibility' ? 'Tư vấn sâu theo hồ sơ' : 'Tra cứu chính sách nhanh'}
+                </h2>
               </div>
-            ) : (
-              <ChatThread messages={messages} loading={loading} />
-            )}
-            <ChatInput onSend={handleSend} disabled={loading || historyLoading} />
-          </>
-        ) : (
-          <>
-            {/* Benchmark header */}
-            <div className="flex-shrink-0 border-b border-gray-200 bg-white px-6 py-4">
-              <h2 className="text-base font-semibold text-gray-800">So sánh benchmark</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                So sánh câu trả lời có Eligibility Engine với RAG phẳng thông thường
+              <p
+                className={`text-xs mt-1.5 pl-[14px] ${
+                  mode === 'eligibility' ? 'text-teal-700/80' : 'text-sky-700/80'
+                }`}
+              >
+                {mode === 'eligibility'
+                  ? 'Đối chiếu ưu đãi với hồ sơ doanh nghiệp của bạn — biết ngay đủ điều kiện hay còn thiếu gì.'
+                  : 'Hỏi đáp chính sách hỗ trợ nhanh, không cần điền hồ sơ doanh nghiệp.'}
               </p>
             </div>
-            <div className="flex-1 overflow-y-auto chat-scroll">
-              <BenchmarkPanel email={email} />
+            <span
+              className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-md ${
+                mode === 'eligibility'
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-sky-600 text-white'
+              }`}
+            >
+              {mode === 'eligibility' ? 'Tư vấn sâu' : 'Tra cứu nhanh'}
+            </span>
+          </div>
+        </div>
+        {historyLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs text-gray-400">Đang tải lịch sử...</p>
             </div>
-          </>
+          </div>
+        ) : (
+          <ChatThread
+            messages={messages}
+            loading={loading}
+            mode={mode}
+            onSend={loading || historyLoading ? undefined : handleSend}
+          />
         )}
+        <ChatInput onSend={handleSend} disabled={loading || historyLoading} />
       </main>
     </div>
   )

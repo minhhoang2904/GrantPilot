@@ -8,32 +8,14 @@ Kết nối qua biến môi trường:
   MONGODB_URI  — mặc định mongodb://localhost:27017
   MONGODB_DB   — mặc định policy_advisor
 
-Schema companies (mirror shared/schema.sql profiles):
+Schema companies (canonical Company Profile v1):
   {
     email: str (unique index, PK logic),
     company_name: str,                    -- chỉ hiển thị
 
-    # tầng 0: phân hạng DNNVV
-    sector: str | None,                   -- enum: nong_lam_ngu_nghiep | cong_nghiep_xay_dung | thuong_mai_dich_vu
-    social_insurance_employees: int|None, -- BHXH, không phải tổng nhân sự
-    annual_revenue_vnd: int | None,
-    total_capital_vnd: int | None,
-
-    # tầng 1: tư cách
-    founded_year: int | None,             -- lưu NĂM (vd: 2019), không phải số tuổi
-    is_public_offering: bool | None,
-    product_type: str | None,
-    has_patent: bool | None,
-
-    # địa bàn
-    province: str | None,
-
-    # tầng 2: hồ sơ chứng từ
-    has_coworking_contract: bool | None,
-    has_business_registration: bool | None,
-
-    # chi phí thực tế
-    coworking_monthly_cost_vnd: int | None,
+    profile_schema_version: "company-profile-v1",
+    <canonical Fact Catalog user-input fields>,
+    fact_provenance: {field: {source_kind, status, asserted_at}},
 
     created_at: datetime,
     updated_at: datetime,
@@ -62,32 +44,22 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 import certifi
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient, ASCENDING, ReturnDocument
 from pymongo.collection import Collection
 from pymongo.errors import DuplicateKeyError
+
+from company_profile import (
+    PROFILE_SCHEMA_VERSION,
+    canonicalize_company,
+    new_company_document,
+    provenance_updates,
+    writable_values,
+)
 
 _MONGO_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
 _MONGO_DB = os.environ.get("MONGODB_DB", "policy_advisor")
 
 _client: Optional[MongoClient] = None  # type: ignore[type-arg]
-
-# Fields allowed in create/update (excludes email, created_at, updated_at)
-_COMPANY_FIELDS = {
-    "company_name",
-    "sector",
-    "social_insurance_employees",
-    "annual_revenue_vnd",
-    "total_capital_vnd",
-    "founded_year",
-    "is_public_offering",
-    "product_type",
-    "has_patent",
-    "province",
-    "has_coworking_contract",
-    "has_business_registration",
-    "coworking_monthly_cost_vnd",
-}
-
 
 def _get_db():
     global _client
@@ -114,7 +86,7 @@ def _serialize(doc: dict[str, Any]) -> dict[str, Any]:
     for k, v in out.items():
         if isinstance(v, datetime):
             out[k] = v.isoformat()
-    return out
+    return canonicalize_company(out)
 
 
 # ---------------------------------------------------------------------------
@@ -128,73 +100,33 @@ def get_company(email: str) -> Optional[dict[str, Any]]:
 
 def create_company(data: dict[str, Any]) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
-    doc: dict[str, Any] = {
-        "email": data["email"],
-        "company_name": data.get("company_name") or data.get("ten_doanh_nghiep"),
-        # tầng 0
-        "sector": data.get("sector"),
-        "social_insurance_employees": _to_int(data.get("social_insurance_employees")),
-        "annual_revenue_vnd": _to_int(data.get("annual_revenue_vnd")),
-        "total_capital_vnd": _to_int(data.get("total_capital_vnd")),
-        # tầng 1
-        "founded_year": _to_int(data.get("founded_year")),
-        "is_public_offering": _to_tribool(data.get("is_public_offering")),
-        "product_type": data.get("product_type"),
-        "has_patent": _to_tribool(data.get("has_patent")),
-        # địa bàn
-        "province": data.get("province"),
-        # tầng 2
-        "has_coworking_contract": _to_tribool(data.get("has_coworking_contract")),
-        "has_business_registration": _to_tribool(data.get("has_business_registration")),
-        # chi phí
-        "coworking_monthly_cost_vnd": _to_int(data.get("coworking_monthly_cost_vnd")),
-        "created_at": now,
-        "updated_at": now,
-    }
+    doc = new_company_document(data, now)
     try:
         _companies().insert_one(doc)
     except DuplicateKeyError:
-        return get_company(data["email"])  # type: ignore[return-value]
+        # POST is idempotent for the authenticated owner and upgrades legacy
+        # records when onboarding is completed again.
+        return update_company(data["email"], data)  # type: ignore[return-value]
     return _serialize(doc)
 
 
 def update_company(email: str, data: dict[str, Any]) -> Optional[dict[str, Any]]:
-    updates = {k: v for k, v in data.items() if k in _COMPANY_FIELDS}
+    updates = writable_values(data)
     if not updates:
         return get_company(email)
-    updates["updated_at"] = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+    updates.update({
+        "profile_schema_version": PROFILE_SCHEMA_VERSION,
+        "updated_at": now,
+    })
+    for field, metadata in provenance_updates(data, now).items():
+        updates[f"fact_provenance.{field}"] = metadata
     result = _companies().find_one_and_update(
         {"email": email},
         {"$set": updates},
-        return_document=True,
+        return_document=ReturnDocument.AFTER,
     )
     return _serialize(result) if result else None
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _to_int(val: Any) -> Optional[int]:
-    if val is None:
-        return None
-    try:
-        return int(val)
-    except (TypeError, ValueError):
-        return None
-
-
-def _to_tribool(val: Any) -> Optional[bool]:
-    """None/null stays None; truthy → True; falsy int/str → False."""
-    if val is None:
-        return None
-    if isinstance(val, bool):
-        return val
-    if isinstance(val, int):
-        return bool(val)
-    if isinstance(val, str):
-        return val.lower() in ("1", "true", "yes")
-    return None
 
 
 # ---------------------------------------------------------------------------
@@ -257,3 +189,12 @@ def append_chat_turn(
         },
     )
     return new_sid
+
+
+def delete_chat_session(email: str, session_id: str) -> bool:
+    """Xóa một session khỏi lịch sử chat. Trả về True nếu đã xóa."""
+    result = _chat_history().update_one(
+        {"email": email},
+        {"$pull": {"sessions": {"session_id": session_id}}},
+    )
+    return result.modified_count > 0

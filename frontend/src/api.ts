@@ -1,4 +1,4 @@
-import type { AskResponse, Company, FlatAskResponse } from './types'
+import type { AskResponse, Company, FlatAskResponse, ChatMode } from './types'
 import { getToken, clearSession } from './auth'
 
 // In dev, Vite proxies /api/* -> http://localhost:8001/* (see vite.config.ts).
@@ -78,6 +78,15 @@ export async function createCompany(payload: Omit<Company, never>): Promise<Comp
   return result
 }
 
+export async function updateCompany(
+  email: string,
+  payload: Partial<Omit<Company, 'email'>>,
+): Promise<Company> {
+  const result = await request<Company>('PATCH', `/companies/${encodeURIComponent(email)}`, payload)
+  if (!result) throw new ApiError(404, 'Không tìm thấy hồ sơ công ty.')
+  return result
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
 export interface HistoryTurn {
@@ -98,18 +107,43 @@ export async function getHistory(email: string): Promise<HistorySession[]> {
   return result ?? []
 }
 
+export async function deleteSession(email: string, sessionId: string): Promise<void> {
+  const result = await request<{ status: string }>(
+    'DELETE',
+    `/history/${encodeURIComponent(email)}/sessions/${encodeURIComponent(sessionId)}`,
+  )
+  if (!result) throw new ApiError(404, 'Không tìm thấy phiên chat.')
+}
+
+type RawAskResponse = {
+  answer: string
+  results?: AskResponse['results']
+  policies?: AskResponse['results']
+  session_id?: string
+}
+
+function normalizeAskResponse(raw: RawAskResponse): AskResponse {
+  return {
+    answer: raw.answer,
+    results: raw.results ?? raw.policies ?? [],
+    session_id: raw.session_id,
+  }
+}
+
 export async function ask(
   email: string,
   question: string,
   sessionId?: string,
+  mode: ChatMode = 'rag',
 ): Promise<AskResponse> {
-  const result = await request<AskResponse>('POST', '/ask', {
+  const result = await request<RawAskResponse>('POST', '/ask', {
     email,
     question,
     session_id: sessionId ?? null,
+    mode,
   })
   if (!result) throw new ApiError(500, 'Không nhận được câu trả lời.')
-  return result
+  return normalizeAskResponse(result)
 }
 
 export async function askFlat(question: string): Promise<FlatAskResponse> {
