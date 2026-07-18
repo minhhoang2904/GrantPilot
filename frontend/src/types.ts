@@ -3,6 +3,9 @@ export type Sector =
   | 'cong_nghiep_xay_dung'
   | 'thuong_mai_dich_vu'
 
+/** rag = Tra cứu nhanh (default); eligibility = Tư vấn sâu theo hồ sơ DN */
+export type ChatMode = 'rag' | 'eligibility'
+
 export type BusinessActivityGroup =
   | 'agriculture'
   | 'forestry'

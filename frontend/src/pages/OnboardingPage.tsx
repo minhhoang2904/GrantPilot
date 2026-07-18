@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { createCompany, ApiError } from '../api'
+import { createCompany, updateCompany, ApiError } from '../api'
 import type { BusinessActivityGroup, Company, LegalForm, Sector } from '../types'
 
 interface Props {
   email: string
+  existing?: Company | null
+  /** When true, skip is discouraged (eligibility mode) but still allowed to go back */
+  required?: boolean
   onComplete: (company: Company) => void
+  onSkip: () => void
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -106,30 +110,60 @@ const LEGAL_FORM_OPTIONS: { value: LegalForm; label: string }[] = [
   { value: 'other', label: 'Khác' },
 ]
 
+function numStr(v?: number | null) {
+  return v != null ? String(v) : ''
+}
+
 // ── component ─────────────────────────────────────────────────────────────────
-export default function OnboardingPage({ email, onComplete }: Props) {
-  // basic
-  const [companyName, setCompanyName] = useState('')
+export default function OnboardingPage({
+  email,
+  existing,
+  required = false,
+  onComplete,
+  onSkip,
+}: Props) {
+  const isEdit = Boolean(existing)
 
-  const [sector, setSector] = useState<Sector | ''>('')
-  const [activityGroup, setActivityGroup] = useState<BusinessActivityGroup | ''>('')
-  const [legalForm, setLegalForm] = useState<LegalForm | ''>('')
-  const [siEmployees, setSiEmployees] = useState<string>('')
-  const [annualRevenue, setAnnualRevenue] = useState<string>('')
-  const [totalCapital, setTotalCapital] = useState<string>('')
+  const [companyName, setCompanyName] = useState(existing?.company_name ?? '')
+  const [sector, setSector] = useState<Sector | ''>(existing?.sector ?? '')
+  const [activityGroup, setActivityGroup] = useState<BusinessActivityGroup | ''>(
+    existing?.primary_business_activity_group ?? '',
+  )
+  const [legalForm, setLegalForm] = useState<LegalForm | ''>(existing?.legal_form ?? '')
+  const [siEmployees, setSiEmployees] = useState<string>(numStr(existing?.social_insurance_employees))
+  const [annualRevenue, setAnnualRevenue] = useState<string>(numStr(existing?.annual_revenue_vnd))
+  const [totalCapital, setTotalCapital] = useState<string>(numStr(existing?.total_capital_vnd))
 
-  const [registrationDate, setRegistrationDate] = useState('')
-  const [hasPublicOffering, setHasPublicOffering] = useState<boolean | null>(null)
-  const [businessDescription, setBusinessDescription] = useState('')
-  const [provinceName, setProvinceName] = useState('')
-  const [provinceCode, setProvinceCode] = useState('')
-  const [hasCoworkingContract, setHasCoworkingContract] = useState<boolean | null>(null)
-  const [hasBusinessRegistration, setHasBusinessRegistration] = useState<boolean | null>(null)
-  const [coworkingMonthlyCost, setCoworkingMonthlyCost] = useState<string>('')
-  const [hasStateCapital, setHasStateCapital] = useState<boolean | null>(null)
-  const [hasForeignCapital, setHasForeignCapital] = useState<boolean | null>(null)
-  const [hasCollateral, setHasCollateral] = useState<boolean | null>(null)
-  const [hasReceivedInterestSupport, setHasReceivedInterestSupport] = useState<boolean | null>(null)
+  const [registrationDate, setRegistrationDate] = useState(
+    existing?.first_business_registration_date ?? '',
+  )
+  const [hasPublicOffering, setHasPublicOffering] = useState<boolean | null>(
+    existing?.has_public_offering ?? null,
+  )
+  const [businessDescription, setBusinessDescription] = useState(existing?.business_description ?? '')
+  const [provinceName, setProvinceName] = useState(existing?.province_name ?? '')
+  const [provinceCode, setProvinceCode] = useState(existing?.province_code ?? '')
+  const [hasCoworkingContract, setHasCoworkingContract] = useState<boolean | null>(
+    existing?.has_coworking_contract ?? null,
+  )
+  const [hasBusinessRegistration, setHasBusinessRegistration] = useState<boolean | null>(
+    existing?.has_business_registration ?? null,
+  )
+  const [coworkingMonthlyCost, setCoworkingMonthlyCost] = useState<string>(
+    numStr(existing?.coworking_monthly_cost_vnd),
+  )
+  const [hasStateCapital, setHasStateCapital] = useState<boolean | null>(
+    existing?.has_state_capital ?? null,
+  )
+  const [hasForeignCapital, setHasForeignCapital] = useState<boolean | null>(
+    existing?.has_foreign_investment_capital ?? null,
+  )
+  const [hasCollateral, setHasCollateral] = useState<boolean | null>(
+    existing?.has_collateral ?? null,
+  )
+  const [hasReceivedInterestSupport, setHasReceivedInterestSupport] = useState<boolean | null>(
+    existing?.has_received_same_interest_support ?? null,
+  )
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -164,8 +198,7 @@ export default function OnboardingPage({ email, onComplete }: Props) {
     setError('')
     setSubmitting(true)
     try {
-      const payload: Omit<Company, 'created_at' | 'updated_at'> = {
-        email,
+      const payload = {
         company_name: companyName.trim(),
         sector: sector || null,
         primary_business_activity_group: activityGroup || null,
@@ -180,13 +213,16 @@ export default function OnboardingPage({ email, onComplete }: Props) {
         has_public_offering: hasPublicOffering,
         has_coworking_contract: hasCoworkingContract,
         has_business_registration: hasBusinessRegistration,
-        coworking_monthly_cost_vnd: coworkingMonthlyCost ? parseInt(coworkingMonthlyCost) : null,
+        coworking_monthly_cost_vnd:
+          hasCoworkingContract && coworkingMonthlyCost ? parseInt(coworkingMonthlyCost) : null,
         has_state_capital: hasStateCapital,
         has_foreign_investment_capital: hasForeignCapital,
         has_collateral: hasCollateral,
         has_received_same_interest_support: hasReceivedInterestSupport,
       }
-      const company = await createCompany(payload)
+      const company = isEdit
+        ? await updateCompany(email, payload)
+        : await createCompany({ email, ...payload })
       onComplete(company)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Đã xảy ra lỗi, vui lòng thử lại.')
@@ -206,10 +242,21 @@ export default function OnboardingPage({ email, onComplete }: Props) {
                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Thiết lập hồ sơ doanh nghiệp</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isEdit ? 'Cập nhật hồ sơ doanh nghiệp' : 'Thiết lập hồ sơ doanh nghiệp'}
+          </h1>
           <p className="mt-2 text-sm text-gray-500">
-            Chào mừng <span className="font-medium text-gray-700">{email}</span>. Điền thông tin
-            một lần duy nhất — hệ thống dùng để xét điều kiện hưởng ưu đãi.
+            {required ? (
+              <>
+                Chế độ <span className="font-medium text-gray-700">Tư vấn sâu</span> cần hồ sơ
+                doanh nghiệp đầy đủ để đối chiếu ưu đãi.
+              </>
+            ) : (
+              <>
+                Chào mừng <span className="font-medium text-gray-700">{email}</span>. Điền thông tin
+                nếu muốn dùng chế độ tư vấn sâu — bạn có thể bỏ qua và tra cứu nhanh ngay.
+              </>
+            )}
           </p>
         </div>
 
@@ -423,18 +470,32 @@ export default function OnboardingPage({ email, onComplete }: Props) {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-2.5 px-4 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
-            >
-              {submitting ? 'Đang lưu...' : 'Lưu & bắt đầu tư vấn →'}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 py-2.5 px-4 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+              >
+                {submitting
+                  ? 'Đang lưu...'
+                  : isEdit
+                    ? 'Lưu hồ sơ →'
+                    : 'Lưu & bắt đầu tư vấn →'}
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={onSkip}
+                className="flex-1 py-2.5 px-4 border border-gray-300 hover:bg-gray-50 disabled:opacity-60 text-gray-700 text-sm font-medium rounded-lg transition"
+              >
+                {required ? 'Quay lại (tra cứu nhanh)' : 'Bỏ qua, chat ngay'}
+              </button>
+            </div>
           </form>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          Bạn có thể cập nhật hồ sơ bất kỳ lúc nào trong phần cài đặt.
+          Khi bỏ qua, bạn vẫn dùng được chế độ Tra cứu nhanh. Hồ sơ bắt buộc khi bật Tư vấn sâu.
         </p>
       </div>
     </div>

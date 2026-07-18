@@ -124,9 +124,25 @@ class CompanyIn(CompanyFields):
 
 class CompanyUpdate(CompanyFields):
     @model_validator(mode="after")
-    def company_name_cannot_be_cleared(self):
+    def validate_update(self):
         if "company_name" in self.model_fields_set and self.company_name is None:
             raise ValueError("company_name cannot be null")
+        activity_by_sector = {
+            "nong_lam_ngu_nghiep": {"agriculture", "forestry", "fisheries", "other"},
+            "cong_nghiep_xay_dung": {"manufacturing", "processing", "construction", "other"},
+            "thuong_mai_dich_vu": {"trade", "services", "other"},
+        }
+        if (
+            self.sector is not None
+            and self.primary_business_activity_group is not None
+            and self.primary_business_activity_group not in activity_by_sector[self.sector]
+        ):
+            raise ValueError("primary_business_activity_group does not match sector")
+        if (
+            self.has_coworking_contract is True
+            and self.coworking_monthly_cost_vnd is None
+        ):
+            raise ValueError("coworking_monthly_cost_vnd is required when a coworking contract exists")
         return self
 
 
@@ -162,6 +178,8 @@ class RetrieveIn(BaseModel):
 class AskIn(RetrieveIn):
     email: Optional[str] = None
     session_id: Optional[str] = None
+    # "rag" | "eligibility" — eligibility includes results table; both persist history
+    mode: Literal["rag", "eligibility"] = "rag"
 
 
 @app.get("/health")
@@ -269,6 +287,20 @@ def append_turn(
     return {"session_id": session_id}
 
 
+@app.delete("/history/{email}/sessions/{session_id}")
+def delete_session(
+    email: str,
+    session_id: str,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, str]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
+    deleted = company_service.delete_chat_session(email, session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "ok", "session_id": session_id}
+
+
 def _run_retrieval(payload: RetrieveIn) -> tuple[str, list[dict[str, str]], dict[str, Any]]:
     thread_id = payload.thread_id or getattr(payload, "session_id", None) or str(uuid.uuid4())
     history = chat_memory().recent(thread_id, config.CHAT_HISTORY_MESSAGES)
@@ -302,6 +334,8 @@ def ask(payload: AskIn) -> dict[str, Any]:
     thread_id, _, result = _run_retrieval(payload)
     units = result["legal_units"]
     answer = answer_gen.generate_answer(payload.question, units, fpt=retrieval.get_retriever().fpt)
+    mode = payload.mode
+    include_results = mode != "rag"
 
     memory = chat_memory()
     memory.append(thread_id, "user", payload.question)
@@ -314,18 +348,15 @@ def ask(payload: AskIn) -> dict[str, Any]:
             payload.session_id,
             {"role": "user", "content": payload.question},
         )
-        company_service.append_chat_turn(
-            payload.email,
-            session_id,
-            {"role": "assistant", "content": answer, "results": units},
-        )
+        assistant_turn: dict[str, Any] = {"role": "assistant", "content": answer}
+        if include_results:
+            assistant_turn["results"] = units
+        company_service.append_chat_turn(payload.email, session_id, assistant_turn)
 
-    return {
+    response: dict[str, Any] = {
         "thread_id": thread_id,
         "session_id": session_id,
         "answer": answer,
-        "results": units,
-        "legal_units": units,
         "candidate_policy_ids": result["candidate_policy_ids"],
         "retrieval": {
             "route": result["route"],
@@ -333,10 +364,16 @@ def ask(payload: AskIn) -> dict[str, Any]:
             "retrieval_query": result["retrieval_query"],
             "diagnostics": result["diagnostics"],
         },
+    }
+    if include_results:
+        response["results"] = units
+        response["legal_units"] = units
         # Alias tam thoi cho client cu; du lieu nay la legal units, khong phai
         # eligibility policies. Client moi nen dung `legal_units`.
-        "policies": units,
-    }
+        response["policies"] = units
+    else:
+        response["results"] = []
+    return response
 
 
 @app.post("/ask/flat")

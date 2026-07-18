@@ -2,7 +2,7 @@ import unittest
 
 from pydantic import ValidationError
 
-from main import CompanyIn, CompanyUpdate
+from main import AskIn, CompanyIn, CompanyUpdate
 
 
 VALID = {
@@ -53,6 +53,8 @@ class CompanyApiModelTest(unittest.TestCase):
     def test_activity_group_must_match_sector(self):
         with self.assertRaises(ValidationError):
             CompanyIn(**{**VALID, "primary_business_activity_group": "agriculture"})
+        with self.assertRaises(ValidationError):
+            CompanyIn(**{**VALID, "sector": "cong_nghe"})
 
     def test_future_registration_date_is_rejected(self):
         with self.assertRaises(ValidationError):
@@ -63,6 +65,25 @@ class CompanyApiModelTest(unittest.TestCase):
         self.assertEqual(patch, {"province_code": None})
         with self.assertRaises(ValidationError):
             CompanyUpdate(company_name=None)
+        with self.assertRaises(ValidationError):
+            CompanyUpdate(
+                sector="thuong_mai_dich_vu",
+                primary_business_activity_group="agriculture",
+            )
+        with self.assertRaises(ValidationError):
+            CompanyUpdate(
+                has_coworking_contract=True,
+                coworking_monthly_cost_vnd=None,
+            )
+
+    def test_chat_mode_defaults_to_lookup_and_rejects_unknown_values(self):
+        self.assertEqual(AskIn(question="Điều kiện hỗ trợ là gì?").mode, "rag")
+        self.assertEqual(
+            AskIn(question="Công ty tôi có đủ điều kiện không?", mode="eligibility").mode,
+            "eligibility",
+        )
+        with self.assertRaises(ValidationError):
+            AskIn(question="Câu hỏi", mode="auto")
 
 
 if __name__ == "__main__":
