@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+import functools
+import json
 import uuid
 from datetime import date
 from typing import Any, Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
@@ -495,3 +499,146 @@ def update_profile(profile_id: str, payload: ProfileIn) -> dict[str, Any]:
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
+
+
+# ── New streaming chat API (/v1/chat/stream) ──────────────────────────────────
+
+class ChatStreamOptions(BaseModel):
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class ChatStreamIn(BaseModel):
+    mode: str = "lookup"  # "lookup" | "advisory"
+    message: str = Field(min_length=1)
+    conversation_id: Optional[str] = None
+    options: Optional[ChatStreamOptions] = None
+
+
+def _ndjson(obj: dict[str, Any]) -> str:
+    return json.dumps(obj, ensure_ascii=False) + "\n"
+
+
+def _build_sources(legal_units: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    sources = []
+    for u in legal_units:
+        snippet = (u.get("text") or "")[:250].strip() or None
+        item: dict[str, Any] = {
+            "unit_id": u.get("unit_id", ""),
+            "document_number": u.get("document_number", ""),
+            "document_title": u.get("document_title", ""),
+        }
+        for field in ("article", "clause", "point", "source_url", "page_start", "page_end"):
+            if u.get(field) is not None:
+                item[field] = u[field]
+        if snippet:
+            item["snippet"] = snippet
+        sources.append(item)
+    return sources
+
+
+@app.post("/v1/chat/stream")
+async def chat_stream_endpoint(
+    payload: ChatStreamIn,
+    current_email: str = Depends(get_current_email),
+) -> StreamingResponse:
+    mode = payload.mode if payload.mode in ("lookup", "advisory") else "lookup"
+    top_k = payload.options.top_k if payload.options else 5
+
+    # Pre-stream check: advisory requires a company profile
+    if mode == "advisory":
+        company = await asyncio.to_thread(company_service.get_company, current_email)
+        if not company:
+            raise HTTPException(status_code=409, detail="PROFILE_REQUIRED")
+
+    async def generate() -> Any:
+        request_id = str(uuid.uuid4())
+        conversation_id = payload.conversation_id or str(uuid.uuid4())
+
+        yield _ndjson({
+            "type": "started",
+            "request_id": request_id,
+            "conversation_id": conversation_id,
+            "mode": mode,
+        })
+
+        # Retrieval (blocking → thread pool)
+        retrieve_payload = RetrieveIn(
+            question=payload.message,
+            top_k=top_k,
+            thread_id=conversation_id,
+        )
+        try:
+            _, _, result = await asyncio.to_thread(_run_retrieval, retrieve_payload)
+        except HTTPException as exc:
+            yield _ndjson({
+                "type": "error",
+                "error": {
+                    "code": "RETRIEVAL_UNAVAILABLE",
+                    "message": exc.detail,
+                    "retryable": True,
+                },
+            })
+            return
+
+        legal_units: list[dict[str, Any]] = result["legal_units"]
+        fpt_client = retrieval.get_retriever().fpt
+
+        # Answer generation (blocking FPT API call → thread pool)
+        try:
+            gen_fn = functools.partial(
+                answer_gen.generate_answer,
+                payload.message,
+                legal_units,
+                fpt=fpt_client,
+            )
+            answer: str = await asyncio.to_thread(gen_fn)
+        except Exception:
+            answer = answer_gen.NO_EVIDENCE
+
+        # Stream answer word-by-word
+        words = answer.split(" ")
+        for i, word in enumerate(words):
+            chunk = word if i == 0 else " " + word
+            yield _ndjson({"type": "answer_delta", "text": chunk})
+
+        # Sources event
+        sources = _build_sources(legal_units)
+        if sources:
+            yield _ndjson({"type": "sources", "items": sources})
+
+        # Advisory result (Server C not yet available → warning)
+        if mode == "advisory":
+            yield _ndjson({
+                "type": "warning",
+                "code": "ELIGIBILITY_UNAVAILABLE",
+                "message": "Chưa thể đánh giá hồ sơ lúc này.",
+            })
+
+        # Persist conversation history
+        message_id = str(uuid.uuid4())
+        try:
+            actual_sid = await asyncio.to_thread(
+                company_service.append_chat_turn,
+                current_email,
+                conversation_id,
+                {"role": "user", "content": payload.message},
+            )
+            asst_turn: dict[str, Any] = {"role": "assistant", "content": answer}
+            if sources:
+                asst_turn["sources"] = sources
+            await asyncio.to_thread(
+                company_service.append_chat_turn,
+                current_email,
+                actual_sid,
+                asst_turn,
+            )
+        except Exception:
+            pass  # History write failure must not break the stream
+
+        yield _ndjson({"type": "completed", "message_id": message_id})
+
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

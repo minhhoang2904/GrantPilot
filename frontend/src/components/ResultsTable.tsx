@@ -23,6 +23,14 @@ const STATUS_CONFIG: Record<PolicyStatus, { label: string; className: string }> 
     label: 'Đã hết hạn',
     className: 'bg-gray-100 text-gray-600',
   },
+  needs_more_information: {
+    label: 'Cần thêm thông tin',
+    className: 'bg-yellow-100 text-yellow-800',
+  },
+  manual_review: {
+    label: 'Cần xem xét thêm',
+    className: 'bg-blue-100 text-blue-700',
+  },
 }
 
 function StatusBadge({ status }: { status: PolicyStatus }) {
