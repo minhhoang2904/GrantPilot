@@ -51,56 +51,64 @@ def ensure_indexes(db) -> None:
 
 
 def ingest_document(db, pdf_path, source: dict, units: Iterable[dict]) -> dict:
-    """Insert an immutable source version, or refresh metadata for the same checksum."""
+    """Insert a new immutable version, or return the existing version for same checksum."""
     checksum = checksum_file(pdf_path)
-    existing = db.legal_documents.find_one(
-        {"document_id": source["document_id"], "checksum": checksum}, {"version": 1, "is_current": 1}
+    existing_checksum = db.legal_documents.find_one(
+        {"document_id": source["document_id"], "checksum": checksum},
+        {"version": 1, "checksum": 1, "is_current": 1},
     )
-    if existing:
-        stamp = utcnow()
-        metadata = {key: source.get(key) for key in (
-            "document_title", "document_number", "issued_date", "effective_from", "effective_to",
-            "status", "legal_status_checked_at", "source_url",
-        )}
-        metadata["updated_at"] = stamp
+    if existing_checksum:
+        metadata = {
+            "document_title": source.get("document_title", ""), "document_number": source.get("document_number", ""),
+            "issued_date": source.get("issued_date"), "effective_from": source.get("effective_from"),
+            "effective_to": source.get("effective_to"), "status": source.get("status", "unknown"),
+            "legal_status_checked_at": source.get("legal_status_checked_at"), "source_url": source.get("source_url", ""),
+            "updated_at": utcnow(),
+        }
         db.legal_documents.update_one(
-            {"document_id": source["document_id"], "version": existing["version"]}, {"$set": metadata}
+            {"document_id": source["document_id"], "version": existing_checksum["version"]}, {"$set": metadata}
         )
         db.legal_units.update_many(
-            {"document_id": source["document_id"], "version": existing["version"]},
-            {"$set": {**metadata, "document_status": source.get("status", "unknown")}},
+            {"document_id": source["document_id"], "version": existing_checksum["version"]},
+            {"$set": {"document_status": metadata["status"], "issued_date": metadata["issued_date"],
+                      "effective_from": metadata["effective_from"], "effective_to": metadata["effective_to"],
+                      "source_url": metadata["source_url"], "legal_status_checked_at": metadata["legal_status_checked_at"],
+                      "updated_at": metadata["updated_at"]}},
         )
-        return {"document_id": source["document_id"], "version": existing["version"], "created": False,
-                "checksum": checksum, "is_current": existing.get("is_current", False)}
+        return {"document_id": source["document_id"], "version": existing_checksum["version"], "created": False,
+                "checksum": checksum, "is_current": existing_checksum.get("is_current", False)}
 
-    previous = db.legal_documents.find_one({"document_id": source["document_id"]}, sort=[("version", -1)])
-    version = int(previous["version"]) + 1 if previous else 1
-    stamp = utcnow()
-    db.legal_documents.update_many(
-        {"document_id": source["document_id"], "is_current": True},
-        {"$set": {"is_current": False, "status": "superseded", "updated_at": stamp}},
-    )
-    db.legal_units.update_many(
-        {"document_id": source["document_id"], "is_current": True}, {"$set": {"is_current": False, "updated_at": stamp}}
-    )
+    last = db.legal_documents.find_one({"document_id": source["document_id"]}, sort=[("version", -1)])
+    version = int(last["version"]) + 1 if last else 1
+    now = utcnow()
+    db.legal_documents.update_many({"document_id": source["document_id"], "is_current": True},
+                                   {"$set": {"is_current": False, "status": "superseded", "updated_at": now}})
+    db.legal_units.update_many({"document_id": source["document_id"], "is_current": True},
+                               {"$set": {"is_current": False, "updated_at": now}})
     document = {
-        **{key: source.get(key) for key in (
-            "document_id", "document_number", "document_title", "issued_date", "effective_from", "effective_to",
-            "status", "legal_status_checked_at", "source_url",
-        )},
-        "source_file": source.get("file", ""), "version": version, "is_current": True, "checksum": checksum,
-        "ingested_at": stamp, "updated_at": stamp,
+        "document_id": source["document_id"], "version": version, "is_current": True,
+        "document_number": source.get("document_number", ""), "document_title": source.get("document_title", ""),
+        "issued_date": source.get("issued_date"), "effective_from": source.get("effective_from"),
+        "effective_to": source.get("effective_to"), "status": source.get("status", "unknown"),
+        "legal_status_checked_at": source.get("legal_status_checked_at"), "source_url": source.get("source_url", ""),
+        "source_file": source.get("file", ""), "checksum": checksum, "ingested_at": now, "updated_at": now,
     }
     db.legal_documents.insert_one(document)
-    rows = []
+    unit_rows = []
     for unit in units:
-        row = {**unit, "normalized_text": " ".join(str(unit.get("text", "")).split()), "version": version,
-               "is_current": True, "document_status": source.get("status", "unknown"), "checksum": checksum,
-               "ingested_at": stamp, "updated_at": stamp}
-        rows.append(row)
-    if rows:
-        db.legal_units.insert_many(rows, ordered=False)
-    return {"document_id": source["document_id"], "version": version, "created": True, "checksum": checksum, "units": len(rows)}
+        row = {key: unit.get(key, "") for key in (
+            "unit_id", "document_id", "document_number", "document_title", "article", "article_title",
+            "clause", "point", "chapter", "section", "page_start", "page_end", "source_url", "text",
+        )}
+        row.update({"normalized_text": " ".join(str(unit.get("text", "")).split()), "version": version,
+                    "is_current": True, "document_status": source.get("status", "unknown"),
+                    "issued_date": source.get("issued_date"), "effective_from": source.get("effective_from"),
+                    "effective_to": source.get("effective_to"), "checksum": checksum, "ingested_at": now, "updated_at": now})
+        unit_rows.append(row)
+    if unit_rows:
+        db.legal_units.insert_many(unit_rows, ordered=False)
+    return {"document_id": source["document_id"], "version": version, "created": True, "checksum": checksum,
+            "units": len(unit_rows)}
 
 
 def current_units(db, document_ids: set[str] | None = None) -> list[dict]:
@@ -118,8 +126,31 @@ def _policy_row(policy: dict, timestamp: datetime) -> dict:
         "normalized_rule_hash", "duplicate_group_id", "superseded_by_policy_id", "normalized_rules",
         "validation_issues_current", "validation_history", "policy_parameters",
     )
-    return {**{field: policy.get(field) for field in fields}, "payload": policy,
+    payload = dict(policy)
+    # A Mongo persistence row may have been read back during duplicate handling.
+    # Store only the canonical artifact, never a row containing another payload.
+    payload.pop("payload", None)
+    return {**{field: payload.get(field) for field in fields}, "payload": payload,
             "updated_at": timestamp, "ingested_at": timestamp}
+
+
+def _identity(policy: dict) -> tuple[object, object, object]:
+    return policy["policy_id"], policy["document_id"], policy["document_version"]
+
+
+def _canonical_existing(row: dict) -> dict:
+    """Hydrate the prior canonical payload, then apply its persisted state fields."""
+    policy = dict(row.get("payload") or {})
+    policy.pop("payload", None)
+    state_fields = (
+        "policy_id", "policy_name", "category", "document_id", "document_version", "source_document_version",
+        "is_current", "review_status", "eligible_for_decision", "evidence_unit_ids", "evidence_resolution",
+        "requires_evidence_review", "policy_rule_schema_version", "fact_catalog_version", "canonical_policy_key",
+        "normalized_rule_hash", "duplicate_group_id", "superseded_by_policy_id", "normalized_rules",
+        "validation_issues_current", "validation_history", "policy_parameters",
+    )
+    policy.update({field: row[field] for field in state_fields if field in row})
+    return policy
 
 
 def ingest_policies(db, policies: Iterable[dict]) -> dict:
@@ -127,6 +158,8 @@ def ingest_policies(db, policies: Iterable[dict]) -> dict:
     from policy_normalization import apply_duplicates, prepare_policy_for_ingest
 
     batch = [prepare_policy_for_ingest(policy, db) for policy in policies]
+    batch_by_identity = {_identity(policy): policy for policy in batch}
+    batch = list(batch_by_identity.values())
     existing = []
     seen_keys = set()
     for policy in batch:
@@ -134,7 +167,12 @@ def ingest_policies(db, policies: Iterable[dict]) -> dict:
         if key in seen_keys:
             continue
         seen_keys.add(key)
-        existing.extend(db.policies.find({"canonical_policy_key": key, "is_current": True}, {"_id": 0}))
+        for row in db.policies.find({"canonical_policy_key": key, "is_current": True}, {"_id": 0}):
+            policy = _canonical_existing(row)
+            # Re-ingest of the same identity replaces it with the incoming artifact
+            # before semantic duplicate grouping, preventing self-supersession.
+            if _identity(policy) not in batch_by_identity:
+                existing.append(policy)
 
     # This includes existing records intentionally: if an incoming policy wins, its
     # old Mongo duplicate must be persisted as superseded in this same bulk write.
@@ -143,9 +181,11 @@ def ingest_policies(db, policies: Iterable[dict]) -> dict:
     operations = []
     identities = set()
     for policy in rows:
-        identity = (policy["policy_id"], policy["document_id"], policy["document_version"])
+        identity = _identity(policy)
         if identity in identities:
             continue
+        if policy.get("superseded_by_policy_id") == policy["policy_id"]:
+            raise RuntimeError("A policy cannot supersede itself")
         identities.add(identity)
         operations.append(ReplaceOne(
             {"policy_id": identity[0], "document_id": identity[1], "document_version": identity[2]},
