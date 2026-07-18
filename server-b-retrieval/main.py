@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Optional
+from datetime import date
+from typing import Any, Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 import answer_gen
 import auth_service
 import company_service
+from company_profile import decision_facts
 import config
 import profile_service
 import retrieval
@@ -42,37 +44,90 @@ def get_current_email(
     return email
 
 
-class CompanyIn(BaseModel):
+class CompanyFields(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    company_name: Optional[str] = Field(default=None, min_length=1)
+    sector: Optional[Literal[
+        "nong_lam_ngu_nghiep", "cong_nghiep_xay_dung", "thuong_mai_dich_vu",
+    ]] = None
+    primary_business_activity_group: Optional[Literal[
+        "agriculture", "forestry", "fisheries", "manufacturing", "processing",
+        "construction", "trade", "services", "other",
+    ]] = None
+    legal_form: Optional[Literal[
+        "joint_stock_company", "limited_liability_company", "partnership",
+        "private_enterprise", "cooperative", "household_business", "other",
+    ]] = None
+    province_code: Optional[str] = Field(default=None, min_length=1, max_length=20)
+    province_name: Optional[str] = Field(default=None, min_length=1)
+    business_description: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    social_insurance_employees: Optional[int] = Field(default=None, ge=0)
+    annual_revenue_vnd: Optional[int] = Field(default=None, ge=0)
+    total_capital_vnd: Optional[int] = Field(default=None, ge=0)
+    first_business_registration_date: Optional[date] = None
+    has_public_offering: Optional[StrictBool] = None
+    has_business_registration: Optional[StrictBool] = None
+    has_state_capital: Optional[StrictBool] = None
+    has_foreign_investment_capital: Optional[StrictBool] = None
+    has_coworking_contract: Optional[StrictBool] = None
+    coworking_monthly_cost_vnd: Optional[int] = Field(default=None, ge=0)
+    has_collateral: Optional[StrictBool] = None
+    has_received_same_interest_support: Optional[StrictBool] = None
+
+    @model_validator(mode="after")
+    def validate_dates(self):
+        if self.first_business_registration_date and self.first_business_registration_date > date.today():
+            raise ValueError("first_business_registration_date cannot be in the future")
+        return self
+
+
+class CompanyIn(CompanyFields):
     email: str
-    company_name: str
-    sector: Optional[str] = None
-    social_insurance_employees: Optional[int] = None
-    annual_revenue_vnd: Optional[int] = None
-    total_capital_vnd: Optional[int] = None
-    founded_year: Optional[int] = None
-    is_public_offering: Optional[bool] = None
-    product_type: Optional[str] = None
-    has_patent: Optional[bool] = None
-    province: Optional[str] = None
-    has_coworking_contract: Optional[bool] = None
-    has_business_registration: Optional[bool] = None
-    coworking_monthly_cost_vnd: Optional[int] = None
+    company_name: str = Field(min_length=1)
+    sector: Literal[
+        "nong_lam_ngu_nghiep", "cong_nghiep_xay_dung", "thuong_mai_dich_vu",
+    ]
+    primary_business_activity_group: Literal[
+        "agriculture", "forestry", "fisheries", "manufacturing", "processing",
+        "construction", "trade", "services", "other",
+    ]
+    legal_form: Literal[
+        "joint_stock_company", "limited_liability_company", "partnership",
+        "private_enterprise", "cooperative", "household_business", "other",
+    ]
+    province_name: str = Field(min_length=1)
+    business_description: str = Field(min_length=1, max_length=500)
+    social_insurance_employees: int = Field(ge=0)
+    annual_revenue_vnd: int = Field(ge=0)
+    total_capital_vnd: int = Field(ge=0)
+    first_business_registration_date: date
+    has_public_offering: StrictBool
+    has_business_registration: StrictBool
+    has_coworking_contract: StrictBool
+
+    @model_validator(mode="after")
+    def validate_conditional_cost(self):
+        activity_by_sector = {
+            "nong_lam_ngu_nghiep": {"agriculture", "forestry", "fisheries", "other"},
+            "cong_nghiep_xay_dung": {"manufacturing", "processing", "construction", "other"},
+            "thuong_mai_dich_vu": {"trade", "services", "other"},
+        }
+        if self.primary_business_activity_group not in activity_by_sector[self.sector]:
+            raise ValueError("primary_business_activity_group does not match sector")
+        if self.has_coworking_contract is True and self.coworking_monthly_cost_vnd is None:
+            raise ValueError("coworking_monthly_cost_vnd is required when a coworking contract exists")
+        if self.has_coworking_contract is False and self.coworking_monthly_cost_vnd is not None:
+            raise ValueError("coworking_monthly_cost_vnd must be null without a coworking contract")
+        return self
 
 
-class CompanyUpdate(BaseModel):
-    company_name: Optional[str] = None
-    sector: Optional[str] = None
-    social_insurance_employees: Optional[int] = None
-    annual_revenue_vnd: Optional[int] = None
-    total_capital_vnd: Optional[int] = None
-    founded_year: Optional[int] = None
-    is_public_offering: Optional[bool] = None
-    product_type: Optional[str] = None
-    has_patent: Optional[bool] = None
-    province: Optional[str] = None
-    has_coworking_contract: Optional[bool] = None
-    has_business_registration: Optional[bool] = None
-    coworking_monthly_cost_vnd: Optional[int] = None
+class CompanyUpdate(CompanyFields):
+    @model_validator(mode="after")
+    def company_name_cannot_be_cleared(self):
+        if "company_name" in self.model_fields_set and self.company_name is None:
+            raise ValueError("company_name cannot be null")
+        return self
 
 
 class TurnIn(BaseModel):
@@ -159,7 +214,7 @@ def create_company(
 ) -> dict[str, Any]:
     if current_email != payload.email:
         raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
-    return company_service.create_company(payload.model_dump())
+    return company_service.create_company(payload.model_dump(mode="json"))
 
 
 @app.patch("/companies/{email}")
@@ -170,11 +225,26 @@ def update_company(
 ) -> dict[str, Any]:
     if current_email != email:
         raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
-    updates = {key: value for key, value in payload.model_dump().items() if value is not None}
+    updates = payload.model_dump(mode="json", exclude_unset=True)
+    if updates.get("has_coworking_contract") is False:
+        updates["coworking_monthly_cost_vnd"] = None
     company = company_service.update_company(email, updates)
     if company is None:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
+
+
+@app.get("/companies/{email}/decision-facts")
+def get_company_decision_facts(
+    email: str,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, Any]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
+    company = company_service.get_company(email)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return decision_facts(company)
 
 
 @app.get("/history/{email}")

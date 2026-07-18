@@ -8,6 +8,27 @@ import MainPage from './pages/MainPage'
 
 type View = 'loading' | 'login' | 'onboarding' | 'main'
 
+function profileIsReady(company: Company) {
+  const required = [
+    company.company_name,
+    company.sector,
+    company.primary_business_activity_group,
+    company.legal_form,
+    company.social_insurance_employees,
+    company.annual_revenue_vnd,
+    company.total_capital_vnd,
+    company.first_business_registration_date,
+    company.business_description,
+    company.province_name,
+  ]
+  return company.profile_schema_version === 'company-profile-v1'
+    && required.every((value) => value !== null && value !== undefined && value !== '')
+    && company.has_public_offering !== null && company.has_public_offering !== undefined
+    && company.has_business_registration !== null && company.has_business_registration !== undefined
+    && company.has_coworking_contract !== null && company.has_coworking_contract !== undefined
+    && (company.has_coworking_contract !== true || company.coworking_monthly_cost_vnd != null)
+}
+
 export default function App() {
   const [view, setView] = useState<View>('loading')
   const [email, setEmail] = useState<string>('')
@@ -17,7 +38,7 @@ export default function App() {
     setView('loading')
     try {
       const c = await getCompany(emailAddr)
-      if (c) {
+      if (c && profileIsReady(c)) {
         setCompany(c)
         setView('main')
       } else {

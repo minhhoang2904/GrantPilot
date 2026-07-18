@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Company, Message, Sector } from '../types'
+import type { Company, LegalForm, Message, Sector } from '../types'
 import { ask, getHistory, ApiError } from '../api'
 import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
@@ -12,6 +12,16 @@ const SECTOR_LABELS: Record<Sector, string> = {
   nong_lam_ngu_nghiep: 'Nông / Lâm / Ngư',
   cong_nghiep_xay_dung: 'CN & Xây dựng',
   thuong_mai_dich_vu: 'TM & Dịch vụ',
+}
+
+const LEGAL_FORM_LABELS: Record<LegalForm, string> = {
+  joint_stock_company: 'Công ty cổ phần',
+  limited_liability_company: 'Công ty TNHH',
+  partnership: 'Công ty hợp danh',
+  private_enterprise: 'Doanh nghiệp tư nhân',
+  cooperative: 'Hợp tác xã',
+  household_business: 'Hộ kinh doanh',
+  other: 'Khác',
 }
 
 function sectorLabel(s?: Sector | null) {
@@ -171,7 +181,8 @@ export default function MainPage({ email, company, onLogout }: Props) {
           <p className="text-xs text-gray-500 mb-2">Hồ sơ eligibility</p>
           <div className="space-y-1">
             <SidebarStat label="Lĩnh vực" value={sectorLabel(company.sector)} />
-            <SidebarStat label="Thành lập" value={company.founded_year ? `${company.founded_year}` : null} />
+            <SidebarStat label="Loại hình" value={company.legal_form ? LEGAL_FORM_LABELS[company.legal_form] : null} />
+            <SidebarStat label="Đăng ký lần đầu" value={company.first_business_registration_date ?? null} />
             <SidebarStat label="LĐ BHXH" value={company.social_insurance_employees != null ? String(company.social_insurance_employees) : null} />
             <SidebarStat
               label="Doanh thu"
@@ -179,9 +190,9 @@ export default function MainPage({ email, company, onLogout }: Props) {
                 ? new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(company.annual_revenue_vnd) + ' ₫'
                 : null}
             />
-            <SidebarStat label="Tỉnh / TP" value={company.province ?? null} />
+            <SidebarStat label="Tỉnh / TP" value={company.province_name ?? null} />
             <SidebarStat label="ĐKKD" value={triboolLabel(company.has_business_registration)} />
-            <SidebarStat label="Bằng sáng chế" value={triboolLabel(company.has_patent)} />
+            <SidebarStat label="Chào bán CK" value={triboolLabel(company.has_public_offering)} />
           </div>
         </div>
 

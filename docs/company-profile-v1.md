@@ -6,16 +6,18 @@ and Server C. The Fact Catalog remains the authority for decision-field names.
 ## Stored aggregate
 
 ```text
-company_id, owner_email
-identity: company_name, tax_code, business_description, province_name
-facts: canonical direct facts accepted from user input or verification
-fact_provenance[field]: source_kind, status, evidence_refs, asserted_at, verified_at
-derived_facts: computed values plus function/version/dependencies/as_of
+email, company_name, business_description, province_name
+<canonical direct facts as top-level fields>
+fact_provenance[field]: source_kind, status, asserted_at
 profile_schema_version, created_at, updated_at
 ```
 
 Identity and descriptive fields are not decision facts. `product_type`, free-text
 industry descriptions, and company name must never be injected into rules.
+
+For MVP, `companies` is the canonical eligibility-profile collection keyed by
+authenticated email. The older unauthenticated `profiles` endpoints remain a
+legacy retrieval/demo surface and must not feed Server C decisions.
 
 ## Collection domains
 
