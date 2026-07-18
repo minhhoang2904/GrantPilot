@@ -303,7 +303,7 @@ export default function OnboardingPage({
                   className={inputCls}
                 >
                   <option value="">— Chọn nhóm ngành —</option>
-                  {(sector ? ACTIVITY_OPTIONS[sector] : []).map((o) => (
+                  {(sector ? (ACTIVITY_OPTIONS[sector] ?? []) : []).map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
