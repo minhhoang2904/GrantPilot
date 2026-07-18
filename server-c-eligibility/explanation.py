@@ -23,6 +23,14 @@ def deterministic_explanation(results: list[dict[str, Any]]) -> str:
         counts[status] = counts.get(status, 0) + 1
     parts = [f"Đã đánh giá {len(results)} chính sách bằng rule engine."]
     parts.extend(f"{count} chính sách {labels.get(status, status)}." for status, count in counts.items())
+    eligible_requirements = [
+        f"{result.get('policy_name') or result.get('policy_id')}: {requirement}"
+        for result in results
+        if result.get("status") == "eligible"
+        for requirement in (result.get("application_requirements") or [])
+    ]
+    if eligible_requirements:
+        parts.append("Yêu cầu khi đăng ký: " + "; ".join(eligible_requirements))
     return " ".join(parts)
 
 
@@ -50,6 +58,7 @@ class EligibilityExplainer:
                 "missing_fields": result.get("missing_fields"),
                 "warnings": result.get("warnings"),
                 "evidence_unit_ids": result.get("evidence_unit_ids"),
+                "application_requirements": result.get("application_requirements") or [],
             }
             for result in results
         ]

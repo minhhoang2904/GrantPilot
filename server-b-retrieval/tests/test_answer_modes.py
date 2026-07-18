@@ -109,6 +109,31 @@ class AnswerModesTest(unittest.TestCase):
                 )
         self.assertEqual(raised.exception.status_code, 409)
 
+    def test_advisory_response_keeps_application_requirement(self):
+        requirement = "Giải pháp chuyển đổi số phải được công bố trên cổng hoặc trang thông tin hợp lệ."
+        eligibility = {
+            "eligibility_results": [{
+                "policy_id": "technology", "policy_name": "Hỗ trợ chuyển đổi số",
+                "status": "eligible", "missing_fields": [], "sources": [],
+                "application_requirements": [requirement],
+            }],
+            "explanation": f"Yêu cầu khi đăng ký: {requirement}",
+            "derived_facts": {}, "derivation_lineage": {}, "diagnostics": {},
+        }
+        patches = self.common_patches()
+        with (
+            patches[0], patches[1], patches[2], patches[3],
+            patch.object(main.company_service, "get_company", return_value={"profile_schema_version": "company-profile-v1"}),
+            patch.object(main.eligibility_client, "evaluate_company", return_value=eligibility),
+        ):
+            response = main.ask(
+                AskIn(question="Tư vấn chuyển đổi số", email="owner@example.test", mode="advisory"),
+                current_email="owner@example.test",
+            )
+        self.assertIn("Giải pháp chuyển đổi số phải được công bố", response["answer"])
+        self.assertEqual(response["eligibility_results"][0]["application_requirements"], [requirement])
+        self.assertEqual(response["results"][0]["application_requirements"], [requirement])
+
 
 if __name__ == "__main__":
     unittest.main()
