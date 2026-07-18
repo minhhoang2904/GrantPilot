@@ -17,14 +17,12 @@ def evaluate_company(
     top_k: int = 10,
     evaluation_date: date | None = None,
 ) -> dict[str, Any]:
-    if not candidate_policy_ids:
-        return {
-            "eligibility_results": [],
-            "explanation": "",
-            "derived_facts": {},
-            "derivation_lineage": {},
-            "diagnostics": {"skipped": "retrieval_returned_no_candidate_policy_ids"},
-        }
+    """Evaluate the selected policies, or the full decision set when empty.
+
+    Server C intentionally treats an empty candidate list as "all current,
+    approved, decision-eligible policies".  Keep that contract here so advisory
+    mode is not accidentally limited by the legal-unit retrieval top-k.
+    """
     response = httpx.post(
         f"{config.SERVER_C_URL}/eligibility/evaluate",
         json={
