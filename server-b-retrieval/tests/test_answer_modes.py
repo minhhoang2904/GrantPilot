@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 import main
 from main import AskIn
+from policy_discovery import DIGITAL_TRANSFORMATION_POLICY_ID, GOLDEN_POLICY_IDS
 
 
 RETRIEVAL_RESULT = {
@@ -83,16 +84,15 @@ class AnswerModesTest(unittest.TestCase):
         self.assertEqual(sent_facts["sector"], "thuong_mai_dich_vu")
         self.assertNotIn("company_name", sent_facts)
         self.assertNotIn("has_patent", sent_facts)
-        self.assertEqual(sent_policy_ids, [])
+        self.assertEqual(sent_policy_ids, list(GOLDEN_POLICY_IDS))
         self.assertEqual(response["mode"], "advisory")
         self.assertEqual(response["eligibility_results"][0]["policy_id"], "p1")
         self.assertEqual(response["results"][0]["status"], "partial")
         self.assertNotEqual(response["results"], response["legal_units"])
-        self.assertIn("Đánh giá theo hồ sơ doanh nghiệp (rule engine)", response["answer"])
-        self.assertLess(
-            response["answer"].index("Đánh giá theo hồ sơ doanh nghiệp"),
-            response["answer"].index("Thông tin pháp lý tham khảo"),
-        )
+        self.assertIn("đối chiếu hồ sơ", response["answer"])
+        self.assertNotIn("rule engine", response["answer"])
+        self.assertNotIn("RAG", response["answer"])
+        self.assertEqual(response["advisory_scope"]["coverage_status"], "profile_scan")
 
     def test_ask_cannot_write_another_users_history(self):
         with self.assertRaises(HTTPException) as raised:
@@ -130,15 +130,43 @@ class AnswerModesTest(unittest.TestCase):
         with (
             patches[0], patches[1], patches[2], patches[3],
             patch.object(main.company_service, "get_company", return_value={"profile_schema_version": "company-profile-v1"}),
-            patch.object(main.eligibility_client, "evaluate_company", return_value=eligibility),
+            patch.object(main.eligibility_client, "evaluate_company", return_value=eligibility) as evaluate,
         ):
             response = main.ask(
                 AskIn(question="Tư vấn chuyển đổi số", email="owner@example.test", mode="advisory"),
                 current_email="owner@example.test",
             )
         self.assertIn("Giải pháp chuyển đổi số phải được công bố", response["answer"])
+        self.assertEqual(evaluate.call_args.args[1], [DIGITAL_TRANSFORMATION_POLICY_ID])
         self.assertEqual(response["eligibility_results"][0]["application_requirements"], [requirement])
         self.assertEqual(response["results"][0]["application_requirements"], [requirement])
+
+    def test_tax_advisory_returns_not_covered_without_calling_server_c(self):
+        patches = self.common_patches()
+        with (
+            patches[0], patches[1], patches[2] as generated, patches[3],
+            patch.object(main.company_service, "get_company", return_value={"profile_schema_version": "company-profile-v1"}),
+            patch.object(main.eligibility_client, "evaluate_company") as evaluate,
+        ):
+            response = main.ask(
+                AskIn(
+                    question="Tôi có đủ điều kiện nhận ưu đãi thuế TNDN không?",
+                    email="owner@example.test",
+                    mode="advisory",
+                ),
+                current_email="owner@example.test",
+            )
+
+        evaluate.assert_not_called()
+        generated.assert_not_called()
+        self.assertEqual(response["advisory_scope"]["coverage_status"], "not_covered")
+        self.assertEqual(response["eligibility_results"], [])
+        self.assertEqual(response["results"], [])
+        self.assertIn("chưa thể đánh giá", response["answer"])
+        self.assertIn(
+            "không có nghĩa là doanh nghiệp của bạn không đủ điều kiện",
+            response["answer"],
+        )
 
 
 if __name__ == "__main__":

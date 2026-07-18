@@ -11,12 +11,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 import answer_gen
+import advisory_answer
 import auth_service
 import company_service
 from company_profile import PROFILE_SCHEMA_VERSION, decision_facts
 import config
 import eligibility_client
 import profile_service
+import policy_discovery
 import retrieval
 from memory import ChatMemory, build_chat_memory
 
@@ -391,7 +393,7 @@ def ask(
     thread_id, _, result = _run_retrieval(payload)
     units = result["legal_units"]
     citations = _legal_citations(units)
-    answer = answer_gen.generate_answer(payload.question, units, fpt=retrieval.get_retriever().fpt)
+    answer = ""
 
     eligibility = {
         "eligibility_results": [],
@@ -401,38 +403,49 @@ def ask(
         "diagnostics": {"skipped": "lookup_mode"},
     }
     frontend_results: list[dict[str, Any]] = []
+    advisory_scope: dict[str, Any] | None = None
     if mode == "advisory":
         company = company_service.get_company(current_email)
         if company is None:
             raise HTTPException(status_code=409, detail="Cần tạo hồ sơ doanh nghiệp trước khi tư vấn.")
         if company.get("profile_schema_version") != PROFILE_SCHEMA_VERSION:
             raise HTTPException(status_code=409, detail="Cần cập nhật hồ sơ doanh nghiệp lên phiên bản mới.")
-        try:
-            eligibility = eligibility_client.evaluate_company(
-                decision_facts(company),
-                # Advisory mode answers "what is this company eligible for?",
-                # so the MVP must evaluate the complete approved decision set.
-                # Retrieval candidates still ground the prose answer, but they
-                # are too narrow to be the eligibility scope for multi-intent
-                # questions (for example, digital transformation + training).
-                [],
-                top_k=min(payload.top_k, 10),
-            )
-        except Exception as exc:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Eligibility service chưa sẵn sàng: {type(exc).__name__}",
-            ) from exc
-        raw_results = eligibility.get("eligibility_results") or []
-        frontend_results = eligibility_client.to_frontend_results(raw_results)
-        explanation = str(eligibility.get("explanation") or "").strip()
-        if explanation:
-            answer = (
-                "Đánh giá theo hồ sơ doanh nghiệp (rule engine):\n"
-                f"{explanation}\n\n"
-                "Thông tin pháp lý tham khảo (RAG, không dùng để chấm điều kiện):\n"
-                f"{answer}"
-            )
+        scope = policy_discovery.discover_policies(
+            payload.question,
+            result.get("candidate_policy_ids") or [],
+        )
+        advisory_scope = scope.as_dict()
+        if scope.coverage_status == "not_covered":
+            eligibility["diagnostics"] = {
+                "skipped": "topic_not_covered_by_mvp",
+                **advisory_scope,
+            }
+            answer = advisory_answer.not_covered_answer(scope)
+        else:
+            try:
+                eligibility = eligibility_client.evaluate_company(
+                    decision_facts(company),
+                    list(scope.policy_ids),
+                    top_k=min(max(payload.top_k, len(scope.policy_ids)), 10),
+                )
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Eligibility service chưa sẵn sàng: {type(exc).__name__}",
+                ) from exc
+            raw_results = eligibility.get("eligibility_results") or []
+            frontend_results = eligibility_client.to_frontend_results(raw_results)
+            eligibility["diagnostics"] = {
+                **(eligibility.get("diagnostics") or {}),
+                **advisory_scope,
+            }
+            answer = advisory_answer.build_advisory_answer(scope, raw_results)
+    else:
+        answer = answer_gen.generate_answer(
+            payload.question,
+            units,
+            fpt=retrieval.get_retriever().fpt,
+        )
 
     session_id = _persist_answer(
         payload,
@@ -457,6 +470,7 @@ def ask(
         # contains only policy eligibility rows, never legal units.
         "results": frontend_results,
         "candidate_policy_ids": result["candidate_policy_ids"],
+        "advisory_scope": advisory_scope,
         "retrieval": {
             "route": result["route"],
             "original_query": result["original_query"],
