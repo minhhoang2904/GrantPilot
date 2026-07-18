@@ -239,3 +239,30 @@ def ingest_policies(db, policies: Iterable[dict]) -> dict:
         return {"upserted": 0}
     result = db.policies.bulk_write(operations, ordered=False)
     return {"upserted": result.upserted_count, "updated": result.modified_count, "total": len(operations)}
+
+
+# Canonical writer: do not trust client evidence/review/eligibility metadata.
+def ingest_policies(db, policies: Iterable[dict]) -> dict:
+    from policy_normalization import apply_duplicates, prepare_policy_for_ingest
+
+    prepared = [prepare_policy_for_ingest(policy, db) for policy in policies]
+    apply_duplicates(prepared)
+    timestamp = utcnow()
+    operations = []
+    for policy in prepared:
+        row = {key: policy.get(key) for key in (
+            "policy_id", "policy_name", "category", "document_id", "document_version", "source_document_version",
+            "is_current", "review_status", "eligible_for_decision", "evidence_unit_ids", "evidence_resolution",
+            "requires_evidence_review", "policy_rule_schema_version", "fact_catalog_version", "canonical_policy_key",
+            "normalized_rule_hash", "duplicate_group_id", "superseded_by_policy_id", "normalized_rules",
+            "validation_issues_current", "validation_history", "policy_parameters",
+        )}
+        row.update({"payload": policy, "updated_at": timestamp})
+        operations.append(ReplaceOne(
+            {"policy_id": row["policy_id"], "document_id": row["document_id"], "document_version": row["document_version"]},
+            {**row, "ingested_at": timestamp}, upsert=True,
+        ))
+    if not operations:
+        return {"total": 0, "upserted": 0, "updated": 0}
+    result = db.policies.bulk_write(operations, ordered=False)
+    return {"total": len(operations), "upserted": result.upserted_count, "updated": result.modified_count}

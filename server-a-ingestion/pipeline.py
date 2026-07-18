@@ -207,7 +207,7 @@ def _value_is_valid(value: object, field_type: str, operator: str, definition: d
     return False
 
 
-def normalize_rules(rules: object, catalog: dict | None = None) -> tuple[dict, list[str], str | None]:
+def _retired_normalize_rules(rules: object, catalog: dict | None = None) -> tuple[dict, list[str], str | None]:
     """Return normalized rules, warnings, and a blocking review status if needed."""
     catalog = catalog or load_fact_catalog()
     aliases = fact_aliases(catalog)
@@ -451,7 +451,7 @@ Tài liệu: {source['document_title']} ({source['document_number']})
         return [item["embedding"] for item in sorted(data["data"], key=lambda item: item["index"])]
 
 
-def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> dict:
+def _retired_normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> dict:
     """Normalize an extracted policy without silently making it decision-ready."""
     raw_evidence = policy.get("evidence_unit_ids", []) or []
     evidence = list(dict.fromkeys(candidate for candidate in raw_evidence if candidate in valid_evidence))
@@ -523,7 +523,7 @@ def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> d
     return result
 
 
-def policy_is_decision_eligible(policy: dict) -> bool:
+def _retired_policy_is_decision_eligible(policy: dict) -> bool:
     """The only gate Server C may use when selecting executable policies."""
     review_status = policy.get("review_status") or (policy.get("review") or {}).get("status")
     return bool(
@@ -536,7 +536,7 @@ def policy_is_decision_eligible(policy: dict) -> bool:
     )
 
 
-def apply_duplicate_metadata(policies: list[dict]) -> list[dict]:
+def _retired_apply_duplicate_metadata(policies: list[dict]) -> list[dict]:
     """Group semantic duplicates even when their display IDs/names differ."""
     groups: dict[str, list[dict]] = defaultdict(list)
     for policy in policies:
@@ -611,7 +611,7 @@ def canonicalize_legacy_policy(policy: dict, source: dict | None, valid_evidence
     return normalized
 
 
-def normalize_policy_artifact(policies: list[dict], units: list[dict], sources: dict[str, dict]) -> list[dict]:
+def _retired_normalize_policy_artifact(policies: list[dict], units: list[dict], sources: dict[str, dict]) -> list[dict]:
     """Upgrade old policies.json records before either ingestion entrypoint writes Mongo."""
     source_by_document = {source["document_id"]: source for source in sources.values()}
     normalized: list[dict] = []
@@ -854,6 +854,51 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
         ]
         index.upsert(vectors=vectors, namespace=PINECONE_NAMESPACE)
         print(f"[EMBED] {min(start + batch_size, len(pending))}/{len(pending)}")
+
+
+# Policy normalization is intentionally centralized. These compatibility wrappers
+# keep the OCR/LLM pipeline API stable while Mongo recomputes evidence at write time.
+from policy_normalization import (  # noqa: E402
+    SCHEMA_VERSION as POLICY_RULE_SCHEMA_VERSION,
+    apply_duplicates as apply_duplicate_metadata,
+    dry_run as policy_dry_run,
+    prepare_policy_for_ingest as _prepare_policy_for_ingest,
+)
+
+
+def normalize_rules(rules: object, catalog: dict | None = None):
+    from policy_normalization import normalize_rules as canonical_normalize_rules
+    normalized, issues, _ = canonical_normalize_rules(rules, catalog)
+    status = "needs_schema_mapping" if any(i["code"] == "unknown_field" for i in issues) else ("rejected" if any(i["severity"] == "blocking" for i in issues) else None)
+    return normalized, [i["message"] for i in issues], status
+
+
+def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> dict:
+    policy = {**policy, "pipeline": {**(policy.get("pipeline") or {}), "document_id": source["document_id"]}}
+    policy["evidence_unit_ids"] = [x for x in policy.get("evidence_unit_ids", []) if x in valid_evidence]
+    result = _prepare_policy_for_ingest(policy, None, source)
+    if not result["evidence_unit_ids"]:
+        result["evidence_resolution"] = "unresolved"
+    elif any("_cl-" not in x and "_pt-" not in x for x in result["evidence_unit_ids"]):
+        result["evidence_resolution"] = "article_fallback"
+    else:
+        result["evidence_resolution"] = "precise"
+    result["requires_evidence_review"] = result["evidence_resolution"] != "precise"
+    result["eligible_for_decision"] = False
+    return result
+
+
+def policy_is_decision_eligible(policy: dict) -> bool:
+    from policy_normalization import approval_valid, load_catalog
+    return bool(policy.get("eligible_for_decision") and approval_valid(policy, load_catalog()))
+
+
+def normalize_policy_artifact(policies: list[dict], units: list[dict], sources: dict[str, dict]) -> list[dict]:
+    source_by_document = {row["document_id"]: row for row in sources.values()}
+    return apply_duplicate_metadata([
+        _prepare_policy_for_ingest(p, None, source_by_document.get((p.get("pipeline") or {}).get("document_id"), {}))
+        for p in policies
+    ])
 
 
 def main() -> None:
