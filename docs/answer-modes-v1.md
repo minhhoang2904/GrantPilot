@@ -78,3 +78,14 @@ evidence_unit_ids is non-empty
 Therefore an empty `eligibility_results` with excluded candidate IDs means the
 ingestion review gate has not approved those policies; it is not permission to
 evaluate candidate or unreviewed rules.
+
+## Server B/C rolling compatibility
+
+The canonical Server C endpoint is `POST /eligibility/evaluate`. Its v1 request
+uses `facts` and its canonical response field is `eligibility_results`.
+
+During the v0.2 retirement window, Server C also accepts the legacy request key
+`profile` and returns the legacy response alias `results`. Server B first sends
+the v1 request, retries a `422` once with `profile`, and normalizes `results` to
+`eligibility_results`. This compatibility is only for staggered container
+rollouts; new code must use the v1 names.
