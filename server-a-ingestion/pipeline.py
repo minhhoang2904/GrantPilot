@@ -543,6 +543,24 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
     return all_policies
 
 
+def run_policy_mongo(strict_document_status: bool = True) -> dict:
+    """Validate and upsert policies only after legal documents/units exist in MongoDB."""
+    from mongo_store import database, ensure_indexes
+    from policy_quality import ingest_policies
+
+    if not POLICIES_PATH.exists():
+        raise FileNotFoundError(f"Không có policies tại {POLICIES_PATH}")
+    policies = json.loads(POLICIES_PATH.read_text(encoding="utf-8"))
+    client, db = database()
+    try:
+        ensure_indexes(db)
+        result = ingest_policies(db, policies, strict_document_status=strict_document_status)
+        print(f"[POLICY MONGO] {result}")
+        return result
+    finally:
+        client.close()
+
+
 def embedding_text(unit: dict) -> str:
     location = f"{unit['document_title']}"
     if unit.get("document_number"):
@@ -628,11 +646,12 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="OCR và ingest văn bản pháp luật")
-    parser.add_argument("stage", choices=["ocr", "parse", "mongo", "policies", "embed", "all"])
+    parser.add_argument("stage", choices=["ocr", "parse", "mongo", "policies", "policy-mongo", "embed", "all"])
     parser.add_argument("--pdf", help="Chỉ ingest một file, ví dụ 04.signed.pdf")
     parser.add_argument("--force-ocr", action="store_true")
     parser.add_argument("--force-policy", action="store_true")
     parser.add_argument("--force-embed", action="store_true")
+    parser.add_argument("--allow-unknown-document-status", action="store_true", help="Chỉ dùng cho development; production mặc định từ chối status=unknown")
     parser.add_argument("--batch-size", type=int, default=32)
     args = parser.parse_args()
     selected_pdfs = pdf_files(args.pdf)
@@ -647,6 +666,8 @@ def main() -> None:
         run_mongo(selected_pdfs)
     if args.stage in {"policies", "all"}:
         run_policies(document_ids=selected_document_ids if args.pdf else None, force=args.force_policy)
+    if args.stage in {"policy-mongo", "all"}:
+        run_policy_mongo(strict_document_status=not args.allow_unknown_document_status)
     if args.stage in {"embed", "all"}:
         run_embed(args.batch_size, force=args.force_embed)
 

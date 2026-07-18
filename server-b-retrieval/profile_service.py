@@ -1,98 +1,76 @@
-"""
-server-b-retrieval / profile_service.py
+"""MongoDB CRUD for company profiles used by Server B and Server C."""
 
-CRUD hồ sơ doanh nghiệp (profiles) trong shared/policy.db.
-"""
+from __future__ import annotations
 
-import json
 import os
-import sqlite3
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+import certifi
+from dotenv import load_dotenv
+from pymongo import MongoClient, ReturnDocument
+
+
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = Path(os.environ.get("POLICY_DB_PATH", BASE_DIR.parent / "shared" / "policy.db"))
+load_dotenv(BASE_DIR.parent / "server-a-ingestion" / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
+MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI") or "mongodb://localhost:27017"
+MONGO_DB = os.getenv("MONGO_DB") or os.getenv("MONGODB_DB") or "grantpilot"
+_client: MongoClient | None = None
 
 
-def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def _profiles():
+    global _client
+    if _client is None:
+        options: dict[str, Any] = {"serverSelectionTimeoutMS": 5000}
+        if MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower():
+            options["tlsCAFile"] = os.getenv("MONGO_TLS_CA_FILE", certifi.where())
+        _client = MongoClient(MONGO_URI, **options)
+        _client.admin.command("ping")
+        _client[MONGO_DB].profiles.create_index("id", unique=True)
+        _client[MONGO_DB].profiles.create_index([("business_type", 1), ("province", 1)])
+    return _client[MONGO_DB].profiles
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _serialize(profile: Optional[dict]) -> Optional[dict]:
+    if profile is None:
+        return None
+    profile.pop("_id", None)
+    return profile
 
 
 def create_profile(data: dict[str, Any]) -> dict[str, Any]:
     profile_id = str(uuid.uuid4())
-    conn = get_connection()
-    try:
-        conn.execute(
-            """
-            INSERT INTO profiles (
-                id, business_name, industry, business_type,
-                num_employees, province, annual_revenue, founded_year, extra_attributes
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                profile_id,
-                data.get("business_name"),
-                data.get("industry"),
-                data.get("business_type"),
-                data.get("num_employees"),
-                data.get("province"),
-                data.get("annual_revenue"),
-                data.get("founded_year"),
-                json.dumps(data.get("extra_attributes", {}), ensure_ascii=False),
-            ),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-    return get_profile(profile_id)
+    now = _now()
+    profile = {"id": profile_id, **data, "created_at": now, "updated_at": now}
+    _profiles().insert_one(profile)
+    return _serialize(profile)  # type: ignore[return-value]
 
 
-def get_profile(profile_id: str) -> Optional[dict[str, Any]]:
-    conn = get_connection()
-    try:
-        row = conn.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,)).fetchone()
-    finally:
-        conn.close()
-    if row is None:
-        return None
-    profile = dict(row)
-    profile["extra_attributes"] = json.loads(profile.get("extra_attributes") or "{}")
-    return profile
+def get_profile(profile_id: str) -> Optional[dict]:
+    return _serialize(_profiles().find_one({"id": profile_id}))
 
 
-def update_profile(profile_id: str, data: dict[str, Any]) -> Optional[dict[str, Any]]:
-    existing = get_profile(profile_id)
-    if existing is None:
-        return None
+def update_profile(profile_id: str, data: dict[str, Any]) -> Optional[dict]:
+    updates = {key: value for key, value in data.items() if key != "id"}
+    updates["updated_at"] = _now()
+    result = _profiles().find_one_and_update(
+        {"id": profile_id}, {"$set": updates}, return_document=ReturnDocument.AFTER
+    )
+    return _serialize(result)
 
-    merged = {**existing, **data}
-    conn = get_connection()
-    try:
-        conn.execute(
-            """
-            UPDATE profiles
-            SET business_name=?, industry=?, business_type=?, num_employees=?,
-                province=?, annual_revenue=?, founded_year=?, extra_attributes=?,
-                updated_at=datetime('now')
-            WHERE id = ?
-            """,
-            (
-                merged.get("business_name"),
-                merged.get("industry"),
-                merged.get("business_type"),
-                merged.get("num_employees"),
-                merged.get("province"),
-                merged.get("annual_revenue"),
-                merged.get("founded_year"),
-                json.dumps(merged.get("extra_attributes", {}), ensure_ascii=False),
-                profile_id,
-            ),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-    return get_profile(profile_id)
+
+def upsert_profile(profile: dict[str, Any]) -> dict[str, Any]:
+    now = _now()
+    _profiles().update_one(
+        {"id": profile["id"]},
+        {"$set": {**profile, "updated_at": now}, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    return get_profile(profile["id"])  # type: ignore[return-value]
