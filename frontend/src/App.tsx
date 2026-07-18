@@ -12,21 +12,18 @@ export default function App() {
   const [view, setView] = useState<View>('loading')
   const [email, setEmail] = useState<string>('')
   const [company, setCompany] = useState<Company | null>(null)
+  /** When true, onboarding was opened because eligibility mode requires a profile */
+  const [onboardingRequired, setOnboardingRequired] = useState(false)
 
-  async function checkCompany(emailAddr: string) {
+  async function loadCompanyThenMain(emailAddr: string) {
     setView('loading')
     try {
       const c = await getCompany(emailAddr)
-      if (c) {
-        setCompany(c)
-        setView('main')
-      } else {
-        setView('onboarding')
-      }
+      setCompany(c)
     } catch {
-      // Server unreachable or error — proceed to onboarding so user isn't stuck
-      setView('onboarding')
+      setCompany(null)
     }
+    setView('main')
   }
 
   useEffect(() => {
@@ -37,23 +34,47 @@ export default function App() {
       return
     }
     setEmail(stored)
-    void checkCompany(stored)
+    void loadCompanyThenMain(stored)
   }, [])
 
   function handleLogin(addr: string) {
     setEmail(addr)
-    void checkCompany(addr)
+    void loadCompanyThenMain(addr)
   }
 
   function handleOnboardingComplete(c: Company) {
     setCompany(c)
+    if (onboardingRequired) {
+      try {
+        localStorage.setItem('gp_chat_mode', 'eligibility')
+      } catch {
+        /* ignore */
+      }
+    }
+    setOnboardingRequired(false)
     setView('main')
+  }
+
+  function handleOnboardingSkip() {
+    try {
+      localStorage.setItem('gp_chat_mode', 'rag')
+    } catch {
+      /* ignore */
+    }
+    setOnboardingRequired(false)
+    setView('main')
+  }
+
+  function openOnboarding(required = false) {
+    setOnboardingRequired(required)
+    setView('onboarding')
   }
 
   function handleLogout() {
     clearSession()
     setEmail('')
     setCompany(null)
+    setOnboardingRequired(false)
     setView('login')
   }
 
@@ -73,8 +94,23 @@ export default function App() {
   }
 
   if (view === 'onboarding') {
-    return <OnboardingPage email={email} onComplete={handleOnboardingComplete} />
+    return (
+      <OnboardingPage
+        email={email}
+        existing={company}
+        required={onboardingRequired}
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+      />
+    )
   }
 
-  return <MainPage email={email} company={company!} onLogout={handleLogout} />
+  return (
+    <MainPage
+      email={email}
+      company={company}
+      onLogout={handleLogout}
+      onOpenOnboarding={(required) => openOnboarding(required)}
+    />
+  )
 }

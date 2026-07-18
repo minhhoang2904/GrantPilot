@@ -2,6 +2,10 @@ export type Sector =
   | 'nong_lam_ngu_nghiep'
   | 'cong_nghiep_xay_dung'
   | 'thuong_mai_dich_vu'
+  | 'cong_nghe'
+
+/** rag = Tra cứu nhanh (default); eligibility = Tư vấn sâu theo hồ sơ DN */
+export type ChatMode = 'rag' | 'eligibility'
 
 export interface Company {
   email: string

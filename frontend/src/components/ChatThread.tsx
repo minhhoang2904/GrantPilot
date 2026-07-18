@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { Message } from '../types'
+import type { ChatMode, Message } from '../types'
 import ResultsTable from './ResultsTable'
 
 function UserBubble({ content }: { content: string }) {
@@ -15,7 +15,6 @@ function UserBubble({ content }: { content: string }) {
 function AssistantBubble({ content, results }: { content: string; results?: Message['results'] }) {
   return (
     <div className="flex gap-3 items-start">
-      {/* Avatar */}
       <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand to-purple-500 rounded-full flex items-center justify-center shadow-sm">
         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -55,9 +54,11 @@ function TypingIndicator() {
 interface Props {
   messages: Message[]
   loading: boolean
+  mode?: ChatMode
+  onSend?: (question: string) => void
 }
 
-export default function ChatThread({ messages, loading }: Props) {
+export default function ChatThread({ messages, loading, mode = 'rag', onSend }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -75,8 +76,9 @@ export default function ChatThread({ messages, loading }: Props) {
         </div>
         <h3 className="text-base font-semibold text-gray-700 mb-1">Bắt đầu tư vấn chính sách</h3>
         <p className="text-sm text-gray-400 max-w-xs">
-          Hỏi về bất kỳ ưu đãi hay chính sách hỗ trợ doanh nghiệp nào. Hệ thống sẽ kiểm tra điều kiện
-          hưởng dựa trên hồ sơ của bạn.
+          {mode === 'eligibility'
+            ? 'Hỏi về ưu đãi / chính sách — chế độ Tư vấn sâu đối chiếu với hồ sơ doanh nghiệp để xem bạn đủ điều kiện hay chưa.'
+            : 'Hỏi về ưu đãi hay chính sách hỗ trợ. Chế độ Tra cứu nhanh không yêu cầu hồ sơ doanh nghiệp.'}
         </p>
         <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm text-left">
           {[
@@ -84,9 +86,15 @@ export default function ChatThread({ messages, loading }: Props) {
             'Doanh nghiệp tôi có thể xin quỹ NATIF không?',
             'Có chính sách nào hỗ trợ doanh nghiệp công nghệ không?',
           ].map((q) => (
-            <div key={q} className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-500 bg-gray-50">
+            <button
+              key={q}
+              type="button"
+              disabled={!onSend}
+              onClick={() => onSend?.(q)}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs text-gray-600 bg-gray-50 text-left hover:border-brand hover:bg-brand/5 hover:text-brand transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {q}
-            </div>
+            </button>
           ))}
         </div>
       </div>

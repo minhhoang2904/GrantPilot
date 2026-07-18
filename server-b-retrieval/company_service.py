@@ -14,7 +14,7 @@ Schema companies (mirror shared/schema.sql profiles):
     company_name: str,                    -- chỉ hiển thị
 
     # tầng 0: phân hạng DNNVV
-    sector: str | None,                   -- enum: nong_lam_ngu_nghiep | cong_nghiep_xay_dung | thuong_mai_dich_vu
+    sector: str | None,                   -- enum: nong_lam_ngu_nghiep | cong_nghiep_xay_dung | thuong_mai_dich_vu | cong_nghe
     social_insurance_employees: int|None, -- BHXH, không phải tổng nhân sự
     annual_revenue_vnd: int | None,
     total_capital_vnd: int | None,
@@ -257,3 +257,12 @@ def append_chat_turn(
         },
     )
     return new_sid
+
+
+def delete_chat_session(email: str, session_id: str) -> bool:
+    """Xóa một session khỏi lịch sử chat. Trả về True nếu đã xóa."""
+    result = _chat_history().update_one(
+        {"email": email},
+        {"$pull": {"sessions": {"session_id": session_id}}},
+    )
+    return result.modified_count > 0
