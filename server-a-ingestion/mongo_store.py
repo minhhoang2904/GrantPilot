@@ -7,11 +7,12 @@ import os
 from datetime import datetime, timezone
 from typing import Iterable
 
+import certifi
 from pymongo import MongoClient
 
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-MONGO_DB = os.getenv("MONGO_DB", "grantpilot")
+MONGO_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB = os.getenv("MONGODB_DB") or os.getenv("MONGO_DB", "grantpilot")
 
 
 def utcnow() -> datetime:
@@ -27,7 +28,10 @@ def checksum_file(path) -> str:
 
 
 def database():
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    kwargs = {"serverSelectionTimeoutMS": 5000}
+    if "mongodb+srv" in MONGO_URI or "mongodb.net" in MONGO_URI:
+        kwargs["tlsCAFile"] = certifi.where()
+    client = MongoClient(MONGO_URI, **kwargs)
     client.admin.command("ping")
     return client, client[MONGO_DB]
 

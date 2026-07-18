@@ -71,20 +71,23 @@ def _semantic_search(query: str, top_k: int) -> list[dict[str, Any]]:
             }
         )
     if rows:
-        response = requests.post(
-            f"{SERVER_A_URL}/internal/legal-units/batch",
-            json={"unit_ids": [row["id"] for row in rows]},
-            timeout=30,
-        )
-        response.raise_for_status()
-        hydrated = {item["unit_id"]: item for item in response.json().get("items", [])}
-        for row in rows:
-            unit = hydrated.get(row["id"])
-            if unit:
-                row["content"] = unit.get("text", "")
-                row["summary"] = unit.get("normalized_text", row["content"])
-                row["version"] = unit.get("version")
-                row["is_current"] = unit.get("is_current")
+        try:
+            response = requests.post(
+                f"{SERVER_A_URL}/internal/legal-units/batch",
+                json={"unit_ids": [row["id"] for row in rows]},
+                timeout=30,
+            )
+            response.raise_for_status()
+            hydrated = {item["unit_id"]: item for item in response.json().get("items", [])}
+            for row in rows:
+                unit = hydrated.get(row["id"])
+                if unit:
+                    row["content"] = unit.get("text", "")
+                    row["summary"] = unit.get("normalized_text", row["content"])
+                    row["version"] = unit.get("version")
+                    row["is_current"] = unit.get("is_current")
+        except Exception:
+            pass
     return rows
 
 
