@@ -82,6 +82,8 @@ class CompanyApiModelTest(unittest.TestCase):
             AskIn(question="Công ty tôi có đủ điều kiện không?", mode="eligibility").mode,
             "eligibility",
         )
+        self.assertEqual(AskIn(question="Tra cứu", mode="lookup").mode, "lookup")
+        self.assertEqual(AskIn(question="Tư vấn", mode="advisory").mode, "advisory")
         with self.assertRaises(ValidationError):
             AskIn(question="Câu hỏi", mode="auto")
 
