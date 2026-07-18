@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { ChatMode, Company, Message, Sector } from '../types'
+import type { ChatMode, Company, LegalForm, Message, Sector } from '../types'
 import { ask, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
 import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
@@ -13,7 +13,16 @@ const SECTOR_LABELS: Record<Sector, string> = {
   nong_lam_ngu_nghiep: 'Nông / Lâm / Ngư',
   cong_nghiep_xay_dung: 'CN & Xây dựng',
   thuong_mai_dich_vu: 'TM & Dịch vụ',
-  cong_nghe: 'Công nghệ',
+}
+
+const LEGAL_FORM_LABELS: Record<LegalForm, string> = {
+  joint_stock_company: 'Công ty cổ phần',
+  limited_liability_company: 'Công ty TNHH',
+  partnership: 'Công ty hợp danh',
+  private_enterprise: 'Doanh nghiệp tư nhân',
+  cooperative: 'Hợp tác xã',
+  household_business: 'Hộ kinh doanh',
+  other: 'Khác',
 }
 
 function sectorLabel(s?: Sector | null) {
@@ -37,15 +46,17 @@ function compactVnd(n?: number | null) {
 /** Profile is complete when all eligibility-required fields are filled. */
 export function isProfileComplete(company: Company | null | undefined): boolean {
   if (!company?.company_name?.trim()) return false
+  if (company.profile_schema_version !== 'company-profile-v1') return false
   if (!company.sector) return false
+  if (!company.primary_business_activity_group) return false
+  if (!company.legal_form) return false
   if (company.social_insurance_employees == null) return false
   if (company.annual_revenue_vnd == null) return false
   if (company.total_capital_vnd == null) return false
-  if (company.founded_year == null) return false
-  if (!company.product_type?.trim()) return false
-  if (company.is_public_offering == null) return false
-  if (company.has_patent == null) return false
-  if (!company.province?.trim()) return false
+  if (!company.first_business_registration_date) return false
+  if (!company.business_description?.trim()) return false
+  if (company.has_public_offering == null) return false
+  if (!company.province_name?.trim()) return false
   if (company.has_coworking_contract == null) return false
   if (company.has_business_registration == null) return false
   if (company.has_coworking_contract && company.coworking_monthly_cost_vnd == null) return false
@@ -386,10 +397,8 @@ export default function MainPage({
           <p className="text-xs text-gray-400 truncate mb-2">{email}</p>
           <div className="space-y-1">
             <SidebarStat label="Lĩnh vực" value={sectorLabel(company?.sector)} />
-            <SidebarStat
-              label="Thành lập"
-              value={company?.founded_year != null ? String(company.founded_year) : null}
-            />
+            <SidebarStat label="Loại hình" value={company?.legal_form ? LEGAL_FORM_LABELS[company.legal_form] : null} />
+            <SidebarStat label="Đăng ký lần đầu" value={company?.first_business_registration_date ?? null} />
             <SidebarStat
               label="LĐ BHXH"
               value={
@@ -400,13 +409,12 @@ export default function MainPage({
             />
             <SidebarStat label="Doanh thu" value={compactVnd(company?.annual_revenue_vnd)} />
             <SidebarStat label="Tổng vốn" value={compactVnd(company?.total_capital_vnd)} />
-            <SidebarStat label="SP / DV" value={company?.product_type ?? null} />
-            <SidebarStat label="Tỉnh / TP" value={company?.province ?? null} />
+            <SidebarStat label="SP / DV" value={company?.business_description ?? null} />
+            <SidebarStat label="Tỉnh / TP" value={company?.province_name ?? null} />
             <SidebarStat
               label="Chào bán CK"
-              value={triboolLabel(company?.is_public_offering)}
+              value={triboolLabel(company?.has_public_offering)}
             />
-            <SidebarStat label="Patent" value={triboolLabel(company?.has_patent)} />
             <SidebarStat label="ĐKKD" value={triboolLabel(company?.has_business_registration)} />
             <SidebarStat
               label="Coworking"

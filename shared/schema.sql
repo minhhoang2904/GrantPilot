@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     company_name                TEXT,      -- chỉ hiển thị, không rule nào đọc
 
     -- tầng 0: phân hạng DNNVV
-    sector                      TEXT,      -- enum: nong_lam_ngu_nghiep | cong_nghiep_xay_dung | thuong_mai_dich_vu | cong_nghe
+    sector                      TEXT,      -- enum: nong_lam_ngu_nghiep | cong_nghiep_xay_dung | thuong_mai_dich_vu
     social_insurance_employees  INTEGER,   -- ⚠️ BHXH, KHÔNG phải tổng nhân sự
     annual_revenue_vnd          INTEGER,   -- ⚠️ INTEGER, không REAL
     total_capital_vnd           INTEGER,   -- doanh thu HOẶC nguồn vốn, chỉ cần một
