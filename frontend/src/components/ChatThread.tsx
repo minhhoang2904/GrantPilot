@@ -12,7 +12,15 @@ function UserBubble({ content }: { content: string }) {
   )
 }
 
-function AssistantBubble({ content, results }: { content: string; results?: Message['results'] }) {
+function AssistantBubble({
+  content,
+  results,
+  onOpenPdf,
+}: {
+  content: string
+  results?: Message['results']
+  onOpenPdf?: (url: string, label: string) => void
+}) {
   return (
     <div className="flex gap-3 items-start">
       <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand to-purple-500 rounded-full flex items-center justify-center shadow-sm">
@@ -25,7 +33,7 @@ function AssistantBubble({ content, results }: { content: string; results?: Mess
         <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed text-gray-800 shadow-sm whitespace-pre-wrap">
           {content}
         </div>
-        {results && results.length > 0 && <ResultsTable results={results} />}
+        {results && results.length > 0 && <ResultsTable results={results} onOpenPdf={onOpenPdf} />}
       </div>
     </div>
   )
@@ -56,9 +64,10 @@ interface Props {
   loading: boolean
   mode?: ChatMode
   onSend?: (question: string) => void
+  onOpenPdf?: (url: string, label: string) => void
 }
 
-export default function ChatThread({ messages, loading, mode = 'rag', onSend }: Props) {
+export default function ChatThread({ messages, loading, mode = 'rag', onSend, onOpenPdf }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -107,7 +116,7 @@ export default function ChatThread({ messages, loading, mode = 'rag', onSend }: 
         msg.role === 'user' ? (
           <UserBubble key={msg.id} content={msg.content} />
         ) : (
-          <AssistantBubble key={msg.id} content={msg.content} results={msg.results} />
+          <AssistantBubble key={msg.id} content={msg.content} results={msg.results} onOpenPdf={onOpenPdf} />
         ),
       )}
       {loading && <TypingIndicator />}
