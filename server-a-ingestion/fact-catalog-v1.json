@@ -1,73 +1,458 @@
 {
   "schema_version": "fact-catalog-v1",
+  "catalog_version": "1.0.0",
+  "status": "approved",
+  "approved_at": "2026-07-18",
+  "owner": "profile-eligibility",
+  "description": "Canonical decision facts shared by company-profile collection, policy ingestion, and Server C eligibility evaluation.",
+  "semantics": {
+    "missing_value": null,
+    "missing_behavior": "unknown",
+    "boolean_values": [true, false, null],
+    "rules": [
+      "Missing or null never means false.",
+      "Aliases are spelling aliases only; value-aware legacy migrations are handled outside the catalog.",
+      "Policy benefits, support amounts, course types, and application parameters are not company facts.",
+      "Derived facts must declare dependencies and a versioned derivation function."
+    ]
+  },
+  "source_kinds": [
+    "user_input",
+    "computed",
+    "document_verified",
+    "manual_review"
+  ],
   "fields": {
-    "is_sme": {
-      "type": "boolean",
-      "source": "derived",
-      "operators": ["==", "!=", "exists"],
-      "aliases": ["is_sme", "la_dnnvv", "là_dnnvv", "doanh_nghiep_nho_va_vua"]
-    },
-    "is_innovative_startup": {
-      "type": "boolean",
-      "source": "derived",
-      "operators": ["==", "!=", "exists"],
-      "aliases": ["is_innovative_startup", "la_startup_doi_moi_sang_tao", "là_startup_đổi_mới_sáng_tạo"]
-    },
-    "enterprise_size": {
-      "type": "enum",
-      "source": "derived",
-      "enum": ["micro", "small", "medium"],
-      "operators": ["==", "!=", "in", "not_in", "exists"],
-      "aliases": ["enterprise_size", "quy_mo_doanh_nghiep", "quy_mô_doanh_nghiệp"]
-    },
-    "legal_form": {
+    "sector": {
+      "label": "Linh vuc de phan loai DNNVV",
+      "description": "Nhom linh vuc dung de ap dung nguong phan loai quy mo doanh nghiep.",
       "type": "enum",
       "source": "direct",
-      "enum": ["joint_stock_company", "limited_liability_company", "partnership", "private_enterprise", "household_business"],
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "enum": ["nong_lam_ngu_nghiep", "cong_nghiep_xay_dung", "thuong_mai_dich_vu"],
+      "operators": ["==", "!=", "in", "not_in", "exists"],
+      "aliases": ["sector", "industry", "linh_vuc_phan_loai_dnnvv"]
+    },
+    "primary_business_activity_group": {
+      "label": "Nhom nganh nghe kinh doanh chinh",
+      "description": "Nhom hoat dong chi tiet hon sector, dung cho chinh sach chi ap dung cho san xuat, che bien hoac nganh cu the.",
+      "type": "enum",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "enum": ["agriculture", "forestry", "fisheries", "manufacturing", "processing", "construction", "trade", "services", "other"],
+      "operators": ["==", "!=", "in", "not_in", "exists"],
+      "aliases": ["primary_business_activity_group", "sector_group"]
+    },
+    "legal_form": {
+      "label": "Loai hinh phap ly",
+      "description": "Hinh thuc phap ly cua doanh nghiep; khong phai quy mo doanh nghiep.",
+      "type": "enum",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "enum": ["joint_stock_company", "limited_liability_company", "partnership", "private_enterprise", "cooperative", "household_business", "other"],
       "operators": ["==", "!=", "in", "not_in", "exists"],
       "aliases": ["legal_form", "loai_hinh_phap_ly", "loại_hình_pháp_lý"]
     },
-    "industry": {
+    "province_code": {
+      "label": "Ma tinh, thanh pho",
+      "description": "Ma dia ban tru so chinh; ten hien thi duoc luu o profile nhung rule dung ma chuan.",
       "type": "string",
+      "format": "administrative_area_code",
       "source": "direct",
-      "operators": ["==", "!=", "in", "not_in", "contains", "exists"],
-      "aliases": ["industry", "nganh_nghe", "ngành_nghề"]
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "in", "not_in", "exists"],
+      "aliases": ["province_code", "ma_tinh_thanh"]
     },
-    "province": {
-      "type": "string",
-      "source": "direct",
-      "operators": ["==", "!=", "in", "not_in", "contains", "exists"],
-      "aliases": ["province", "tinh_thanh", "tỉnh_thành"]
-    },
-    "num_employees": {
+    "social_insurance_employees": {
+      "label": "So lao dong tham gia BHXH",
+      "description": "So lao dong tham gia bao hiem xa hoi; khong dong nhat voi tong so nhan su.",
       "type": "integer",
+      "unit": "employees",
       "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
       "operators": ["==", "!=", ">", ">=", "<", "<=", "in", "not_in", "exists"],
-      "aliases": ["num_employees", "so_lao_dong", "số_lao_động"]
+      "aliases": ["social_insurance_employees", "so_lao_dong_bhxh", "số_lao_động_bhxh"],
+      "validation": {"minimum": 0}
     },
-    "annual_revenue": {
-      "type": "number",
+    "annual_revenue_vnd": {
+      "label": "Doanh thu nam",
+      "description": "Doanh thu nam tinh bang VND dung cho ky danh gia.",
+      "type": "integer",
+      "unit": "VND/year",
       "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
       "operators": ["==", "!=", ">", ">=", "<", "<=", "in", "not_in", "exists"],
-      "aliases": ["annual_revenue", "doanh_thu_nam", "doanh_thu_hang_nam", "doanh_thu_hằng_năm"]
+      "aliases": ["annual_revenue_vnd", "annual_revenue", "doanh_thu_nam", "doanh_thu_hang_nam", "doanh_thu_hằng_năm"],
+      "validation": {"minimum": 0}
     },
-    "has_collateral": {
+    "total_capital_vnd": {
+      "label": "Tong nguon von",
+      "description": "Tong nguon von tinh bang VND dung cho ky danh gia.",
+      "type": "integer",
+      "unit": "VND",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", ">", ">=", "<", "<=", "in", "not_in", "exists"],
+      "aliases": ["total_capital_vnd", "tong_nguon_von", "tổng_nguồn_vốn"],
+      "validation": {"minimum": 0}
+    },
+    "first_business_registration_date": {
+      "label": "Ngay dang ky doanh nghiep lan dau",
+      "description": "Ngay tren Giay chung nhan dang ky doanh nghiep lan dau; founded_year chi la du lieu legacy khong du chinh xac de tinh moc thoi gian.",
+      "type": "string",
+      "format": "date",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["first_business_registration_date", "ngay_dang_ky_doanh_nghiep_lan_dau"]
+    },
+    "has_public_offering": {
+      "label": "Da chao ban chung khoan ra cong chung",
+      "description": "Trang thai chao ban chung khoan ra cong chung; dieu kien lien quan chi co y nghia voi cong ty co phan.",
       "type": "boolean",
       "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_public_offering", "is_public_offering", "chao_ban_chung_khoan", "chào_bán_chứng_khoán"]
+    },
+    "has_business_registration": {
+      "label": "Co giay chung nhan dang ky doanh nghiep",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_business_registration", "co_giay_dang_ky_kinh_doanh", "có_giấy_đăng_ký_kinh_doanh"]
+    },
+    "has_state_capital": {
+      "label": "Co von nha nuoc",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_state_capital", "co_von_nha_nuoc", "có_vốn_nhà_nước"]
+    },
+    "has_foreign_investment_capital": {
+      "label": "Co von dau tu nuoc ngoai",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_foreign_investment_capital", "co_von_dau_tu_nuoc_ngoai", "có_vốn_đầu_tư_nước_ngoài"]
+    },
+    "has_coworking_contract": {
+      "label": "Co hop dong khu lam viec chung",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_coworking_contract", "co_hop_dong_coworking", "có_hợp_đồng_coworking"]
+    },
+    "coworking_monthly_cost_vnd": {
+      "label": "Chi phi khu lam viec chung moi thang",
+      "type": "integer",
+      "unit": "VND/month",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", ">", ">=", "<", "<=", "exists"],
+      "aliases": ["coworking_monthly_cost_vnd", "chi_phi_coworking_hang_thang"],
+      "validation": {"minimum": 0}
+    },
+    "has_collateral": {
+      "label": "Co tai san bao dam",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
       "operators": ["==", "!=", "exists"],
       "aliases": ["has_collateral", "co_tai_san_dam_bao", "có_tài_sản_đảm_bảo"]
     },
-    "has_feasible_business_plan": {
+    "has_credit_rating": {
+      "label": "Co xep hang tin dung hop le",
       "type": "boolean",
-      "source": "derived",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_credit_rating", "co_xep_hang_tin_dung", "có_xếp_hạng_tín_dụng"]
+    },
+    "has_feasible_business_plan": {
+      "label": "Co phuong an kinh doanh kha thi",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified", "manual_review"],
+      "nullable": true,
+      "missing_behavior": "unknown",
       "operators": ["==", "!=", "exists"],
       "aliases": ["has_feasible_business_plan", "co_phuong_an_kinh_doanh_kha_thi", "có_phương_án_kinh_doanh_khả_thi"]
     },
-    "has_credit_rating": {
+    "converted_from_registered_household_business": {
+      "label": "Chuyen doi tu ho kinh doanh da dang ky",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["converted_from_registered_household_business"]
+    },
+    "household_business_continuous_months": {
+      "label": "So thang ho kinh doanh hoat dong lien tuc",
+      "type": "integer",
+      "unit": "months",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", ">", ">=", "<", "<=", "exists"],
+      "aliases": ["household_business_continuous_months"],
+      "validation": {"minimum": 0}
+    },
+    "is_first_business_registration": {
+      "label": "La dang ky doanh nghiep lan dau",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["is_first_business_registration"]
+    },
+    "business_scope_unchanged_after_conversion": {
+      "label": "Quy mo, nganh nghe khong thay doi sau chuyen doi",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified", "manual_review"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["business_scope_unchanged_after_conversion"]
+    },
+    "has_valid_invention_patent": {
+      "label": "Co van bang bao ho sang che con hieu luc",
+      "description": "Khong dong nhat voi khai bao has_patent chua duoc xac minh.",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_valid_invention_patent"]
+    },
+    "has_valid_innovation_award": {
+      "label": "Co giai thuong doi moi sang tao hop le",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_valid_innovation_award"]
+    },
+    "has_valid_science_technology_certificate": {
+      "label": "Co chung nhan doanh nghiep khoa hoc cong nghe con hieu luc",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_valid_science_technology_certificate"]
+    },
+    "has_valid_high_tech_certificate": {
+      "label": "Co chung nhan doanh nghiep cong nghe cao con hieu luc",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_valid_high_tech_certificate"]
+    },
+    "has_qualifying_startup_fund_investment": {
+      "label": "Co khoan dau tu tu quy khoi nghiep dap ung dieu kien",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_qualifying_startup_fund_investment"]
+    },
+    "has_qualifying_startup_support_commitment": {
+      "label": "Co xac nhan hoac cam ket ho tro khoi nghiep dap ung dieu kien",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_qualifying_startup_support_commitment"]
+    },
+    "has_innovative_startup_council_approval": {
+      "label": "Co quyet dinh cua Hoi dong lua chon khoi nghiep sang tao",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_innovative_startup_council_approval"]
+    },
+    "participates_in_cluster_or_value_chain": {
+      "label": "Tham gia cum lien ket nganh hoac chuoi gia tri",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified", "manual_review"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["participates_in_cluster_or_value_chain"]
+    },
+    "has_competitive_product": {
+      "label": "Co san pham canh tranh",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified", "manual_review"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_competitive_product"]
+    },
+    "has_process_or_technology_innovation": {
+      "label": "Co doi moi quy trinh hoac cong nghe",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["document_verified", "manual_review"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_process_or_technology_innovation"]
+    },
+    "has_received_same_interest_support": {
+      "label": "Da huong ho tro lai suat cua Nha nuoc trong cung giai doan",
+      "type": "boolean",
+      "source": "direct",
+      "source_kinds": ["user_input", "document_verified"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_received_same_interest_support"]
+    },
+    "company_age_months": {
+      "label": "So thang hoat dong ke tu dang ky lan dau",
+      "type": "integer",
+      "unit": "months",
+      "source": "derived",
+      "source_kinds": ["computed"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", ">", ">=", "<", "<=", "exists"],
+      "aliases": ["company_age_months"],
+      "depends_on": ["first_business_registration_date"],
+      "derivation": {"function": "derive_company_age_months", "version": "1.0.0"},
+      "validation": {"minimum": 0}
+    },
+    "sme_sector_group": {
+      "label": "Nhom linh vuc tinh quy mo DNNVV",
+      "type": "enum",
+      "source": "derived",
+      "source_kinds": ["computed"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "enum": ["agri_industry", "trade_service"],
+      "operators": ["==", "!=", "in", "not_in", "exists"],
+      "aliases": ["sme_sector_group"],
+      "depends_on": ["sector"],
+      "derivation": {"function": "derive_sme_sector_group", "version": "1.0.0"}
+    },
+    "enterprise_size": {
+      "label": "Quy mo doanh nghiep",
+      "type": "enum",
+      "source": "derived",
+      "source_kinds": ["computed"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "enum": ["micro", "small", "medium", "large"],
+      "operators": ["==", "!=", "in", "not_in", "exists"],
+      "aliases": ["enterprise_size", "quy_mo_doanh_nghiep", "quy_mô_doanh_nghiệp"],
+      "depends_on": ["sector", "social_insurance_employees", "annual_revenue_vnd", "total_capital_vnd"],
+      "derivation": {"function": "derive_enterprise_size", "version": "1.0.0"}
+    },
+    "is_sme": {
+      "label": "La doanh nghiep nho va vua",
       "type": "boolean",
       "source": "derived",
+      "source_kinds": ["computed"],
+      "nullable": true,
+      "missing_behavior": "unknown",
       "operators": ["==", "!=", "exists"],
-      "aliases": ["has_credit_rating", "co_xep_hang_tin_dung", "có_xếp_hạng_tín_dụng"]
+      "aliases": ["is_sme", "la_dnnvv", "là_dnnvv", "doanh_nghiep_nho_va_vua"],
+      "depends_on": ["enterprise_size"],
+      "derivation": {"function": "derive_is_sme", "version": "1.0.0"}
+    },
+    "innovation_selection_criteria_met": {
+      "label": "Dat tieu chi lua chon DNNVV khoi nghiep sang tao",
+      "description": "Ket qua xac minh ho so theo mot trong cac phuong thuc lua chon hop le; khong suy ra truc tiep tu mo ta san pham.",
+      "type": "boolean",
+      "source": "derived",
+      "source_kinds": ["computed", "manual_review"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["innovation_selection_criteria_met"],
+      "depends_on": [
+        "has_valid_invention_patent",
+        "has_valid_innovation_award",
+        "has_valid_science_technology_certificate",
+        "has_valid_high_tech_certificate",
+        "has_qualifying_startup_fund_investment",
+        "has_qualifying_startup_support_commitment",
+        "has_innovative_startup_council_approval"
+      ],
+      "derivation": {"function": "derive_innovation_selection_criteria_met", "version": "1.0.0"}
+    },
+    "is_innovative_startup": {
+      "label": "La DNNVV khoi nghiep sang tao",
+      "description": "Fact suy dan co phien ban; has_patent do nguoi dung tu khai khong du de ket luan fact nay.",
+      "type": "boolean",
+      "source": "derived",
+      "source_kinds": ["computed", "manual_review"],
+      "nullable": true,
+      "missing_behavior": "unknown",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["is_innovative_startup", "la_startup_doi_moi_sang_tao", "là_startup_đổi_mới_sáng_tạo"],
+      "depends_on": ["is_sme", "company_age_months", "legal_form", "has_public_offering", "innovation_selection_criteria_met"],
+      "derivation": {"function": "derive_is_innovative_startup", "version": "1.0.0"}
     }
   }
 }
