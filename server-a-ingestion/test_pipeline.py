@@ -1,7 +1,18 @@
 import unittest
 from unittest.mock import patch
 
-from pipeline import FptClient, embedding_text, normalize_policy, parse_pages
+import ingest_mongodb
+import pipeline
+from pipeline import (
+    FptClient,
+    apply_duplicate_metadata,
+    embedding_text,
+    normalize_policy,
+    normalize_policy_artifact,
+    normalize_rules,
+    parse_pages,
+    policy_is_decision_eligible,
+)
 
 
 SOURCE = {
@@ -66,14 +77,130 @@ class NormalizePolicyTest(unittest.TestCase):
         self.assertTrue(policy["policy_id"].startswith("sample_law_credit_support_"))
         self.assertEqual(policy["pipeline"]["document_id"], "sample-law")
 
-    def test_repairs_policy_without_matching_evidence(self):
+    def test_does_not_expand_unmatched_evidence_to_an_entire_article(self):
         policy = normalize_policy(
             {"policy_name": "Cần review", "evidence_unit_ids": ["made-up"]},
             SOURCE,
             ["sample-law_art-22_cl-1"],
         )
-        self.assertEqual(policy["evidence_unit_ids"], ["sample-law_art-22_cl-1"])
-        self.assertTrue(policy["review"]["evidence_repaired"])
+        self.assertEqual(policy["evidence_unit_ids"], [])
+        self.assertEqual(policy["evidence_resolution"], "unresolved")
+        self.assertTrue(policy["requires_evidence_review"])
+        self.assertFalse(policy["eligible_for_decision"])
+
+    def test_article_evidence_is_fallback_and_waits_for_review(self):
+        policy = normalize_policy(
+            {"policy_name": "Cần review", "evidence_unit_ids": ["sample-law_art-22"]},
+            SOURCE,
+            ["sample-law_art-22", "sample-law_art-22_cl-1"],
+        )
+        self.assertEqual(policy["evidence_resolution"], "article_fallback")
+        self.assertTrue(policy["requires_evidence_review"])
+        self.assertFalse(policy["eligible_for_decision"])
+
+
+class RuleNormalizationTest(unittest.TestCase):
+    def test_both_ingest_entrypoints_share_policy_persistence_gate(self):
+        self.assertIs(ingest_mongodb.persist_policies, pipeline.persist_policies)
+
+    def test_old_artifact_is_upgraded_before_mongo_ingest(self):
+        rows = normalize_policy_artifact(
+            [{
+                "policy_id": "old-credit",
+                "policy_name": "Tín dụng",
+                "pipeline": {"document_id": "sample-law"},
+                "evidence_unit_ids": ["sample-law_art-22_cl-1"],
+                "rules": {"all": [{"field": "is_sme", "operator": "==", "value": True}]},
+            }],
+            [{"document_id": "sample-law", "unit_id": "sample-law_art-22_cl-1"}],
+            {"sample.pdf": SOURCE},
+        )
+        self.assertEqual(rows[0]["policy_rule_schema_version"], "policy-rule-schema-v1")
+        self.assertIn("canonical_policy_key", rows[0])
+        self.assertEqual(rows[0]["review_status"], "candidate")
+
+    def test_keeps_contains_distinct_from_in(self):
+        contains, contains_warnings, contains_status = normalize_rules(
+            {"all": [{"field": "ngành nghề", "operator": "contains", "value": "công nghệ"}]}
+        )
+        in_rule, in_warnings, in_status = normalize_rules(
+            {"all": [{"field": "ngành nghề", "operator": "in", "value": ["công nghệ", "nông nghiệp"]}]}
+        )
+        self.assertEqual(contains["all"][0]["operator"], "contains")
+        self.assertEqual(in_rule["all"][0]["operator"], "in")
+        self.assertFalse(contains_warnings)
+        self.assertFalse(in_warnings)
+        self.assertIsNone(contains_status)
+        self.assertIsNone(in_status)
+
+    def test_preserves_nested_all_any_structure(self):
+        rules, warnings, status = normalize_rules(
+            {
+                "all": [
+                    {"field": "is_sme", "operator": "==", "value": True},
+                    {"any": [
+                        {"field": "has_collateral", "operator": "==", "value": True},
+                        {"field": "has_feasible_business_plan", "operator": "==", "value": True},
+                    ]},
+                ]
+            }
+        )
+        self.assertEqual(rules["all"][1]["any"][1]["field"], "has_feasible_business_plan")
+        self.assertFalse(warnings)
+        self.assertIsNone(status)
+
+    def test_vietnamese_alias_with_diacritics_maps_only_to_explicit_fact(self):
+        rules, warnings, status = normalize_rules(
+            {"all": [{"field": "quy mô doanh nghiệp", "operator": "==", "value": "micro"}]}
+        )
+        rule = rules["all"][0]
+        self.assertEqual(rule["field"], "enterprise_size")
+        self.assertEqual(rule["fact_source"], "derived")
+        self.assertFalse(warnings)
+        self.assertIsNone(status)
+
+    def test_unknown_field_requires_schema_mapping_not_extra_attributes(self):
+        _, warnings, status = normalize_rules(
+            {"all": [{"field": "loại doanh nghiệp", "operator": "==", "value": "startup"}]}
+        )
+        self.assertEqual(status, "needs_schema_mapping")
+        self.assertIn("chưa có trong fact-catalog-v1", warnings[0])
+
+    def test_wrong_type_or_operator_is_rejected(self):
+        _, _, status = normalize_rules(
+            {"all": [{"field": "is_sme", "operator": "contains", "value": True}]}
+        )
+        self.assertEqual(status, "rejected")
+        _, _, status = normalize_rules(
+            {"all": [{"field": "legal_form", "operator": ">=", "value": "startup"}]}
+        )
+        self.assertEqual(status, "rejected")
+
+    def test_only_approved_precise_policy_can_be_used_for_decision(self):
+        policy = normalize_policy(
+            {
+                "policy_id": "credit",
+                "evidence_unit_ids": ["sample-law_art-22_cl-1"],
+                "rules": {"all": [{"field": "is_sme", "operator": "==", "value": True}]},
+            },
+            SOURCE,
+            ["sample-law_art-22_cl-1"],
+        )
+        self.assertFalse(policy_is_decision_eligible(policy))
+        policy["review_status"] = policy["review"]["status"] = "approved"
+        self.assertTrue(policy_is_decision_eligible(policy))
+
+    def test_semantic_duplicates_are_grouped_even_with_different_ids(self):
+        base = {
+            "evidence_unit_ids": ["sample-law_art-22_cl-1"],
+            "rules": {"all": [{"field": "is_sme", "operator": "==", "value": True}]},
+            "benefit_calculator": {"type": "credit"},
+        }
+        first = normalize_policy({**base, "policy_id": "credit-a"}, SOURCE, base["evidence_unit_ids"])
+        second = normalize_policy({**base, "policy_id": "credit-b"}, SOURCE, base["evidence_unit_ids"])
+        rows = apply_duplicate_metadata([first, second])
+        self.assertEqual(rows[0]["duplicate_group_id"], rows[1]["duplicate_group_id"])
+        self.assertEqual(sum(row["review_status"] == "superseded" for row in rows), 1)
 
 
 class FptClientTest(unittest.TestCase):
