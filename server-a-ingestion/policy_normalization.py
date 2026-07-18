@@ -63,13 +63,13 @@ def value_migration(condition: dict) -> dict | None:
     raw, value = token(condition.get("field")), condition.get("value")
     text = token(value) if isinstance(value, str) else ""
     sizes = {"doanh_nghiep_nho_va_vua": None, "dnnvv": None, "doanh_nghiep_sieu_nho": "micro", "doanh_nghiep_nho": "small", "doanh_nghiep_vua": "medium"}
-    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and text in sizes:
+    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and condition.get("operator") == "==" and text in sizes:
         return {"field": "is_sme", "operator": "==", "value": True} if sizes[text] is None else {"field": "enterprise_size", "operator": "==", "value": sizes[text]}
-    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and text == "dnnvv_khoi_nghiep_sang_tao":
+    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and condition.get("operator") == "==" and text == "dnnvv_khoi_nghiep_sang_tao":
         return {"all": [{"field": "is_sme", "operator": "==", "value": True}, {"field": "is_innovative_startup", "operator": "==", "value": True}]}
-    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and text == "dnnvv_co_von_dau_tu_nuoc_ngoai":
+    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and condition.get("operator") == "==" and text == "dnnvv_co_von_dau_tu_nuoc_ngoai":
         return {"all": [{"field": "is_sme", "operator": "==", "value": True}, {"field": "has_foreign_investment_capital", "operator": "==", "value": True}]}
-    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and text == "dnnvv_co_von_nha_nuoc":
+    if raw in {"loai_doanh_nghiep", "loai_hinh_doanh_nghiep"} and condition.get("operator") == "==" and text == "dnnvv_co_von_nha_nuoc":
         return {"all": [{"field": "is_sme", "operator": "==", "value": True}, {"field": "has_state_capital", "operator": "==", "value": True}]}
     if raw in {"company_age_years", "thoi_gian_thanh_lap", "thoi_gian_hoat_dong"} and isinstance(value, (int, float)):
         return {"field": "company_age_months", "operator": condition.get("operator"), "value": int(value * 12)}
@@ -116,8 +116,8 @@ def normalize_rules(raw: object, catalog: dict | None = None) -> tuple[dict, lis
     return rules, issues, parameters
 
 
-def evidence_context(db, document_id: str, version: int | None, ids: list[str]) -> tuple[str,bool,list[dict]]:
-    rows=[]
+def evidence_context(db, document_id: str, version: int | None, ids: list[str], evidence_rows: list[dict] | None = None) -> tuple[str,bool,list[dict]]:
+    rows=evidence_rows or []
     if db is not None and ids:
         rows=list(db.legal_units.find({"document_id":document_id,"version":version,"is_current":True,"unit_id":{"$in":ids}}, {"_id":0}))
     if len(rows)!=len(set(ids)): return "unresolved", True, [issue("evidence_not_found","evidence_unit_ids","Evidence missing or wrong document version")]
@@ -136,18 +136,24 @@ def approval_valid(policy: dict, catalog: dict) -> bool:
     return bool(a.get("reviewed_by") and a.get("reviewed_at") and a.get("reviewed_schema_version")==SCHEMA_VERSION and a.get("reviewed_catalog_version")==catalog["catalog_version"] and a.get("reviewed_policy_hash")==policy_hash(policy))
 
 
-def prepare_policy_for_ingest(raw: dict, db=None, source: dict | None=None, catalog: dict | None=None) -> dict:
+def prepare_policy_for_ingest(raw: dict, db=None, source: dict | None=None, catalog: dict | None=None, evidence_rows: list[dict] | None=None) -> dict:
     catalog=catalog or load_catalog(); source=source or {}; p=copy.deepcopy(raw); old=p.get("validation_issues_current") or []
     document_id=(p.get("pipeline") or {}).get("document_id") or p.get("document_id") or source.get("document_id", "unmapped")
     doc=db.legal_documents.find_one({"document_id":document_id,"is_current":True},{"_id":0,"version":1}) if db is not None else {"version":source.get("version",1)}
     version=(doc or {}).get("version"); rules, issues, parameters=normalize_rules(p.get("rules") or (p.get("payload") or {}).get("rules") or {},catalog)
     evidence=list(dict.fromkeys(p.get("evidence_unit_ids") or (p.get("payload") or {}).get("evidence_unit_ids") or []))
-    resolution, needs_review, evidence_issues=evidence_context(db,document_id,version,evidence); issues += evidence_issues
+    matching_rows = evidence_rows if evidence_rows is not None else None
+    resolution, needs_review, evidence_issues=evidence_context(db,document_id,version,evidence,matching_rows); issues += evidence_issues
     support_type=str((p.get("benefit_calculator") or {}).get("type") or p.get("category") or "other")
-    first=(db.legal_units.find_one({"unit_id":evidence[0],"document_id":document_id,"version":version},{"_id":0}) if db is not None and evidence else {}) or {}
+    first=(db.legal_units.find_one({"unit_id":evidence[0],"document_id":document_id,"version":version},{"_id":0}) if db is not None and evidence else next((row for row in (evidence_rows or []) if row.get("unit_id")==evidence[0]), {})) or {}
     rule_hash=hashlib.sha256(json.dumps(rules,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
     key="|".join(map(str,[document_id,first.get("article",""),first.get("clause",""),first.get("point",""),token(support_type),rule_hash]))
-    history=[*p.get("validation_history",[]), *[{**x,"resolved_at":now()} for x in old]]
+    stamp = now(); old_history=p.get("validation_history",[]); previous={ (x.get("code"),x.get("path"),x.get("message")):x for x in [*old_history,*old] }; current_keys={(x["code"],x["path"],x["message"]) for x in issues}; history=[]
+    for history_key, prior in previous.items():
+        record={**prior, "first_seen_at":prior.get("first_seen_at",stamp), "last_seen_at":stamp, "catalog_version":catalog["catalog_version"], "schema_version":SCHEMA_VERSION}
+        if history_key not in current_keys: record["resolved_at"]=stamp
+        else: record.pop("resolved_at",None)
+        history.append(record)
     p.update({"document_id":document_id,"document_version":version,"source_document_version":version,"rules":rules,"normalized_rules":rules,"policy_rule_schema_version":SCHEMA_VERSION,"fact_catalog_version":catalog["catalog_version"],"evidence_unit_ids":evidence,"evidence_resolution":resolution,"requires_evidence_review":needs_review,"normalized_rule_hash":rule_hash,"canonical_policy_key":key,"validation_issues_current":issues,"validation_history":history,"policy_parameters":parameters})
     blocking=any(x["severity"]=="blocking" for x in issues)
     status=p.get("review_status") or (p.get("review") or {}).get("status") or "candidate"; requested_approved = status == "approved"
@@ -165,7 +171,9 @@ def apply_duplicates(policies: list[dict]) -> list[dict]:
     for p in policies: groups[p["canonical_policy_key"]].append(p)
     for key, rows in groups.items():
         if len(rows)<2: continue
-        primary=sorted(rows,key=lambda x:x["policy_id"])[0]; gid="duplicate_"+hashlib.sha256(key.encode()).hexdigest()[:16]
+        def rank(row):
+            return (-int(bool(row.get("eligible_for_decision"))), -int(row.get("review_status")=="approved"), -int(row.get("evidence_resolution")=="precise"), -int(bool(row.get("is_current"))), -int(row.get("document_version") or 0), row["policy_id"])
+        primary=sorted(rows,key=rank)[0]; gid="duplicate_"+hashlib.sha256(key.encode()).hexdigest()[:16]
         for row in rows:
             row["duplicate_group_id"]=gid
             if row is not primary: row.update({"review_status":"superseded","is_current":False,"eligible_for_decision":False,"superseded_by_policy_id":primary["policy_id"]})
@@ -176,20 +184,16 @@ def dry_run(policies: list[dict], source_by_document: dict[str,dict], units: lis
     by_id = {unit.get("unit_id"): unit for unit in units}
     rows=[]
     for raw in policies:
-        row=prepare_policy_for_ingest(raw,None,source_by_document.get((raw.get("pipeline") or {}).get("document_id"),{}))
-        evidence=[by_id.get(unit_id) for unit_id in row.get("evidence_unit_ids", [])]
-        row["validation_issues_current"]=[x for x in row["validation_issues_current"] if x["code"] != "evidence_not_found"]
-        if not evidence or any(unit is None or unit.get("document_id") != row["document_id"] for unit in evidence):
-            row["evidence_resolution"]="unresolved"; row["requires_evidence_review"]=True; row["validation_issues_current"].append(issue("evidence_not_found","evidence_unit_ids","Evidence missing from offline legal units"))
-        elif any(not unit.get("clause") and not unit.get("point") for unit in evidence):
-            row["evidence_resolution"]="article_fallback"; row["requires_evidence_review"]=True; row["validation_issues_current"].append(issue("article_fallback","evidence_unit_ids","Article-level evidence requires review"))
-        else:
-            row["evidence_resolution"]="precise"; row["requires_evidence_review"]=False
-        if row["review_status"] == "rejected" and not any(x["code"] in {"invalid_rule","invalid_operator","invalid_value","incomplete_rule","missing_rules"} for x in row["validation_issues_current"]):
-            row["review_status"]="needs_schema_mapping" if any(x["code"]=="unknown_field" for x in row["validation_issues_current"]) else "candidate"
+        source=source_by_document.get((raw.get("pipeline") or {}).get("document_id"),{})
+        evidence=[by_id.get(unit_id) for unit_id in raw.get("evidence_unit_ids", [])]
+        row=prepare_policy_for_ingest(raw,None,source,evidence_rows=[x for x in evidence if x])
         row["eligible_for_decision"]=False
         rows.append(row)
     apply_duplicates(rows)
     unknown=Counter(x["message"].split(" is ")[0] for p in rows for x in p["validation_issues_current"] if x["code"]=="unknown_field")
     counts = Counter(p["review_status"] for p in rows)
-    return {"total_policies":len(rows), **{status: counts[status] for status in ("candidate","needs_schema_mapping","approved","rejected","superseded")}, "eligible_for_decision":sum(p["eligible_for_decision"] for p in rows), "conditions_mapped":sum(1 for p in rows for x in p["normalized_rules"].get("all",[]) if isinstance(x,dict) and x.get("fact_source")), "conditions_unknown":sum(unknown.values()), "unknown_fields":dict(unknown), "policy_parameters":[p["policy_id"] for p in rows if p["policy_parameters"]], "approval_invalidated":[p["policy_id"] for p in rows if any(x["code"]=="approval_invalidated" for x in p["validation_issues_current"])], "article_fallback":[p["policy_id"] for p in rows if p["evidence_resolution"]=="article_fallback"], "duplicate_groups":sorted({p.get("duplicate_group_id") for p in rows if p.get("duplicate_group_id")}), "policies":rows}
+    def walk(node):
+        if not isinstance(node,dict): return []
+        if "all" in node or "any" in node: return [leaf for group in ("all","any") for child in node.get(group,[]) for leaf in walk(child)]
+        return [node]
+    return {"total_policies":len(rows), **{status: counts[status] for status in ("candidate","needs_schema_mapping","approved","rejected","superseded")}, "eligible_for_decision":sum(p["eligible_for_decision"] for p in rows), "conditions_mapped":sum(1 for p in rows for x in walk(p["normalized_rules"]) if x.get("fact_source")), "conditions_unknown":sum(unknown.values()), "unknown_fields":dict(unknown), "policy_parameters":[p["policy_id"] for p in rows if p["policy_parameters"]], "approval_invalidated":[p["policy_id"] for p in rows if any(x["code"]=="approval_invalidated" for x in p["validation_issues_current"])], "article_fallback":[p["policy_id"] for p in rows if p["evidence_resolution"]=="article_fallback"], "duplicate_groups":sorted({p.get("duplicate_group_id") for p in rows if p.get("duplicate_group_id")}), "policies":rows}

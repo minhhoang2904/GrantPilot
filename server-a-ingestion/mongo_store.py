@@ -246,7 +246,11 @@ def ingest_policies(db, policies: Iterable[dict]) -> dict:
     from policy_normalization import apply_duplicates, prepare_policy_for_ingest
 
     prepared = [prepare_policy_for_ingest(policy, db) for policy in policies]
-    apply_duplicates(prepared)
+    existing = []
+    for policy in prepared:
+        existing.extend(list(db.policies.find({"canonical_policy_key": policy["canonical_policy_key"], "is_current": True}, {"_id": 0})))
+    grouped = apply_duplicates([*existing, *prepared])
+    prepared = [row for row in grouped if row in prepared]
     timestamp = utcnow()
     operations = []
     for policy in prepared:

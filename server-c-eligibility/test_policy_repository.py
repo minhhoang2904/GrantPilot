@@ -1,5 +1,5 @@
 import unittest
-from policy_repository import DECISION_QUERY, PolicyRepository
+from policy_repository import DECISION_QUERY, MongoPolicyRepository
 
 
 class FakeCollection:
@@ -9,7 +9,7 @@ class FakeCollection:
 
 class PolicyRepositoryTest(unittest.TestCase):
     def test_decision_path_is_strict(self):
-        collection = FakeCollection(); PolicyRepository(collection).get_policies()
+        collection = FakeCollection(); MongoPolicyRepository(collection).get_policies()
         self.assertEqual(collection.query, DECISION_QUERY)
         self.assertEqual(collection.query["review_status"], "approved")
         self.assertTrue(collection.query["eligible_for_decision"])
