@@ -1,0 +1,73 @@
+{
+  "schema_version": "fact-catalog-v1",
+  "fields": {
+    "is_sme": {
+      "type": "boolean",
+      "source": "derived",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["is_sme", "la_dnnvv", "là_dnnvv", "doanh_nghiep_nho_va_vua"]
+    },
+    "is_innovative_startup": {
+      "type": "boolean",
+      "source": "derived",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["is_innovative_startup", "la_startup_doi_moi_sang_tao", "là_startup_đổi_mới_sáng_tạo"]
+    },
+    "enterprise_size": {
+      "type": "enum",
+      "source": "derived",
+      "enum": ["micro", "small", "medium"],
+      "operators": ["==", "!=", "in", "not_in", "exists"],
+      "aliases": ["enterprise_size", "quy_mo_doanh_nghiep", "quy_mô_doanh_nghiệp"]
+    },
+    "legal_form": {
+      "type": "enum",
+      "source": "direct",
+      "enum": ["joint_stock_company", "limited_liability_company", "partnership", "private_enterprise", "household_business"],
+      "operators": ["==", "!=", "in", "not_in", "exists"],
+      "aliases": ["legal_form", "loai_hinh_phap_ly", "loại_hình_pháp_lý"]
+    },
+    "industry": {
+      "type": "string",
+      "source": "direct",
+      "operators": ["==", "!=", "in", "not_in", "contains", "exists"],
+      "aliases": ["industry", "nganh_nghe", "ngành_nghề"]
+    },
+    "province": {
+      "type": "string",
+      "source": "direct",
+      "operators": ["==", "!=", "in", "not_in", "contains", "exists"],
+      "aliases": ["province", "tinh_thanh", "tỉnh_thành"]
+    },
+    "num_employees": {
+      "type": "integer",
+      "source": "direct",
+      "operators": ["==", "!=", ">", ">=", "<", "<=", "in", "not_in", "exists"],
+      "aliases": ["num_employees", "so_lao_dong", "số_lao_động"]
+    },
+    "annual_revenue": {
+      "type": "number",
+      "source": "direct",
+      "operators": ["==", "!=", ">", ">=", "<", "<=", "in", "not_in", "exists"],
+      "aliases": ["annual_revenue", "doanh_thu_nam", "doanh_thu_hang_nam", "doanh_thu_hằng_năm"]
+    },
+    "has_collateral": {
+      "type": "boolean",
+      "source": "direct",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_collateral", "co_tai_san_dam_bao", "có_tài_sản_đảm_bảo"]
+    },
+    "has_feasible_business_plan": {
+      "type": "boolean",
+      "source": "derived",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_feasible_business_plan", "co_phuong_an_kinh_doanh_kha_thi", "có_phương_án_kinh_doanh_khả_thi"]
+    },
+    "has_credit_rating": {
+      "type": "boolean",
+      "source": "derived",
+      "operators": ["==", "!=", "exists"],
+      "aliases": ["has_credit_rating", "co_xep_hang_tin_dung", "có_xếp_hạng_tín_dụng"]
+    }
+  }
+}
