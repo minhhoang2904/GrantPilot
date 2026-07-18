@@ -1,21 +1,90 @@
-"""
-server-b-retrieval / main.py
+"""FastAPI app cho hybrid legal retrieval va grounded answer."""
 
-FastAPI app: tra cứu chính sách, quản lý hồ sơ doanh nghiệp, sinh câu trả lời.
+from __future__ import annotations
 
-Chạy dev: uvicorn main:app --reload --port 8001
-"""
-
+import uuid
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, Field
 
 import answer_gen
+import auth_service
+import company_service
+import config
 import profile_service
 import retrieval
+from memory import ChatMemory, build_chat_memory
 
-app = FastAPI(title="Server B - Retrieval", version="0.1.0")
+
+app = FastAPI(title="Server B - Retrieval", version="0.2.0")
+_memory: ChatMemory | None = None
+_bearer = HTTPBearer(auto_error=False)
+
+
+def chat_memory() -> ChatMemory:
+    global _memory
+    if _memory is None:
+        _memory = build_chat_memory()
+    return _memory
+
+
+def get_current_email(
+    creds: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+) -> str:
+    """Validate a Bearer JWT and return its email subject."""
+    if not creds:
+        raise HTTPException(status_code=401, detail="Token không được cung cấp.")
+    email = auth_service.decode_token(creds.credentials)
+    if not email:
+        raise HTTPException(status_code=401, detail="Token không hợp lệ hoặc đã hết hạn.")
+    return email
+
+
+class CompanyIn(BaseModel):
+    email: str
+    company_name: str
+    sector: Optional[str] = None
+    social_insurance_employees: Optional[int] = None
+    annual_revenue_vnd: Optional[int] = None
+    total_capital_vnd: Optional[int] = None
+    founded_year: Optional[int] = None
+    is_public_offering: Optional[bool] = None
+    product_type: Optional[str] = None
+    has_patent: Optional[bool] = None
+    province: Optional[str] = None
+    has_coworking_contract: Optional[bool] = None
+    has_business_registration: Optional[bool] = None
+    coworking_monthly_cost_vnd: Optional[int] = None
+
+
+class CompanyUpdate(BaseModel):
+    company_name: Optional[str] = None
+    sector: Optional[str] = None
+    social_insurance_employees: Optional[int] = None
+    annual_revenue_vnd: Optional[int] = None
+    total_capital_vnd: Optional[int] = None
+    founded_year: Optional[int] = None
+    is_public_offering: Optional[bool] = None
+    product_type: Optional[str] = None
+    has_patent: Optional[bool] = None
+    province: Optional[str] = None
+    has_coworking_contract: Optional[bool] = None
+    has_business_registration: Optional[bool] = None
+    coworking_monthly_cost_vnd: Optional[int] = None
+
+
+class TurnIn(BaseModel):
+    session_id: Optional[str] = None
+    role: str
+    content: str
+    results: Optional[list[dict[str, Any]]] = None
+
+
+class AuthIn(BaseModel):
+    email: str
+    password: str
 
 
 class ProfileIn(BaseModel):
@@ -26,29 +95,186 @@ class ProfileIn(BaseModel):
     province: Optional[str] = None
     annual_revenue: Optional[float] = None
     founded_year: Optional[int] = None
-    extra_attributes: dict[str, Any] = {}
+    extra_attributes: dict[str, Any] = Field(default_factory=dict)
 
 
-class AskIn(BaseModel):
-    question: str
-    top_k: int = 5
+class RetrieveIn(BaseModel):
+    question: str = Field(min_length=1)
+    top_k: int = Field(default=5, ge=1, le=20)
+    thread_id: Optional[str] = None
+
+
+class AskIn(RetrieveIn):
+    email: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "legal_data_backend": config.LEGAL_DATA_BACKEND,
+        "legal_data_configured": config.legal_data_configured(),
+        "mongodb_configured": config.mongodb_enabled(),
+        "pinecone_configured": config.pinecone_enabled(),
+        "fpt_configured": config.fpt_enabled(),
+        "redis_configured": bool(config.REDIS_URL),
+    }
+
+
+@app.post("/auth/register", status_code=201)
+def auth_register(payload: AuthIn) -> dict[str, str]:
+    email = payload.email.strip().lower()
+    try:
+        token = auth_service.register_user(email, payload.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"token": token, "email": email}
+
+
+@app.post("/auth/login")
+def auth_login(payload: AuthIn) -> dict[str, str]:
+    email = payload.email.strip().lower()
+    try:
+        token = auth_service.login_user(email, payload.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return {"token": token, "email": email}
+
+
+@app.get("/companies/{email}")
+def get_company(email: str, current_email: str = Depends(get_current_email)) -> dict[str, Any]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
+    company = company_service.get_company(email)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return company
+
+
+@app.post("/companies", status_code=201)
+def create_company(
+    payload: CompanyIn,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, Any]:
+    if current_email != payload.email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
+    return company_service.create_company(payload.model_dump())
+
+
+@app.patch("/companies/{email}")
+def update_company(
+    email: str,
+    payload: CompanyUpdate,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, Any]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
+    updates = {key: value for key, value in payload.model_dump().items() if value is not None}
+    company = company_service.update_company(email, updates)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return company
+
+
+@app.get("/history/{email}")
+def get_history(email: str, current_email: str = Depends(get_current_email)) -> list[dict[str, Any]]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
+    return company_service.get_chat_history(email)
+
+
+@app.post("/history/{email}/turn")
+def append_turn(
+    email: str,
+    payload: TurnIn,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, str]:
+    if current_email != email:
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập.")
+    turn: dict[str, Any] = {"role": payload.role, "content": payload.content}
+    if payload.results is not None:
+        turn["results"] = payload.results
+    session_id = company_service.append_chat_turn(email, payload.session_id, turn)
+    return {"session_id": session_id}
+
+
+def _run_retrieval(payload: RetrieveIn) -> tuple[str, list[dict[str, str]], dict[str, Any]]:
+    thread_id = payload.thread_id or getattr(payload, "session_id", None) or str(uuid.uuid4())
+    history = chat_memory().recent(thread_id, config.CHAT_HISTORY_MESSAGES)
+    try:
+        result = retrieval.get_retriever().retrieve(
+            payload.question,
+            history=history,
+            top_k=payload.top_k,
+        )
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail=f"Legal data chưa sẵn sàng: {exc}") from exc
+    return thread_id, history, result
+
+
+@app.post("/retrieve")
+def retrieve(payload: RetrieveIn) -> dict[str, Any]:
+    thread_id, _, result = _run_retrieval(payload)
+    return {"thread_id": thread_id, **result}
 
 
 @app.get("/search")
-def search(q: str, top_k: int = 5) -> list[dict[str, Any]]:
-    return retrieval.search_policies(q, top_k=top_k)
+def search(q: str = Query(min_length=1), top_k: int = Query(default=5, ge=1, le=20)) -> list[dict[str, Any]]:
+    try:
+        return retrieval.search_legal_units(q, top_k=top_k)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail=f"Legal data chưa sẵn sàng: {exc}") from exc
 
 
 @app.post("/ask")
 def ask(payload: AskIn) -> dict[str, Any]:
-    policies = retrieval.search_policies(payload.question, top_k=payload.top_k)
-    answer = answer_gen.generate_answer(payload.question, policies)
-    return {"answer": answer, "policies": policies}
+    thread_id, _, result = _run_retrieval(payload)
+    units = result["legal_units"]
+    answer = answer_gen.generate_answer(payload.question, units, fpt=retrieval.get_retriever().fpt)
+
+    memory = chat_memory()
+    memory.append(thread_id, "user", payload.question)
+    memory.append(thread_id, "assistant", answer)
+
+    session_id = thread_id
+    if payload.email:
+        session_id = company_service.append_chat_turn(
+            payload.email,
+            payload.session_id,
+            {"role": "user", "content": payload.question},
+        )
+        company_service.append_chat_turn(
+            payload.email,
+            session_id,
+            {"role": "assistant", "content": answer, "results": units},
+        )
+
+    return {
+        "thread_id": thread_id,
+        "session_id": session_id,
+        "answer": answer,
+        "results": units,
+        "legal_units": units,
+        "candidate_policy_ids": result["candidate_policy_ids"],
+        "retrieval": {
+            "route": result["route"],
+            "original_query": result["original_query"],
+            "retrieval_query": result["retrieval_query"],
+            "diagnostics": result["diagnostics"],
+        },
+        # Alias tam thoi cho client cu; du lieu nay la legal units, khong phai
+        # eligibility policies. Client moi nen dung `legal_units`.
+        "policies": units,
+    }
+
+
+@app.post("/ask/flat")
+def ask_flat(payload: AskIn) -> dict[str, Any]:
+    """Compatibility baseline endpoint used by the benchmark UI."""
+    units = retrieval.search_legal_units(payload.question, top_k=payload.top_k)
+    answer = answer_gen.generate_answer(payload.question, units, fpt=retrieval.get_retriever().fpt)
+    return {"answer": answer}
 
 
 @app.post("/profiles")
@@ -66,7 +292,7 @@ def get_profile(profile_id: str) -> dict[str, Any]:
 
 @app.patch("/profiles/{profile_id}")
 def update_profile(profile_id: str, payload: ProfileIn) -> dict[str, Any]:
-    updates = {k: v for k, v in payload.model_dump().items() if v not in (None, {})}
+    updates = {key: value for key, value in payload.model_dump().items() if value not in (None, {})}
     profile = profile_service.update_profile(profile_id, updates)
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")

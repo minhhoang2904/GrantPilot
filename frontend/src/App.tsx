@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Company } from './types'
-import { getEmail } from './auth'
+import { getEmail, isTokenValid, clearSession } from './auth'
 import { getCompany } from './api'
 import LoginPage from './pages/LoginPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -24,13 +24,15 @@ export default function App() {
         setView('onboarding')
       }
     } catch {
+      // Server unreachable or error — proceed to onboarding so user isn't stuck
       setView('onboarding')
     }
   }
 
   useEffect(() => {
     const stored = getEmail()
-    if (!stored) {
+    if (!stored || !isTokenValid()) {
+      clearSession()
       setView('login')
       return
     }
@@ -49,6 +51,7 @@ export default function App() {
   }
 
   function handleLogout() {
+    clearSession()
     setEmail('')
     setCompany(null)
     setView('login')

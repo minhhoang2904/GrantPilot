@@ -1,85 +1,96 @@
 services:
-  mongodb:
-    image: mongo:7
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - mongodb_data:/data/db
+      - redis-data:/data
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
-      timeout: 5s
-      retries: 20
+      timeout: 3s
+      retries: 10
 
-  # Chạy một lần để OCR/parse -> MongoDB -> Pinecone.
-  server-a-ingestion:
-    build: ./server-a-ingestion
-    env_file:
-      - ./server-a-ingestion/.env
-    volumes:
-      - ./shared:/app/shared
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=${MONGO_DB:-grantpilot}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    restart: "no"
+  # Chạy một lần để OCR/parse -> MongoDB Atlas -> Pinecone.
+  # server-a-ingestion:
+  #   build: ./server-a-ingestion
+  #   env_file:
+  #     - .env
+  #     - ./server-a-ingestion/.env
+  #   volumes:
+  #     - ./shared:/app/shared
+  #   environment:
+  #     - MONGODB_URI=${MONGODB_URI}
+  #     - MONGODB_DB=${MONGODB_DB:-grantpilot}
+  #   restart: "no"
 
   server-a-api:
     build: ./server-a-ingestion
     command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
     env_file:
+      - .env
       - ./server-a-ingestion/.env
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=${MONGO_DB:-grantpilot}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-grantpilot}
     ports:
       - "8000:8000"
-    depends_on:
-      mongodb:
-        condition: service_healthy
 
   server-b-retrieval:
     build: ./server-b-retrieval
     env_file:
+      - .env
       - ./server-a-ingestion/.env
     ports:
       - "8001:8001"
     volumes:
       - ./shared:/app/shared
     depends_on:
-      server-a-ingestion:
-        condition: service_completed_successfully
       server-a-api:
         condition: service_started
+      redis:
+        condition: service_healthy
     environment:
       - POLICY_DB_PATH=/app/shared/policy.db
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-grantpilot}
+      - LEGAL_DATA_BACKEND=${LEGAL_DATA_BACKEND:-mongodb}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-grantpilot}
+      - MONGODB_DOCUMENTS_COLLECTION=${MONGODB_DOCUMENTS_COLLECTION:-legal_documents}
+      - MONGODB_LEGAL_UNITS_COLLECTION=${MONGODB_LEGAL_UNITS_COLLECTION:-legal_units}
+      - MONGODB_POLICIES_COLLECTION=${MONGODB_POLICIES_COLLECTION:-policies}
+      - REDIS_URL=redis://redis:6379/0
+      - PINECONE_API_KEY=${PINECONE_API_KEY:-}
+      - PINECONE_INDEX_HOST=${PINECONE_INDEX_HOST:-}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME:-}
       - PINECONE_NAMESPACE=${PINECONE_NAMESPACE:-legal_units}
       - SERVER_A_URL=http://server-a-api:8000
       - FPT_BASE_URL=${FPT_BASE_URL:-https://mkp-api.fptcloud.com}
+      - FPT_API_KEY=${FPT_API_KEY:-}
       - FPT_EMBEDDING_MODEL=${FPT_EMBEDDING_MODEL:-Vietnamese_Embedding}
+      - FPT_RERANK_MODEL=${FPT_RERANK_MODEL:-bge-reranker-v2-m3}
+      - FPT_QUERY_REWRITE_MODEL=${FPT_QUERY_REWRITE_MODEL:-DeepSeek-V4-Flash}
+      - FPT_ANSWER_MODEL=${FPT_ANSWER_MODEL:-GLM-5.2}
+      - FPT_QUERY_REWRITE_MAX_TOKENS=${FPT_QUERY_REWRITE_MAX_TOKENS:-512}
+      - FPT_ANSWER_MAX_TOKENS=${FPT_ANSWER_MAX_TOKENS:-8192}
+      - FPT_ANSWER_THINKING=${FPT_ANSWER_THINKING:-disabled}
+      - FPT_ANSWER_REASONING_EFFORT=${FPT_ANSWER_REASONING_EFFORT:-none}
 
-  server-c-eligibility:
-    build: ./server-c-eligibility
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./shared:/app/shared
-    depends_on:
-      server-a-ingestion:
-        condition: service_completed_successfully
-    environment:
-      - POLICY_DB_PATH=/app/shared/policy.db
+  # server-c-eligibility:
+  #   build: ./server-c-eligibility
+  #   ports:
+  #     - "8002:8002"
+  #   volumes:
+  #     - ./shared:/app/shared
+  #   environment:
+  #     - POLICY_DB_PATH=/app/shared/policy.db
 
   frontend:
     build: ./frontend
     ports:
       - "8501:8501"
-    depends_on:
-      - server-b-retrieval
-      - server-c-eligibility
     environment:
       - SERVER_B_URL=http://server-b-retrieval:8001
       - SERVER_C_URL=http://server-c-eligibility:8002
 
 volumes:
-  mongodb_data:
+  redis-data:

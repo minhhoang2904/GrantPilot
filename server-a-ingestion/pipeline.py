@@ -766,6 +766,13 @@ def persist_policies(policies: list[dict]) -> dict:
         client.close()
 
 
+def run_policy_mongo() -> dict:
+    """Persist an existing policies artifact through the same guarded path."""
+    if not POLICIES_PATH.exists():
+        raise FileNotFoundError(f"Không có policies tại {POLICIES_PATH}")
+    return persist_policies(json.loads(POLICIES_PATH.read_text(encoding="utf-8")))
+
+
 def embedding_text(unit: dict) -> str:
     location = f"{unit['document_title']}"
     if unit.get("document_number"):
@@ -851,7 +858,7 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="OCR và ingest văn bản pháp luật")
-    parser.add_argument("stage", choices=["ocr", "parse", "mongo", "policies", "embed", "all"])
+    parser.add_argument("stage", choices=["ocr", "parse", "mongo", "policies", "policy-mongo", "embed", "all"])
     parser.add_argument("--pdf", help="Chỉ ingest một file, ví dụ 04.signed.pdf")
     parser.add_argument("--force-ocr", action="store_true")
     parser.add_argument("--force-policy", action="store_true")
@@ -869,8 +876,9 @@ def main() -> None:
     if args.stage in {"mongo", "all"}:
         run_mongo(selected_pdfs)
     if args.stage in {"policies", "all"}:
-        policies = run_policies(document_ids=selected_document_ids if args.pdf else None, force=args.force_policy)
-        persist_policies(policies)
+        run_policies(document_ids=selected_document_ids if args.pdf else None, force=args.force_policy)
+    if args.stage in {"policy-mongo", "all"}:
+        run_policy_mongo()
     if args.stage in {"embed", "all"}:
         run_embed(args.batch_size, force=args.force_embed)
 

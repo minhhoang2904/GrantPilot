@@ -1,10 +1,37 @@
-import { useState } from 'react'
-import type { Company, Message } from '../types'
-import { ask, ApiError } from '../api'
-import { clearEmail } from '../auth'
+import { useState, useEffect } from 'react'
+import type { Company, Message, Sector } from '../types'
+import { ask, getHistory, ApiError } from '../api'
+import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
 import ChatInput from '../components/ChatInput'
 import BenchmarkPanel from '../components/BenchmarkPanel'
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+const SECTOR_LABELS: Record<Sector, string> = {
+  nong_lam_ngu_nghiep: 'Nông / Lâm / Ngư',
+  cong_nghiep_xay_dung: 'CN & Xây dựng',
+  thuong_mai_dich_vu: 'TM & Dịch vụ',
+}
+
+function sectorLabel(s?: Sector | null) {
+  return s ? SECTOR_LABELS[s] : null
+}
+
+function triboolLabel(v?: boolean | null) {
+  if (v === true) return 'Có'
+  if (v === false) return 'Không'
+  return null
+}
+
+function SidebarStat({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex justify-between text-xs">
+      <span className="text-gray-400">{label}</span>
+      <span className={value ? 'text-gray-300' : 'text-gray-600 italic'}>{value ?? '—'}</span>
+    </div>
+  )
+}
 
 type Tab = 'chat' | 'benchmark'
 
@@ -17,10 +44,38 @@ interface Props {
 export default function MainPage({ email, company, onLogout }: Props) {
   const [tab, setTab] = useState<Tab>('chat')
   const [messages, setMessages] = useState<Message[]>([])
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(true)
+
+  // Load most recent session on mount
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const sessions = await getHistory(email)
+        if (sessions.length > 0) {
+          // Use the most recent session
+          const latest = sessions[sessions.length - 1]
+          setSessionId(latest.session_id)
+          const restored: Message[] = latest.turns.map((t, i) => ({
+            id: `h-${i}`,
+            role: t.role,
+            content: t.content,
+            results: t.results as Message['results'],
+          }))
+          setMessages(restored)
+        }
+      } catch {
+        // History unavailable — start fresh session
+      } finally {
+        setHistoryLoading(false)
+      }
+    }
+    void loadHistory()
+  }, [email])
 
   function handleLogout() {
-    clearEmail()
+    clearSession()
     onLogout()
   }
 
@@ -33,7 +88,9 @@ export default function MainPage({ email, company, onLogout }: Props) {
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
     try {
-      const res = await ask(email, question)
+      const res = await ask(email, question, sessionId)
+      // Server returns the session_id used — keep it for next message
+      if (res.session_id) setSessionId(res.session_id)
       const assistantMsg: Message = {
         id: `a-${Date.now()}`,
         role: 'assistant',
@@ -66,20 +123,15 @@ export default function MainPage({ email, company, onLogout }: Props) {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <span className="text-white font-semibold text-sm">GrandPilot</span>
+            <span className="text-white font-semibold text-sm">GrantPilot</span>
           </div>
         </div>
 
         {/* Company info */}
         <div className="px-5 py-4 border-b border-white/10">
           <p className="text-xs text-gray-400 mb-0.5">Doanh nghiệp</p>
-          <p className="text-sm font-semibold text-white truncate">{company.ten_doanh_nghiep}</p>
+          <p className="text-sm font-semibold text-white truncate">{company.company_name}</p>
           <p className="text-xs text-gray-400 truncate">{email}</p>
-          {company.linh_vuc && (
-            <span className="mt-2 inline-block text-xs bg-white/10 text-gray-300 px-2 py-0.5 rounded-full">
-              {company.linh_vuc}
-            </span>
-          )}
         </div>
 
         {/* Nav tabs */}
@@ -115,31 +167,23 @@ export default function MainPage({ email, company, onLogout }: Props) {
         </nav>
 
         {/* Company stats */}
-        {(company.so_lao_dong != null || company.tuoi != null) && (
-          <div className="px-5 py-4 border-t border-white/10">
-            <p className="text-xs text-gray-500 mb-2">Thông tin doanh nghiệp</p>
-            <div className="space-y-1">
-              {company.tuoi != null && (
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">Tuổi DN</span>
-                  <span className="text-gray-300">{company.tuoi} năm</span>
-                </div>
-              )}
-              {company.so_lao_dong != null && (
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">Lao động</span>
-                  <span className="text-gray-300">{company.so_lao_dong.toLocaleString('vi-VN')}</span>
-                </div>
-              )}
-              {company.ty_le_rnd != null && (
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">R&D</span>
-                  <span className="text-gray-300">{(company.ty_le_rnd * 100).toFixed(0)}%</span>
-                </div>
-              )}
-            </div>
+        <div className="px-5 py-4 border-t border-white/10">
+          <p className="text-xs text-gray-500 mb-2">Hồ sơ eligibility</p>
+          <div className="space-y-1">
+            <SidebarStat label="Lĩnh vực" value={sectorLabel(company.sector)} />
+            <SidebarStat label="Thành lập" value={company.founded_year ? `${company.founded_year}` : null} />
+            <SidebarStat label="LĐ BHXH" value={company.social_insurance_employees != null ? String(company.social_insurance_employees) : null} />
+            <SidebarStat
+              label="Doanh thu"
+              value={company.annual_revenue_vnd != null
+                ? new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(company.annual_revenue_vnd) + ' ₫'
+                : null}
+            />
+            <SidebarStat label="Tỉnh / TP" value={company.province ?? null} />
+            <SidebarStat label="ĐKKD" value={triboolLabel(company.has_business_registration)} />
+            <SidebarStat label="Bằng sáng chế" value={triboolLabel(company.has_patent)} />
           </div>
-        )}
+        </div>
 
         {/* Logout */}
         <div className="px-3 py-3 border-t border-white/10">
@@ -167,8 +211,17 @@ export default function MainPage({ email, company, onLogout }: Props) {
                 Hỏi về ưu đãi và chính sách hỗ trợ doanh nghiệp — hệ thống sẽ kiểm tra điều kiện theo hồ sơ của bạn
               </p>
             </div>
-            <ChatThread messages={messages} loading={loading} />
-            <ChatInput onSend={handleSend} disabled={loading} />
+            {historyLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-gray-400">Đang tải lịch sử...</p>
+                </div>
+              </div>
+            ) : (
+              <ChatThread messages={messages} loading={loading} />
+            )}
+            <ChatInput onSend={handleSend} disabled={loading || historyLoading} />
           </>
         ) : (
           <>

@@ -8,15 +8,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
-from dotenv import load_dotenv
+import certifi
 from pymongo import MongoClient, ReplaceOne
 
 
-BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR.parent / ".env")
-MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI") or "mongodb://localhost:27017"
-MONGO_DB = os.getenv("MONGO_DB") or os.getenv("MONGODB_DB") or "grantpilot"
+MONGO_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB = os.getenv("MONGODB_DB") or os.getenv("MONGO_DB", "grantpilot")
 
 
 def utcnow() -> datetime:
@@ -32,14 +29,10 @@ def checksum_file(path) -> str:
 
 
 def database():
-    options = {"serverSelectionTimeoutMS": 5000}
-    # Atlas uses TLS. Some local Python installations do not know the Atlas CA
-    # chain unless it is explicitly supplied from certifi.
-    if MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower():
-        import certifi
-
-        options["tlsCAFile"] = os.getenv("MONGO_TLS_CA_FILE", certifi.where())
-    client = MongoClient(MONGO_URI, **options)
+    kwargs = {"serverSelectionTimeoutMS": 5000}
+    if "mongodb+srv" in MONGO_URI or "mongodb.net" in MONGO_URI:
+        kwargs["tlsCAFile"] = certifi.where()
+    client = MongoClient(MONGO_URI, **kwargs)
     client.admin.command("ping")
     return client, client[MONGO_DB]
 
@@ -66,6 +59,24 @@ def ingest_document(db, pdf_path, source: dict, units: Iterable[dict]) -> dict:
         {"version": 1, "checksum": 1, "is_current": 1},
     )
     if existing_checksum:
+        metadata = {
+            "document_title": source.get("document_title", ""),
+            "document_number": source.get("document_number", ""),
+            "issued_date": source.get("issued_date"),
+            "effective_from": source.get("effective_from"),
+            "effective_to": source.get("effective_to"),
+            "status": source.get("status", "unknown"),
+            "legal_status_checked_at": source.get("legal_status_checked_at"),
+            "source_url": source.get("source_url", ""),
+            "updated_at": utcnow(),
+        }
+        db.legal_documents.update_one(
+            {"document_id": source["document_id"], "version": existing_checksum["version"]}, {"$set": metadata}
+        )
+        db.legal_units.update_many(
+            {"document_id": source["document_id"], "version": existing_checksum["version"]},
+            {"$set": {"document_status": metadata["status"], "issued_date": metadata["issued_date"], "effective_from": metadata["effective_from"], "effective_to": metadata["effective_to"], "source_url": metadata["source_url"], "legal_status_checked_at": metadata["legal_status_checked_at"], "updated_at": metadata["updated_at"]}},
+        )
         return {
             "document_id": source["document_id"],
             "version": existing_checksum["version"],
@@ -95,6 +106,7 @@ def ingest_document(db, pdf_path, source: dict, units: Iterable[dict]) -> dict:
         "effective_from": source.get("effective_from"),
         "effective_to": source.get("effective_to"),
         "status": source.get("status", "unknown"),
+        "legal_status_checked_at": source.get("legal_status_checked_at"),
         "source_url": source.get("source_url", ""),
         "source_file": source.get("file", ""),
         "checksum": checksum,
