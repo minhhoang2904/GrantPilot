@@ -9,7 +9,6 @@ and Server C. The Fact Catalog remains the authority for decision-field names.
 company_id, owner_email
 identity: company_name, tax_code, business_description, province_name
 facts: canonical direct facts accepted from user input or verification
-claims: document-only facts asserted by a user but not yet verified
 fact_provenance[field]: source_kind, status, evidence_refs, asserted_at, verified_at
 derived_facts: computed values plus function/version/dependencies/as_of
 profile_schema_version, created_at, updated_at
@@ -22,10 +21,15 @@ industry descriptions, and company name must never be injected into rules.
 
 1. Onboarding collects identity plus Fact Catalog fields whose `source_kinds`
    include `user_input`.
-2. Document review resolves document-only and manual-review facts. A user claim
-   is stored under `claims` and remains `null` in the decision projection.
+2. Document-only and manual-review facts remain `null` until a trusted process
+   supplies them. The MVP does not implement a claim/review workflow.
 3. Server C receives a flat projection of accepted direct facts and recomputes
    all derived facts for the evaluation date.
+
+For MVP demos and tests, a document-only fact may be seeded as an already
+verified fact. The public onboarding API must not accept it as authoritative
+user input. A future evidence phase can add claims, uploads, and review states
+without changing the decision-fact contract.
 
 Legacy fields are handled conservatively:
 
@@ -58,5 +62,5 @@ produces `null`, not `false`.
 2. One canonical company collection and migration adapter for legacy records.
 3. Strict API models that preserve explicit null and reject invalid values.
 4. Progressive onboarding for user-input facts.
-5. Separate evidence-review flow for document/manual facts.
-6. Server C integration and end-to-end eligibility tests.
+5. Server C integration and end-to-end eligibility tests.
+6. Post-MVP: claims, uploads, and evidence-review workflow.
