@@ -95,6 +95,14 @@ function turnsToMessages(turns: HistorySession['turns']): Message[] {
   }))
 }
 
+function sessionMode(session: HistorySession): ChatMode | null {
+  for (let i = session.turns.length - 1; i >= 0; i -= 1) {
+    const turnMode = session.turns[i].mode
+    if (turnMode === 'lookup' || turnMode === 'advisory') return turnMode
+  }
+  return null
+}
+
 function SidebarStat({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex justify-between gap-2 text-xs">
@@ -144,6 +152,11 @@ export default function MainPage({
     }
   }
 
+  function restoreSessionMode(session: HistorySession) {
+    const storedMode = sessionMode(session)
+    if (storedMode) persistMode(storedMode)
+  }
+
   // Advisory mode needs a complete profile — fall back to lookup otherwise
   useEffect(() => {
     if (mode === 'advisory' && !profileComplete) {
@@ -162,6 +175,7 @@ export default function MainPage({
           const latest = list[list.length - 1]
           setSessionId(latest.session_id)
           setMessages(turnsToMessages(latest.turns))
+          restoreSessionMode(latest)
         } else {
           setSessionId(undefined)
           setMessages([])
@@ -193,6 +207,7 @@ export default function MainPage({
   function selectSession(session: HistorySession) {
     setSessionId(session.session_id)
     setMessages(turnsToMessages(session.turns))
+    restoreSessionMode(session)
   }
 
   function handleNewChat() {
@@ -211,6 +226,7 @@ export default function MainPage({
           const latest = next[next.length - 1]
           setSessionId(latest.session_id)
           setMessages(turnsToMessages(latest.turns))
+          restoreSessionMode(latest)
         } else {
           setSessionId(undefined)
           setMessages([])
@@ -292,6 +308,19 @@ export default function MainPage({
                 ...prev,
                 { id: assistantId, role: 'assistant', content: event.error.message },
               ])
+            } else {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content: m.content
+                          ? `${m.content}\n\n⚠️ ${event.error.message}`
+                          : event.error.message,
+                      }
+                    : m,
+                ),
+              )
             }
             break
 

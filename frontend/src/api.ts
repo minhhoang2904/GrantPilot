@@ -26,6 +26,21 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+async function responseErrorDetail(res: Response): Promise<string> {
+  const fallback = res.statusText || 'Không thể xử lý yêu cầu.'
+  try {
+    const body = (await res.json()) as unknown
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) return fallback
+
+    const { detail, message } = body as Record<string, unknown>
+    if (typeof detail === 'string' && detail.trim()) return detail.trim()
+    if (typeof message === 'string' && message.trim()) return message.trim()
+  } catch {
+    // Non-JSON error bodies are intentionally not exposed to the UI.
+  }
+  return fallback
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T | null> {
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -43,8 +58,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     return null
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new ApiError(res.status, `Server lỗi ${res.status}: ${text}`)
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
   }
   return res.json() as Promise<T>
 }
@@ -206,8 +221,8 @@ export async function* chatStream(
   }
 
   if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new ApiError(res.status, `Server lỗi ${res.status}: ${text}`)
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
   }
 
   if (!res.body) {
