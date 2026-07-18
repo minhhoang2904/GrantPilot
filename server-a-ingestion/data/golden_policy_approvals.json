@@ -1,0 +1,42 @@
+[
+  {
+    "policy_id": "decree_80_2021_nd_cp_ho_tro_thong_tin_a26213ed",
+    "approval": {
+      "reviewed_by": "huy",
+      "reviewed_at": "2026-07-18T19:53:07.470121+00:00",
+      "reviewed_schema_version": "policy-rule-schema-v1",
+      "reviewed_catalog_version": "1.0.0",
+      "reviewed_policy_hash": "0cfeaa0b2f61093fecf12a5d90fffe7ea1407933ed47699b0a369adebc8e38ca"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tuyen_d470ff1d",
+    "approval": {
+      "reviewed_by": "huy",
+      "reviewed_at": "2026-07-18T19:53:09.074026+00:00",
+      "reviewed_schema_version": "policy-rule-schema-v1",
+      "reviewed_catalog_version": "1.0.0",
+      "reviewed_policy_hash": "5b15f5851a8d716d09d99d011c78d378574de5551710923a12cbb2c64c9d2fd4"
+    }
+  },
+  {
+    "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tiep_d470ff1d",
+    "approval": {
+      "reviewed_by": "huy",
+      "reviewed_at": "2026-07-18T19:53:10.848839+00:00",
+      "reviewed_schema_version": "policy-rule-schema-v1",
+      "reviewed_catalog_version": "1.0.0",
+      "reviewed_policy_hash": "38dafdc4cccea8171e7218c5b10c0c04b5e090a61e1371de1922ce2a67ea9729"
+    }
+  },
+  {
+    "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_cong_nghe_48284a5c",
+    "approval": {
+      "reviewed_by": "huy",
+      "reviewed_at": "2026-07-18T19:53:12.457214+00:00",
+      "reviewed_schema_version": "policy-rule-schema-v1",
+      "reviewed_catalog_version": "1.0.0",
+      "reviewed_policy_hash": "d810427ac9b682eaaa765e19ecc55c14c583efde5dc20873f15d69e8379487da"
+    }
+  }
+]

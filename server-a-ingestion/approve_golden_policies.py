@@ -1,42 +1,49 @@
-"""Approve the reviewed four-policy MVP through the canonical Mongo write boundary."""
+"""Generate a stable Golden Policy approval manifest without touching MongoDB."""
 
 from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
+from datetime import datetime, timezone
 
-from dotenv import load_dotenv
+from golden_policy_mvp import APPROVALS_PATH, golden_policies, normalize_golden_candidate
+from pipeline import LEGAL_UNITS_PATH, load_sources, read_jsonl
+from policy_normalization import SCHEMA_VERSION, load_catalog, policy_hash
 
-BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR.parent / ".env")
 
-from golden_policy_mvp import apply_golden_overlay, golden_policies  # noqa: E402
-from mongo_store import database, ensure_indexes, ingest_policies  # noqa: E402
-
-GOLDEN_PATH = BASE_DIR / "data" / "golden_policies_mvp.json"
+def build_manifest(reviewer: str, reviewed_at: str | None = None) -> list[dict]:
+    """Normalize candidates first, then compute provenance for explicit review."""
+    catalog = load_catalog()
+    units = read_jsonl(LEGAL_UNITS_PATH)
+    sources = load_sources()
+    timestamp = reviewed_at or datetime.now(timezone.utc).isoformat()
+    manifest = []
+    for raw in golden_policies():
+        candidate = normalize_golden_candidate(raw, sources=sources, units=units)
+        if candidate["validation_issues_current"] or candidate["evidence_resolution"] != "precise":
+            raise RuntimeError(f"{candidate['policy_id']} is not ready for approval")
+        manifest.append({
+            "policy_id": candidate["policy_id"],
+            "approval": {
+                "reviewed_by": reviewer,
+                "reviewed_at": timestamp,
+                "reviewed_schema_version": SCHEMA_VERSION,
+                "reviewed_catalog_version": catalog["catalog_version"],
+                "reviewed_policy_hash": policy_hash(candidate),
+            },
+        })
+    return manifest
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Approve the reviewed Golden Policy MVP")
-    parser.add_argument("--reviewed-by", default="huy")
-    parser.add_argument("--dry-run", action="store_true")
+    parser = argparse.ArgumentParser(description="Generate the reviewed Golden Policy manifest")
+    parser.add_argument("--reviewed-by", required=True)
+    parser.add_argument("--apply", action="store_true", help="Write the manifest; omit for a state-free dry-run.")
     args = parser.parse_args()
-    policies = golden_policies()
-    client, db = database()
-    try:
-        ensure_indexes(db)
-        approved = apply_golden_overlay([], db=db, reviewer=args.reviewed_by)
-        if args.dry_run:
-            print(json.dumps(approved, ensure_ascii=False, indent=2))
-            return
-        result = ingest_policies(db, approved)
-        ids = [policy["policy_id"] for policy in approved]
-        rows = list(db.policies.find({"policy_id": {"$in": ids}}, {"_id": 0, "payload": 0}))
-        print(json.dumps({"ingest": result, "policies": rows}, ensure_ascii=False, default=str, indent=2))
-    finally:
-        client.close()
+    manifest = build_manifest(args.reviewed_by)
+    print(json.dumps(manifest, ensure_ascii=False, indent=2))
+    if args.apply:
+        APPROVALS_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,12 @@
+import copy
 import json
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from golden_policy_mvp import apply_golden_overlay
-from pipeline import normalize_policy_artifact, persist_policies, read_jsonl
+import golden_policy_mvp
+from golden_policy_mvp import StaleGoldenApprovalError, apply_golden_overlay
+from pipeline import LEGAL_UNITS_PATH, POLICIES_PATH, load_sources, normalize_policy_artifact, persist_policies, read_jsonl
 from policy_normalization import approval_valid, load_catalog
 
 POLICIES = json.loads((Path(__file__).resolve().parent / "data" / "golden_policies_mvp.json").read_text(encoding="utf-8"))
@@ -45,13 +47,9 @@ class GoldenPolicyMvpTest(unittest.TestCase):
         self.assertEqual(self.matches({}), set())
 
     def test_full_ingest_overlay_keeps_only_four_reviewed_policies_approved(self):
-        root = Path(__file__).resolve().parent
-        base = json.loads((root / "data" / "policies.json").read_text(encoding="utf-8"))
-        units = read_jsonl(root / "data" / "processed" / "legal_units.jsonl")
-        sources = {
-            "80.signed_01.pdf": {"file": "80.signed_01.pdf", "document_id": "decree-80-2021-nd-cp", "version": 1},
-            "06-bkhdt.signed.pdf": {"file": "06-bkhdt.signed.pdf", "document_id": "circular-06-2022-tt-bkhdt", "version": 1},
-        }
+        base = json.loads(POLICIES_PATH.read_text(encoding="utf-8"))
+        units = read_jsonl(LEGAL_UNITS_PATH)
+        sources = load_sources()
         rows = normalize_policy_artifact(apply_golden_overlay(base, sources=sources, units=units), units, sources)
         approved = [row for row in rows if row["review_status"] == "approved"]
         eligible = [row for row in rows if row["eligible_for_decision"]]
@@ -62,6 +60,29 @@ class GoldenPolicyMvpTest(unittest.TestCase):
         technology = next(row for row in rows if row["policy_id"] == "circular_06_2022_tt_bkhdt_ho_tro_cong_nghe_48284a5c")
         self.assertIn("application_requirements", technology)
         self.assertNotIn("publication_requirement", technology["rules"])
+
+    def test_stale_rule_rejects_manifest_without_generating_a_new_hash(self):
+        base = json.loads(POLICIES_PATH.read_text(encoding="utf-8"))
+        units = read_jsonl(LEGAL_UNITS_PATH)
+        sources = load_sources()
+        golden = golden_policy_mvp.golden_policies()
+        manifest_before = copy.deepcopy(golden_policy_mvp.approval_manifest())
+        golden[0]["rules"]["all"][0]["value"] = False
+        with patch("golden_policy_mvp.golden_policies", return_value=golden):
+            with self.assertRaises(StaleGoldenApprovalError):
+                apply_golden_overlay(base, sources=sources, units=units)
+        self.assertEqual(golden_policy_mvp.approval_manifest(), manifest_before)
+
+    def test_reviewed_at_is_stable_across_repeated_full_ingest(self):
+        base = json.loads(POLICIES_PATH.read_text(encoding="utf-8"))
+        units = read_jsonl(LEGAL_UNITS_PATH)
+        sources = load_sources()
+        first = apply_golden_overlay(base, sources=sources, units=units)
+        second = apply_golden_overlay(base, sources=sources, units=units)
+        golden_ids = {policy["policy_id"] for policy in POLICIES}
+        first_times = {row["policy_id"]: row["approval"]["reviewed_at"] for row in first if row["policy_id"] in golden_ids}
+        second_times = {row["policy_id"]: row["approval"]["reviewed_at"] for row in second if row["policy_id"] in golden_ids}
+        self.assertEqual(first_times, second_times)
 
     def test_policy_mongo_persistence_always_applies_golden_overlay(self):
         client, db = Mock(), Mock()

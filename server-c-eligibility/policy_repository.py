@@ -76,6 +76,7 @@ class MongoPolicyRepository:
             "rules",
             "benefit_calculator",
             "required_documents",
+            "application_requirements",
             "evidence_unit_ids",
         ):
             if row.get(key) in (None, "", [], {}):
