@@ -5,13 +5,19 @@ from __future__ import annotations
 import hashlib
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterable
 
+import certifi
+from dotenv import load_dotenv
 from pymongo import MongoClient
 
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-MONGO_DB = os.getenv("MONGO_DB", "grantpilot")
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
+MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI") or "mongodb://localhost:27017"
+MONGO_DB = os.getenv("MONGO_DB") or os.getenv("MONGODB_DB") or "grantpilot"
 
 
 def utcnow() -> datetime:
@@ -27,7 +33,10 @@ def checksum_file(path) -> str:
 
 
 def database():
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    options = {"serverSelectionTimeoutMS": 5000}
+    if MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower():
+        options["tlsCAFile"] = os.getenv("MONGO_TLS_CA_FILE", certifi.where())
+    client = MongoClient(MONGO_URI, **options)
     client.admin.command("ping")
     return client, client[MONGO_DB]
 
@@ -39,6 +48,9 @@ def ensure_indexes(db) -> None:
     db.legal_units.create_index([("document_id", 1), ("version", 1), ("unit_id", 1)], unique=True)
     db.legal_units.create_index([("document_number", 1), ("article", 1), ("clause", 1), ("point", 1), ("is_current", 1)])
     db.legal_units.create_index([("document_id", 1), ("version", 1), ("is_current", 1)])
+    db.policies.create_index([("policy_id", 1), ("document_id", 1), ("document_version", 1)], unique=True)
+    db.policies.create_index([("document_id", 1), ("document_version", 1), ("is_current", 1)])
+    db.policies.create_index("review_status")
 
 
 def ingest_document(db, pdf_path, source: dict, units: Iterable[dict]) -> dict:
@@ -49,6 +61,24 @@ def ingest_document(db, pdf_path, source: dict, units: Iterable[dict]) -> dict:
         {"version": 1, "checksum": 1, "is_current": 1},
     )
     if existing_checksum:
+        metadata = {
+            "document_title": source.get("document_title", ""),
+            "document_number": source.get("document_number", ""),
+            "issued_date": source.get("issued_date"),
+            "effective_from": source.get("effective_from"),
+            "effective_to": source.get("effective_to"),
+            "status": source.get("status", "unknown"),
+            "legal_status_checked_at": source.get("legal_status_checked_at"),
+            "source_url": source.get("source_url", ""),
+            "updated_at": utcnow(),
+        }
+        db.legal_documents.update_one(
+            {"document_id": source["document_id"], "version": existing_checksum["version"]}, {"$set": metadata}
+        )
+        db.legal_units.update_many(
+            {"document_id": source["document_id"], "version": existing_checksum["version"]},
+            {"$set": {"document_status": metadata["status"], "issued_date": metadata["issued_date"], "effective_from": metadata["effective_from"], "effective_to": metadata["effective_to"], "source_url": metadata["source_url"], "legal_status_checked_at": metadata["legal_status_checked_at"], "updated_at": metadata["updated_at"]}},
+        )
         return {
             "document_id": source["document_id"],
             "version": existing_checksum["version"],
@@ -78,6 +108,7 @@ def ingest_document(db, pdf_path, source: dict, units: Iterable[dict]) -> dict:
         "effective_from": source.get("effective_from"),
         "effective_to": source.get("effective_to"),
         "status": source.get("status", "unknown"),
+        "legal_status_checked_at": source.get("legal_status_checked_at"),
         "source_url": source.get("source_url", ""),
         "source_file": source.get("file", ""),
         "checksum": checksum,
