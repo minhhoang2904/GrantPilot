@@ -1,34 +1,51 @@
-"""
-server-b-retrieval / answer_gen.py
+"""Grounded answer generation tren legal units da retrieve."""
 
-Sinh câu trả lời cho người dùng dựa trên các policy đã tra cứu được.
+from __future__ import annotations
 
-Hiện tại dùng template đơn giản (không cần API key) để mọi người có thể chạy demo
-end-to-end ngay. TODO: thay bằng LLM call (OpenAI/khác) khi có API key, đọc từ
-biến môi trường (vd: OPENAI_API_KEY), giữ nguyên signature generate_answer().
-"""
-
-from typing import Any
+from clients import FptClient
 
 
-def generate_answer(question: str, policies: list[dict[str, Any]]) -> str:
-    if not policies:
-        return (
-            "Không tìm thấy chính sách phù hợp với câu hỏi của bạn. "
-            "Vui lòng thử diễn đạt lại hoặc cung cấp thêm thông tin về doanh nghiệp."
-        )
+NO_EVIDENCE = (
+    "Không tìm thấy căn cứ pháp lý đủ liên quan trong kho dữ liệu hiện có. "
+    "Bạn có thể nêu rõ loại hỗ trợ hoặc Điều/Khoản cần tra cứu."
+)
 
-    lines = [f"Dựa trên câu hỏi \"{question}\", đây là các chính sách liên quan:\n"]
-    for i, policy in enumerate(policies, start=1):
-        lines.append(f"{i}. **{policy['title']}**")
-        if policy.get("summary"):
-            lines.append(f"   {policy['summary']}")
-        if policy.get("source_url"):
-            lines.append(f"   Nguồn: {policy['source_url']}")
-        lines.append("")
 
-    lines.append(
-        "Gợi ý: cung cấp hồ sơ doanh nghiệp (ngành, số lao động, doanh thu, tỉnh/thành) "
-        "để kiểm tra điều kiện hưởng cụ thể."
-    )
+def _citation(unit: dict) -> str:
+    location = f"{unit.get('document_number') or unit.get('document_title', '')}, Điều {unit.get('article', '')}"
+    if unit.get("clause"):
+        location += f", khoản {unit['clause']}"
+    if unit.get("point"):
+        location += f", điểm {unit['point']}"
+    pages = unit.get("page_start")
+    if unit.get("page_end") and unit.get("page_end") != pages:
+        pages = f"{pages}–{unit['page_end']}"
+    if pages:
+        location += f", trang {pages}"
+    return location
+
+
+def generate_answer(
+    question: str,
+    legal_units: list[dict],
+    *,
+    fpt: FptClient | None = None,
+) -> str:
+    if not legal_units:
+        return NO_EVIDENCE
+    fpt = fpt or FptClient()
+    try:
+        generated = fpt.answer(question, legal_units)
+    except Exception:
+        generated = None
+    if generated:
+        return generated
+
+    # Fallback chi trich dan, khong dien giai hay ket luan eligibility.
+    lines = ["Các căn cứ pháp lý có thể liên quan:"]
+    for unit in legal_units:
+        text = " ".join((unit.get("text") or "").split())
+        excerpt = text[:320] + ("…" if len(text) > 320 else "")
+        lines.append(f"- {_citation(unit)}: {excerpt}")
+    lines.append("Đây là kết quả tra cứu, chưa phải kết luận doanh nghiệp đủ điều kiện hưởng hỗ trợ.")
     return "\n".join(lines)
