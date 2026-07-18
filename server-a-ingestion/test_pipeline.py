@@ -117,7 +117,9 @@ class RuleNormalizationTest(unittest.TestCase):
         )
         self.assertEqual(rows[0]["policy_rule_schema_version"], "policy-rule-schema-v1")
         self.assertIn("canonical_policy_key", rows[0])
-        self.assertEqual(rows[0]["review_status"], "rejected")
+        self.assertEqual(rows[0]["review_status"], "candidate")
+        self.assertEqual(rows[0]["evidence_resolution"], "article_fallback")
+        self.assertFalse(rows[0]["eligible_for_decision"])
 
     def test_keeps_contains_distinct_from_in(self):
         catalog = {"fields": {"sample_text": {"type": "string", "source": "direct", "operators": ["contains", "in"], "aliases": ["ngành nghề"]}}}
