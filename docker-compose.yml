@@ -1,36 +1,49 @@
 services:
-  # # Chạy một lần để nạp/refresh dữ liệu vào shared/policy.db, rồi thoát.
+  # Chạy một lần để OCR/parse -> MongoDB Atlas -> Pinecone.
   # server-a-ingestion:
   #   build: ./server-a-ingestion
+  #   env_file:
+  #     - .env
+  #     - ./server-a-ingestion/.env
   #   volumes:
   #     - ./shared:/app/shared
+  #   environment:
+  #     - MONGODB_URI=${MONGODB_URI}
+  #     - MONGODB_DB=${MONGODB_DB:-grantpilot}
   #   restart: "no"
 
-  mongodb:
-    image: mongo:7
+  server-a-api:
+    build: ./server-a-ingestion
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    env_file:
+      - .env
+      - ./server-a-ingestion/.env
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-grantpilot}
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - "8000:8000"
 
   server-b-retrieval:
     build: ./server-b-retrieval
+    env_file:
+      - .env
+      - ./server-a-ingestion/.env
     ports:
       - "8001:8001"
     volumes:
       - ./shared:/app/shared
     depends_on:
-      mongodb:
-        condition: service_healthy
+      server-a-api:
+        condition: service_started
     environment:
       - POLICY_DB_PATH=/app/shared/policy.db
-      - MONGODB_URI=mongodb://mongodb:27017
-      - MONGODB_DB=policy_advisor
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB:-grantpilot}
+      - PINECONE_NAMESPACE=${PINECONE_NAMESPACE:-legal_units}
+      - SERVER_A_URL=http://server-a-api:8000
+      - FPT_BASE_URL=${FPT_BASE_URL:-https://mkp-api.fptcloud.com}
+      - FPT_EMBEDDING_MODEL=${FPT_EMBEDDING_MODEL:-Vietnamese_Embedding}
 
   # server-c-eligibility:
   #   build: ./server-c-eligibility
@@ -38,9 +51,6 @@ services:
   #     - "8002:8002"
   #   volumes:
   #     - ./shared:/app/shared
-  #   depends_on:
-  #     server-a-ingestion:
-  #       condition: service_completed_successfully
   #   environment:
   #     - POLICY_DB_PATH=/app/shared/policy.db
 
@@ -51,6 +61,3 @@ services:
     environment:
       - SERVER_B_URL=http://server-b-retrieval:8001
       - SERVER_C_URL=http://server-c-eligibility:8002
-
-volumes:
-  mongo_data:

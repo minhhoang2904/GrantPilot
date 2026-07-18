@@ -21,6 +21,8 @@ venv/
 *.sqlite
 *.sqlite3
 chroma_db/
+server-a-ingestion/data/chroma/
+server-a-ingestion/data/processed/
 
 # OS
 .DS_Store
