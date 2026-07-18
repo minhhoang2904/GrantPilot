@@ -5,13 +5,18 @@ from __future__ import annotations
 import hashlib
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterable
 
-from pymongo import MongoClient
+from dotenv import load_dotenv
+from pymongo import MongoClient, ReplaceOne
 
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-MONGO_DB = os.getenv("MONGO_DB", "grantpilot")
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
+MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI") or "mongodb://localhost:27017"
+MONGO_DB = os.getenv("MONGO_DB") or os.getenv("MONGODB_DB") or "grantpilot"
 
 
 def utcnow() -> datetime:
@@ -27,7 +32,14 @@ def checksum_file(path) -> str:
 
 
 def database():
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    options = {"serverSelectionTimeoutMS": 5000}
+    # Atlas uses TLS. Some local Python installations do not know the Atlas CA
+    # chain unless it is explicitly supplied from certifi.
+    if MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower():
+        import certifi
+
+        options["tlsCAFile"] = os.getenv("MONGO_TLS_CA_FILE", certifi.where())
+    client = MongoClient(MONGO_URI, **options)
     client.admin.command("ping")
     return client, client[MONGO_DB]
 
@@ -39,6 +51,9 @@ def ensure_indexes(db) -> None:
     db.legal_units.create_index([("document_id", 1), ("version", 1), ("unit_id", 1)], unique=True)
     db.legal_units.create_index([("document_number", 1), ("article", 1), ("clause", 1), ("point", 1), ("is_current", 1)])
     db.legal_units.create_index([("document_id", 1), ("version", 1), ("is_current", 1)])
+    db.policies.create_index([("policy_id", 1), ("document_id", 1), ("document_version", 1)], unique=True)
+    db.policies.create_index([("document_id", 1), ("document_version", 1), ("is_current", 1)])
+    db.policies.create_index("review_status")
 
 
 def ingest_document(db, pdf_path, source: dict, units: Iterable[dict]) -> dict:
@@ -115,3 +130,45 @@ def current_units(db, document_ids: set[str] | None = None) -> list[dict]:
     if document_ids:
         query["document_id"] = {"$in": list(document_ids)}
     return list(db.legal_units.find(query, {"_id": 0}))
+
+
+def ingest_policies(db, policies: Iterable[dict]) -> dict:
+    """Upsert policy records while preserving their original payload and review state."""
+    current_versions = {
+        row["document_id"]: row["version"]
+        for row in db.legal_documents.find({"is_current": True}, {"_id": 0, "document_id": 1, "version": 1})
+    }
+    operations = []
+    now = utcnow()
+    for policy in policies:
+        pipeline = policy.get("pipeline") or {}
+        legal_source = policy.get("legal_source") or {}
+        document_id = pipeline.get("document_id")
+        if not document_id:
+            local_file = str(legal_source.get("local_file", "")).split("/")[-1]
+            document = db.legal_documents.find_one({"source_file": local_file, "is_current": True}, {"document_id": 1})
+            document_id = document.get("document_id") if document else "unmapped"
+        document_version = current_versions.get(document_id)
+        row = {
+            "policy_id": policy["policy_id"],
+            "document_id": document_id,
+            "document_version": document_version,
+            "is_current": document_id in current_versions,
+            "policy_name": policy.get("policy_name", ""),
+            "category": policy.get("category", ""),
+            "review_status": (policy.get("review") or {}).get("status", "unknown"),
+            "evidence_unit_ids": policy.get("evidence_unit_ids", []),
+            "payload": policy,
+            "updated_at": now,
+        }
+        operations.append(
+            ReplaceOne(
+                {"policy_id": row["policy_id"], "document_id": document_id, "document_version": document_version},
+                {**row, "ingested_at": now},
+                upsert=True,
+            )
+        )
+    if not operations:
+        return {"upserted": 0}
+    result = db.policies.bulk_write(operations, ordered=False)
+    return {"upserted": result.upserted_count, "updated": result.modified_count, "total": len(operations)}

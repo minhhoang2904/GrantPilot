@@ -8,3 +8,6 @@ python-jose[cryptography]==3.3.0
 bcrypt==4.2.1
 requests>=2.31,<3
 pinecone>=6,<8
+pymongo>=4.8,<5
+certifi>=2024.0.0
+python-dotenv>=1.0,<2
