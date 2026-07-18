@@ -536,6 +536,43 @@ def _build_sources(legal_units: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sources
 
 
+def _build_advisory_result(eligibility: dict[str, Any]) -> dict[str, Any]:
+    policies = []
+    allowed_statuses = {
+        "eligible",
+        "not_eligible",
+        "needs_more_information",
+        "manual_review",
+    }
+    for result in eligibility.get("eligibility_results") or []:
+        status = result.get("status")
+        if status not in allowed_statuses:
+            status = "manual_review"
+        policies.append({
+            "policy_id": result.get("policy_id") or "",
+            "title": result.get("policy_name") or result.get("policy_id") or "",
+            "status": status,
+            "score": float(result.get("score") or 0.0),
+            "missing_fields": list(result.get("missing_fields") or []),
+            # ``rule_errors`` is internal diagnostics and must not be exposed
+            # through the user-facing advisory contract.
+            "reasons": list(dict.fromkeys(result.get("reasons") or [])),
+            "sources": _build_sources(result.get("sources") or []),
+        })
+
+    derived = eligibility.get("derived_facts") or {}
+    return {
+        "explanation": str(eligibility.get("explanation") or ""),
+        "profile_features": {
+            "enterprise_size": derived.get("enterprise_size"),
+            "is_sme": derived.get("is_sme"),
+            "company_age_months": derived.get("company_age_months"),
+        },
+        "policies": policies,
+    }
+
+
+
 @app.post("/v1/chat/stream")
 async def chat_stream_endpoint(
     payload: ChatStreamIn,

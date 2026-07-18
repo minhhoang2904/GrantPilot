@@ -311,7 +311,12 @@ export default function MainPage({
       } else {
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === assistantId && !m.content ? { ...m, content: errText } : m,
+            m.id === assistantId
+              ? {
+                  ...m,
+                  content: m.content ? `${m.content}\n\n⚠️ ${errText}` : errText,
+                }
+              : m,
           ),
         )
       }
