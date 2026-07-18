@@ -13,8 +13,9 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 import answer_gen
 import auth_service
 import company_service
-from company_profile import decision_facts
+from company_profile import PROFILE_SCHEMA_VERSION, decision_facts
 import config
+import eligibility_client
 import profile_service
 import retrieval
 from memory import ChatMemory, build_chat_memory
@@ -178,8 +179,9 @@ class RetrieveIn(BaseModel):
 class AskIn(RetrieveIn):
     email: Optional[str] = None
     session_id: Optional[str] = None
-    # "rag" | "eligibility" — eligibility includes results table; both persist history
-    mode: Literal["rag", "eligibility"] = "rag"
+    # rag/eligibility are retained for the current frontend; lookup/advisory are
+    # the canonical public names for the two backend pipelines.
+    mode: Literal["rag", "eligibility", "lookup", "advisory"] = "rag"
 
 
 @app.get("/health")
@@ -329,34 +331,121 @@ def search(q: str = Query(min_length=1), top_k: int = Query(default=5, ge=1, le=
         raise HTTPException(status_code=503, detail=f"Legal data chưa sẵn sàng: {exc}") from exc
 
 
-@app.post("/ask")
-def ask(payload: AskIn) -> dict[str, Any]:
-    thread_id, _, result = _run_retrieval(payload)
-    units = result["legal_units"]
-    answer = answer_gen.generate_answer(payload.question, units, fpt=retrieval.get_retriever().fpt)
-    mode = payload.mode
-    include_results = mode != "rag"
+def _canonical_mode(mode: str) -> Literal["lookup", "advisory"]:
+    return "advisory" if mode in {"eligibility", "advisory"} else "lookup"
 
+
+def _legal_citations(units: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "unit_id": unit.get("unit_id"),
+            "document_number": unit.get("document_number"),
+            "article": unit.get("article"),
+            "clause": unit.get("clause"),
+            "point": unit.get("point"),
+            "source_url": unit.get("source_url"),
+        }
+        for unit in units
+    ]
+
+
+def _persist_answer(
+    payload: AskIn,
+    email: str,
+    thread_id: str,
+    answer: str,
+    frontend_results: list[dict[str, Any]],
+    citations: list[dict[str, Any]],
+    mode: Literal["lookup", "advisory"],
+) -> str:
     memory = chat_memory()
     memory.append(thread_id, "user", payload.question)
     memory.append(thread_id, "assistant", answer)
 
-    session_id = thread_id
-    if payload.email:
-        session_id = company_service.append_chat_turn(
-            payload.email,
-            payload.session_id,
-            {"role": "user", "content": payload.question},
-        )
-        assistant_turn: dict[str, Any] = {"role": "assistant", "content": answer}
-        if include_results:
-            assistant_turn["results"] = units
-        company_service.append_chat_turn(payload.email, session_id, assistant_turn)
+    session_id = company_service.append_chat_turn(
+        email,
+        payload.session_id,
+        {"role": "user", "content": payload.question, "mode": mode},
+    )
+    assistant_turn: dict[str, Any] = {
+        "role": "assistant",
+        "content": answer,
+        "mode": mode,
+        "citations": citations,
+    }
+    if frontend_results:
+        assistant_turn["results"] = frontend_results
+    company_service.append_chat_turn(email, session_id, assistant_turn)
+    return session_id
+
+
+@app.post("/ask")
+def ask(
+    payload: AskIn,
+    current_email: str = Depends(get_current_email),
+) -> dict[str, Any]:
+    if not payload.email or current_email != payload.email:
+        raise HTTPException(status_code=403, detail="Không có quyền ghi phiên tư vấn này.")
+
+    mode = _canonical_mode(payload.mode)
+    thread_id, _, result = _run_retrieval(payload)
+    units = result["legal_units"]
+    citations = _legal_citations(units)
+    answer = answer_gen.generate_answer(payload.question, units, fpt=retrieval.get_retriever().fpt)
+
+    eligibility = {
+        "eligibility_results": [],
+        "explanation": "",
+        "derived_facts": {},
+        "derivation_lineage": {},
+        "diagnostics": {"skipped": "lookup_mode"},
+    }
+    frontend_results: list[dict[str, Any]] = []
+    if mode == "advisory":
+        company = company_service.get_company(current_email)
+        if company is None:
+            raise HTTPException(status_code=409, detail="Cần tạo hồ sơ doanh nghiệp trước khi tư vấn.")
+        if company.get("profile_schema_version") != PROFILE_SCHEMA_VERSION:
+            raise HTTPException(status_code=409, detail="Cần cập nhật hồ sơ doanh nghiệp lên phiên bản mới.")
+        try:
+            eligibility = eligibility_client.evaluate_company(
+                decision_facts(company),
+                result["candidate_policy_ids"],
+                top_k=min(payload.top_k, 10),
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Eligibility service chưa sẵn sàng: {type(exc).__name__}",
+            ) from exc
+        raw_results = eligibility.get("eligibility_results") or []
+        frontend_results = eligibility_client.to_frontend_results(raw_results)
+        explanation = str(eligibility.get("explanation") or "").strip()
+        if explanation:
+            answer = f"{answer}\n\nĐánh giá theo hồ sơ doanh nghiệp:\n{explanation}"
+
+    session_id = _persist_answer(
+        payload,
+        current_email,
+        thread_id,
+        answer,
+        frontend_results,
+        citations,
+        mode,
+    )
 
     response: dict[str, Any] = {
+        "mode": mode,
         "thread_id": thread_id,
         "session_id": session_id,
         "answer": answer,
+        "legal_units": units,
+        "citations": citations,
+        "eligibility_results": eligibility.get("eligibility_results") or [],
+        "eligibility": eligibility,
+        # Compatibility field consumed by Hoàng's current frontend. It now
+        # contains only policy eligibility rows, never legal units.
+        "results": frontend_results,
         "candidate_policy_ids": result["candidate_policy_ids"],
         "retrieval": {
             "route": result["route"],
@@ -365,14 +454,6 @@ def ask(payload: AskIn) -> dict[str, Any]:
             "diagnostics": result["diagnostics"],
         },
     }
-    if include_results:
-        response["results"] = units
-        response["legal_units"] = units
-        # Alias tam thoi cho client cu; du lieu nay la legal units, khong phai
-        # eligibility policies. Client moi nen dung `legal_units`.
-        response["policies"] = units
-    else:
-        response["results"] = []
     return response
 
 

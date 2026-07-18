@@ -67,6 +67,8 @@ services:
       - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME:-}
       - PINECONE_NAMESPACE=${PINECONE_NAMESPACE:-legal_units}
       - SERVER_A_URL=http://server-a-api:8000
+      - SERVER_C_URL=http://server-c-eligibility:8002
+      - SERVER_C_TIMEOUT_SECONDS=${SERVER_C_TIMEOUT_SECONDS:-30}
       - FPT_BASE_URL=${FPT_BASE_URL:-https://mkp-api.fptcloud.com}
       - FPT_API_KEY=${FPT_API_KEY:-}
       - FPT_EMBEDDING_MODEL=${FPT_EMBEDDING_MODEL:-Vietnamese_Embedding}
@@ -78,14 +80,25 @@ services:
       - FPT_ANSWER_THINKING=${FPT_ANSWER_THINKING:-disabled}
       - FPT_ANSWER_REASONING_EFFORT=${FPT_ANSWER_REASONING_EFFORT:-none}
 
-  # server-c-eligibility:
-  #   build: ./server-c-eligibility
-  #   ports:
-  #     - "8002:8002"
-  #   volumes:
-  #     - ./shared:/app/shared
-  #   environment:
-  #     - POLICY_DB_PATH=/app/shared/policy.db
+  server-c-eligibility:
+    build: ./server-c-eligibility
+    restart: unless-stopped
+    env_file:
+      - .env
+      - ./server-a-ingestion/.env
+    expose:
+      - "8002"
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-grantpilot}
+      - MONGODB_DOCUMENTS_COLLECTION=${MONGODB_DOCUMENTS_COLLECTION:-legal_documents}
+      - MONGODB_LEGAL_UNITS_COLLECTION=${MONGODB_LEGAL_UNITS_COLLECTION:-legal_units}
+      - MONGODB_POLICIES_COLLECTION=${MONGODB_POLICIES_COLLECTION:-policies}
+      - FPT_BASE_URL=${FPT_BASE_URL:-https://mkp-api.fptcloud.com}
+      - FPT_API_KEY=${FPT_API_KEY:-}
+      - FPT_ELIGIBILITY_MODEL=${FPT_ELIGIBILITY_MODEL:-GLM-5.2}
+      - ELIGIBILITY_LLM_ENABLED=${ELIGIBILITY_LLM_ENABLED:-true}
+      - STRICT_LEGAL_STATUS=${STRICT_LEGAL_STATUS:-false}
 
   frontend:
     build: ./frontend
