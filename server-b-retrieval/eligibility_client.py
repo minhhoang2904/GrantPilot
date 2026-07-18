@@ -71,6 +71,7 @@ def to_frontend_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 },
                 "eligibility_status": raw_status,
                 "score": result.get("score"),
+                "application_requirements": list(result.get("application_requirements") or []),
             }
         )
     return mapped

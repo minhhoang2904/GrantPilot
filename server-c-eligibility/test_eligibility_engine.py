@@ -66,6 +66,19 @@ class RuleEngineTest(unittest.TestCase):
             result = evaluate({"x": 1}, policy)
         self.assertEqual(result["status"], "manual_review")
 
+    def test_application_requirement_is_preserved_without_affecting_decision(self):
+        requirement = "Giải pháp chuyển đổi số phải được công bố trên cổng hoặc trang thông tin hợp lệ."
+        policy = {
+            "policy_id": "technology",
+            "document_status": "effective",
+            "rules": {"all": [{"field": "is_sme", "operator": "==", "value": True}]},
+            "application_requirements": [requirement],
+        }
+        result = evaluate({"is_sme": True}, policy)
+        self.assertEqual(result["status"], "eligible")
+        self.assertEqual(result["application_requirements"], [requirement])
+        self.assertEqual(result["missing_fields"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

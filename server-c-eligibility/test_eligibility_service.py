@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from datetime import date
+from unittest.mock import patch
 
 from eligibility_service import EligibilityService
 
@@ -15,6 +16,9 @@ class FakeRepository:
                 "document_status": "effective",
                 "evidence_unit_ids": ["law_art-1"],
                 "rules": {"all": [{"field": "is_sme", "operator": "==", "value": True}]},
+                "application_requirements": [
+                    "Giải pháp chuyển đổi số phải được công bố trên cổng hoặc trang thông tin hợp lệ."
+                ],
             },
             {
                 "policy_id": "p2",
@@ -69,6 +73,21 @@ class EligibilityServiceTest(unittest.TestCase):
         self.assertEqual(response["derived_facts"]["enterprise_size"], "micro")
         self.assertIsNone(response["derived_facts"]["is_innovative_startup"])
         self.assertEqual(response["explanation"], "Giải thích không thay đổi status.")
+
+    def test_deterministic_explanation_mentions_eligible_application_requirement(self):
+        from explanation import EligibilityExplainer
+
+        service = EligibilityService(FakeRepository(), EligibilityExplainer())
+        with patch("config.llm_enabled", return_value=False):
+            response = service.evaluate({
+                "sector": "thuong_mai_dich_vu",
+                "social_insurance_employees": 5,
+                "annual_revenue_vnd": 1_000_000_000,
+            }, candidate_policy_ids=["p1"])
+        result = response["eligibility_results"][0]
+        self.assertEqual(result["status"], "eligible")
+        self.assertEqual(result["missing_fields"], [])
+        self.assertIn("Giải pháp chuyển đổi số phải được công bố", response["explanation"])
 
     def test_unknown_candidate_is_reported(self):
         service = EligibilityService(FakeRepository(), FakeExplainer())

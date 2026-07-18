@@ -243,6 +243,7 @@ def evaluate(profile: dict[str, Any], policy: dict[str, Any]) -> dict[str, Any]:
         "evidence_unit_ids": list(policy.get("evidence_unit_ids") or []),
         "benefit_calculator": policy.get("benefit_calculator") or {},
         "required_documents": policy.get("required_documents") or [],
+        "application_requirements": policy.get("application_requirements") or [],
         "review_status": policy.get("review_status"),
     }
 

@@ -22,5 +22,12 @@ class PolicyRepositoryTest(unittest.TestCase):
     def test_evidence_returns_legal_unit_documents(self):
         self.repo.legal_units.rows=[{"_id":"x","unit_id":"u1","text":"Điều 1"}]
         self.assertEqual(self.repo.get_evidence(["u1"]), [{"unit_id":"u1","text":"Điều 1"}])
+    def test_application_requirements_are_hydrated_from_payload(self):
+        self.repo.policies.rows=[{
+            "policy_id":"p1", "document_id":"d", "document_version":1,
+            "payload":{"application_requirements":["Giải pháp phải được công bố hợp lệ."]},
+        }]
+        rows=self.repo.get_policies()
+        self.assertEqual(rows[0]["application_requirements"], ["Giải pháp phải được công bố hợp lệ."])
 
 if __name__ == "__main__": unittest.main()

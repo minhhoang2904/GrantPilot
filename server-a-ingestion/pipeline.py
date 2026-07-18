@@ -534,12 +534,14 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
 
 def persist_policies(policies: list[dict]) -> dict:
     """Single persistence path used by both pipeline.py and ingest_mongodb.py."""
+    from golden_policy_mvp import apply_golden_overlay
     from mongo_store import database, ensure_indexes, ingest_policies
 
     client, db = database()
     try:
         ensure_indexes(db)
-        result = ingest_policies(db, policies)
+        # The reviewed MVP overlay is part of canonical persistence, not a manual Mongo edit.
+        result = ingest_policies(db, apply_golden_overlay(policies, db=db))
         print(f"[MONGO POLICY] {result}")
         return result
     finally:
