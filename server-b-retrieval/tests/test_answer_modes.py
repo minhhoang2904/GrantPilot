@@ -154,6 +154,8 @@ class AnswerModesTest(unittest.TestCase):
             )
         self.assertIn("Giải pháp chuyển đổi số phải được công bố", response["answer"])
         self.assertIn("Kết luận: Có", response["answer"])
+        self.assertIn("Kế hoạch hành động ưu tiên", response["answer"])
+        self.assertIn("Hai thông tin cần xác nhận với đơn vị tiếp nhận", response["answer"])
         self.assertEqual(response["eligibility_results"][0]["application_requirements"], [requirement])
         self.assertEqual(response["results"][0]["application_requirements"], [requirement])
 

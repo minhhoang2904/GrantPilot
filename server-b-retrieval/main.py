@@ -425,6 +425,36 @@ def _user_facing_reasons(result: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(_friendly_reason(reason) for reason in reasons if reason))
 
 
+def _eligible_basis(result: dict[str, Any]) -> list[str]:
+    """Translate passed Golden rules into short business-facing reasons."""
+    raw = " ".join(str(reason) for reason in (result.get("reasons") or []))
+    basis: list[str] = []
+    if "is_sme" in raw:
+        basis.append("Dữ liệu lao động, doanh thu và nguồn vốn đang xếp doanh nghiệp vào nhóm nhỏ và vừa.")
+    if "primary_business_activity_group" in raw:
+        basis.append("Ngành nghề kinh doanh chính thuộc nhóm hoạt động mà chương trình hỗ trợ.")
+    return basis
+
+
+def _benefit_summary(result: dict[str, Any]) -> list[str]:
+    benefit = result.get("benefit_calculator") or {}
+    if not isinstance(benefit, dict):
+        return []
+    return list(dict.fromkeys(
+        str(value).strip()
+        for value in (benefit.get("type"), benefit.get("note"))
+        if str(value or "").strip()
+    ))
+
+
+def _source_label(source: dict[str, Any]) -> str:
+    parts = [str(source.get("document_number") or "").strip()]
+    for label, field in (("Điều", "article"), ("khoản", "clause"), ("điểm", "point")):
+        if source.get(field):
+            parts.append(f"{label} {source[field]}")
+    return ", ".join(part for part in parts if part)
+
+
 def _advisory_answer(
     question: str,
     eligibility: dict[str, Any],
@@ -486,6 +516,17 @@ def _advisory_answer(
             lines.append("\nThông tin cần bổ sung:")
             lines.extend(f"- {label}" for label in missing)
 
+        if status == "eligible":
+            benefits = _benefit_summary(primary)
+            if benefits:
+                lines.append("\nDoanh nghiệp có thể được hỗ trợ:")
+                lines.extend(f"- {benefit}" for benefit in benefits)
+
+            basis = _eligible_basis(primary)
+            if basis:
+                lines.append("\nVì sao hồ sơ đang phù hợp:")
+                lines.extend(f"- {reason}" for reason in basis)
+
     requirements = list(dict.fromkeys(
         requirement
         for result in results
@@ -495,6 +536,29 @@ def _advisory_answer(
     if requirements:
         lines.append("\nViệc cần kiểm tra trước khi đăng ký:")
         lines.extend(f"- {requirement}" for requirement in requirements)
+
+    if scope == "question" and results[0].get("status") == "eligible":
+        primary = results[0]
+        actions: list[str] = []
+        benefits = _benefit_summary(primary)
+        if benefits:
+            actions.append("Xác định nhu cầu thực tế và phạm vi hỗ trợ doanh nghiệp muốn đăng ký.")
+        actions.extend(f"Kiểm tra và đối chiếu: {requirement}" for requirement in requirements)
+        source = next(iter(primary.get("sources") or []), None)
+        if source and _source_label(source):
+            actions.append(f"Đối chiếu hướng dẫn gốc tại {_source_label(source)} trước khi chuẩn bị hồ sơ.")
+        if actions:
+            lines.append("\nKế hoạch hành động ưu tiên:")
+            lines.extend(f"{index}. {action}" for index, action in enumerate(actions[:3], start=1))
+
+        documents = list(primary.get("required_documents") or [])
+        if documents:
+            lines.append("\nChecklist hồ sơ đã được xác minh:")
+            lines.extend(f"- {document}" for document in documents)
+        else:
+            lines.append("\nHai thông tin cần xác nhận với đơn vị tiếp nhận:")
+            lines.append("- Danh mục giấy tờ cần nộp cho trường hợp cụ thể của doanh nghiệp.")
+            lines.append("- Cơ quan, kênh tiếp nhận và thời hạn của đợt hỗ trợ hiện hành.")
     return "\n".join(lines)
 
 
