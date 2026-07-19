@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 import answer_gen
-import advisory_answer
+import advisory_writer
 import auth_service
 import company_service
 from company_profile import PROFILE_SCHEMA_VERSION, decision_facts
@@ -404,6 +404,7 @@ def ask(
     }
     frontend_results: list[dict[str, Any]] = []
     advisory_scope: dict[str, Any] | None = None
+    advisory_writer_diagnostics: dict[str, Any] | None = None
     if mode == "advisory":
         company = company_service.get_company(current_email)
         if company is None:
@@ -415,12 +416,12 @@ def ask(
             result.get("candidate_policy_ids") or [],
         )
         advisory_scope = scope.as_dict()
+        raw_results: list[dict[str, Any]] = []
         if scope.coverage_status == "not_covered":
             eligibility["diagnostics"] = {
                 "skipped": "topic_not_covered_by_mvp",
                 **advisory_scope,
             }
-            answer = advisory_answer.not_covered_answer(scope)
         else:
             try:
                 eligibility = eligibility_client.evaluate_company(
@@ -439,7 +440,23 @@ def ask(
                 **(eligibility.get("diagnostics") or {}),
                 **advisory_scope,
             }
-            answer = advisory_answer.build_advisory_answer(scope, raw_results)
+        written = advisory_writer.write_advisory_answer(
+            payload.question,
+            company,
+            scope,
+            eligibility,
+            fpt=retrieval.get_retriever().fpt,
+        )
+        answer = written.answer
+        advisory_writer_diagnostics = {
+            "writer": written.writer,
+            "fallback_reason": written.fallback_reason,
+        }
+        eligibility["diagnostics"] = {
+            **(eligibility.get("diagnostics") or {}),
+            "advisory_writer": written.writer,
+            "advisory_writer_fallback_reason": written.fallback_reason,
+        }
     else:
         answer = answer_gen.generate_answer(
             payload.question,
@@ -471,6 +488,7 @@ def ask(
         "results": frontend_results,
         "candidate_policy_ids": result["candidate_policy_ids"],
         "advisory_scope": advisory_scope,
+        "advisory_writer": advisory_writer_diagnostics,
         "retrieval": {
             "route": result["route"],
             "original_query": result["original_query"],

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 from unittest.mock import patch
 
@@ -104,6 +105,35 @@ class FptClientPayloadTest(unittest.TestCase):
         with patch.object(config, "FPT_ANSWER_MODEL", "GLM-5.2"):
             with self.assertRaisesRegex(RuntimeError, "content rỗng"):
                 client.answer("Câu hỏi", evidence)
+
+    def test_advisory_prompt_keeps_decisions_immutable_and_uses_small_budget(self):
+        client = FptClient(api_key="test-key")
+        captured = {}
+
+        def fake_chat(payload):
+            captured.update(payload)
+            return {"choices": [{"message": {"content": "- Nên ưu tiên đào tạo."}}]}
+
+        client._post_chat = fake_chat
+        advisory_payload = {
+            "question": "Tôi nên làm gì?",
+            "eligibility_results": [{"policy_name": "Đào tạo", "status": "eligible"}],
+        }
+        with (
+            patch.object(config, "FPT_ADVISORY_ENABLED", True),
+            patch.object(config, "FPT_ADVISORY_MODEL", "GLM-5.2"),
+            patch.object(config, "FPT_ADVISORY_MAX_TOKENS", 1600),
+        ):
+            result = client.advise(advisory_payload)
+
+        self.assertEqual(result, "- Nên ưu tiên đào tạo.")
+        self.assertIn("tuyệt đối không thay đổi", captured["messages"][0]["content"])
+        self.assertIn("Không thêm chính sách", captured["messages"][0]["content"])
+        self.assertIn("không được nói doanh nghiệp đã hoặc đang được nhận", captured["messages"][0]["content"])
+        self.assertEqual(json.loads(captured["messages"][1]["content"]), advisory_payload)
+        self.assertEqual(captured["temperature"], 0.2)
+        self.assertEqual(captured["max_tokens"], 1600)
+        self.assertEqual(captured["thinking"]["type"], config.FPT_ANSWER_THINKING)
 
 
 class PineconeDenseIndexTest(unittest.TestCase):

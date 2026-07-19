@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -160,6 +161,64 @@ class FptClient:
             f"(model={config.FPT_ANSWER_MODEL}, finish_reason={finish_reason}, "
             f"reasoning_content={reasoning_present}, max_tokens={config.FPT_ANSWER_MAX_TOKENS})"
         )
+
+    def advise(self, advisory_payload: dict[str, Any]) -> str | None:
+        """Write suggestions without changing deterministic eligibility results."""
+        if (
+            not self.enabled
+            or not config.FPT_ADVISORY_ENABLED
+            or not config.FPT_ADVISORY_MODEL
+        ):
+            return None
+
+        payload: dict[str, Any] = {
+            "model": config.FPT_ADVISORY_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Bạn là chuyên viên hỗ trợ doanh nghiệp nhỏ và vừa. Hãy viết riêng "
+                        "phần gợi ý thực tế dựa hoàn toàn trên JSON đầu vào. Trạng thái đánh "
+                        "giá của từng chính sách là kết quả cố định: tuyệt đối không thay đổi, "
+                        "suy diễn lại hoặc phủ định trạng thái đó. Không thêm chính sách, điều "
+                        "kiện, mức tiền, tỷ lệ, thời hạn, thủ tục hay giấy tờ không có trong "
+                        "dữ liệu. Nếu coverage_status là not_covered, không được kết luận đủ "
+                        "hay không đủ điều kiện; chỉ giải thích bước tìm hiểu tiếp theo phù hợp. "
+                        "Trạng thái eligible chỉ có nghĩa hồ sơ hiện đáp ứng các điều kiện đã "
+                        "được chuẩn hóa; không được nói doanh nghiệp đã hoặc đang được nhận hỗ "
+                        "trợ, đã được phê duyệt hay chắc chắn sẽ nhận quyền lợi. "
+                        "Không dùng tên field kỹ thuật, JSON, RAG, rule engine, policy hash hoặc "
+                        "các thuật ngữ nội bộ. Không lặp lại nguyên văn phần kết luận điều kiện. "
+                        "Tập trung vào: nội dung nên ưu tiên, vì sao hữu ích với doanh nghiệp, "
+                        "3-5 việc nên làm tiếp và điểm cần kiểm tra trước khi đăng ký. Chỉ tạo "
+                        "các đề mục thực sự có nội dung và không tạo tiêu đề chung cho toàn phần. "
+                        "Viết tiếng Việt rõ ràng, khoảng "
+                        "250-450 từ, có bullet để dễ đọc."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(advisory_payload, ensure_ascii=False, default=str),
+                },
+            ],
+            "temperature": 0.2,
+            "max_tokens": config.FPT_ADVISORY_MAX_TOKENS,
+            "stream": False,
+        }
+        if config.FPT_ADVISORY_MODEL.lower().startswith("glm-5.2"):
+            payload["thinking"] = {
+                "type": config.FPT_ANSWER_THINKING,
+                "clear_thinking": True,
+            }
+            payload["reasoning_effort"] = config.FPT_ANSWER_REASONING_EFFORT
+
+        data = self._post_chat(payload)
+        choice = data.get("choices", [{}])[0]
+        message = choice.get("message") or {}
+        content = (message.get("content") or "").strip()
+        if content:
+            return content
+        raise RuntimeError("LLM tư vấn trả content rỗng")
 
 
 def _deterministic_rewrite(question: str, history: list[dict[str, str]]) -> str:
