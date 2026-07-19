@@ -1,5 +1,6 @@
 import type {
   AdvisoryResult,
+  AdvisoryScope,
   AskResponse,
   ChatMode,
   Company,
@@ -115,6 +116,10 @@ export interface HistoryTurn {
   role: 'user' | 'assistant'
   content: string
   results?: unknown[]
+  sources?: unknown[]
+  advisory_result?: unknown
+  warning?: string
+  mode?: string
   ts: string
 }
 
@@ -181,11 +186,17 @@ type WarningEvent = {
   message: string
 }
 
+type CoverageStatusEvent = {
+  type: 'coverage_status'
+  status: 'covered' | 'not_covered'
+}
+
 export type ChatStreamEvent =
   | StartedEvent
   | AnswerDeltaEvent
   | SourcesEvent
   | AdvisoryResultEvent
+  | CoverageStatusEvent
   | CompletedEvent
   | ErrorEvent
   | WarningEvent
@@ -194,6 +205,7 @@ export async function* chatStream(
   message: string,
   mode: ChatMode,
   conversationId: string | null,
+  advisoryScope?: AdvisoryScope,
 ): AsyncGenerator<ChatStreamEvent> {
   const res = await fetch(`${BASE}/v1/chat/stream`, {
     method: 'POST',
@@ -206,6 +218,7 @@ export async function* chatStream(
       mode,
       message,
       conversation_id: conversationId,
+      advisory_scope: advisoryScope ?? 'question',
       options: { top_k: 5 },
     }),
   })
@@ -217,7 +230,8 @@ export async function* chatStream(
   }
 
   if (res.status === 409) {
-    throw new ApiError(409, 'Cần hồ sơ doanh nghiệp để dùng chế độ tư vấn.')
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(409, detail || 'Cần hồ sơ doanh nghiệp để dùng chế độ tư vấn.')
   }
 
   if (!res.ok) {
