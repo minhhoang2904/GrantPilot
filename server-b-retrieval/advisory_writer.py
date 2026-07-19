@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 import advisory_answer
 from clients import FptClient
 from policy_discovery import DiscoveryResult
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -120,15 +124,25 @@ def write_advisory_answer(
         },
         "eligibility_results": _safe_results(results),
     }
-    try:
-        suggestion = fpt.advise(llm_payload)
-    except Exception as exc:
+    last_error: Exception | None = None
+    suggestion: str | None = None
+    for _attempt in range(2):
+        try:
+            suggestion = fpt.advise(llm_payload)
+            if suggestion:
+                break
+        except Exception as exc:
+            last_error = exc
+    if last_error is not None and not suggestion:
+        reason = type(last_error).__name__
+        logger.warning("Advisory LLM fallback after retry: %s", reason)
         return AdvisoryWriteResult(
             answer=deterministic,
             writer="deterministic_fallback",
-            fallback_reason=type(exc).__name__,
+            fallback_reason=reason,
         )
     if not suggestion:
+        logger.warning("Advisory LLM fallback: disabled or empty")
         return AdvisoryWriteResult(
             answer=deterministic,
             writer="deterministic_fallback",

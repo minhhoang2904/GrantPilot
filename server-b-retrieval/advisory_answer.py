@@ -56,11 +56,28 @@ def build_advisory_answer(
         lines.append("\nHồ sơ hiện tại đáp ứng các điều kiện đã được chuẩn hóa của:")
         lines.extend(f"- {result.get('policy_name') or result.get('policy_id')}" for result in eligible)
 
+        lines.append("\nGợi ý ưu tiên:")
+        for index, result in enumerate(eligible, start=1):
+            title = result.get("policy_name") or result.get("policy_id")
+            benefit = result.get("benefit_calculator") or {}
+            benefit_text = benefit.get("note") or benefit.get("type")
+            if benefit_text:
+                lines.append(f"{index}. {title}: {benefit_text}")
+            else:
+                lines.append(f"{index}. {title}: nên xem trước vì hồ sơ hiện phù hợp.")
+
     if not_eligible:
-        lines.append("\nHồ sơ hiện tại chưa đáp ứng:")
+        lines.append("\nChưa nên ưu tiên:")
         for result in not_eligible:
             title = result.get("policy_name") or result.get("policy_id")
-            lines.append(f"- {title}: chưa phù hợp với một hoặc nhiều điều kiện của chính sách.")
+            reasons = " ".join(str(reason) for reason in (result.get("reasons") or []))
+            if "primary_business_activity_group" in reasons:
+                reason = "hoạt động chính không thuộc nhóm sản xuất hoặc chế biến."
+            elif "is_sme" in reasons:
+                reason = "hồ sơ hiện không được xác định thuộc nhóm DNNVV."
+            else:
+                reason = "hồ sơ chưa phù hợp với một hoặc nhiều điều kiện của chính sách."
+            lines.append(f"- {title}: {reason}")
 
     if incomplete:
         lines.append("\nCần bổ sung thông tin trước khi có thể kết luận:")
@@ -82,8 +99,9 @@ def build_advisory_answer(
         if requirement
     ))
     if requirements:
-        lines.append("\nViệc cần kiểm tra trước khi đăng ký:")
+        lines.append("\nViệc nên làm tiếp:")
         lines.extend(f"- {requirement}" for requirement in requirements)
+        lines.append("- Mở căn cứ của từng chính sách bên dưới để kiểm tra thông tin trước khi chuẩn bị hồ sơ.")
 
     if scope.unsupported_topics:
         topics = ", ".join(scope.unsupported_topics)

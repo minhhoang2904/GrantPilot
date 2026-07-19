@@ -20,6 +20,17 @@ class FakeFpt:
         return self.response
 
 
+class RetryFpt:
+    def __init__(self):
+        self.calls = 0
+
+    def advise(self, payload):
+        self.calls += 1
+        if self.calls == 1:
+            raise TimeoutError("first call timed out")
+        return "- Ưu tiên kiểm tra nhu cầu chuyển đổi số."
+
+
 class AdvisoryWriterTest(unittest.TestCase):
     def setUp(self):
         self.scope = discover_policies("Tư vấn hỗ trợ chuyển đổi số")
@@ -84,6 +95,21 @@ class AdvisoryWriterTest(unittest.TestCase):
         self.assertEqual(written.fallback_reason, "TimeoutError")
         self.assertIn("Hồ sơ hiện tại đáp ứng", written.answer)
         self.assertNotIn("Gợi ý dành cho doanh nghiệp", written.answer)
+
+    def test_transient_llm_failure_is_retried_once(self):
+        fpt = RetryFpt()
+
+        written = write_advisory_answer(
+            "Tư vấn hỗ trợ chuyển đổi số",
+            self.company,
+            self.scope,
+            self.eligibility,
+            fpt=fpt,
+        )
+
+        self.assertEqual(fpt.calls, 2)
+        self.assertEqual(written.writer, "fpt_llm")
+        self.assertIn("Ưu tiên kiểm tra", written.answer)
 
     def test_disabled_llm_keeps_deterministic_fallback(self):
         written = write_advisory_answer(
