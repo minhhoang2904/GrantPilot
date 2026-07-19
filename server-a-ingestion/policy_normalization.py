@@ -10,6 +10,8 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from policy_discovery import CANONICAL_TOPIC_BY_POLICY, validate_discovery
+
 BASE_DIR = Path(__file__).resolve().parent
 CATALOG_PATH = BASE_DIR / "fact-catalog-v1.json"
 SCHEMA_VERSION = "policy-rule-schema-v1"
@@ -116,14 +118,61 @@ def normalize_rules(raw: object, catalog: dict | None = None) -> tuple[dict, lis
     return rules, issues, parameters
 
 
-def evidence_context(db, document_id: str, version: int | None, ids: list[str], evidence_rows: list[dict] | None = None) -> tuple[str,bool,list[dict]]:
+def evidence_context(db, document_id: str, version: int | None, ids: list[str], evidence_rows: list[dict] | None = None) -> tuple[str,bool,list[dict],list[dict]]:
     rows=evidence_rows or []
     if db is not None and ids:
-        rows=list(db.legal_units.find({"document_id":document_id,"version":version,"is_current":True,"unit_id":{"$in":ids}}, {"_id":0}))
-    if len(rows)!=len(set(ids)): return "unresolved", True, [issue("evidence_not_found","evidence_unit_ids","Evidence missing or wrong document version")]
-    if not rows: return "unresolved", True, [issue("evidence_not_found","evidence_unit_ids","Evidence is required")]
-    if any(not row.get("clause") and not row.get("point") for row in rows): return "article_fallback", True, [issue("article_fallback","evidence_unit_ids","Article-level evidence requires review", "blocking")]
-    return "precise", False, []
+        candidates=list(db.legal_units.find({"unit_id":{"$in":ids}}, {"_id":0}))
+        by_id=defaultdict(list)
+        for row in candidates: by_id[row.get("unit_id")].append(row)
+        rows=[]
+        for unit_id in ids:
+            options=by_id.get(unit_id, [])
+            preferred=next((row for row in options if row.get("document_id")==document_id and row.get("version")==version and row.get("is_current",True)), None)
+            rows.append(preferred or next((row for row in options if row.get("is_current",True)), None) or (options[0] if options else None))
+        rows=[row for row in rows if row]
+    if len({row.get("unit_id") for row in rows})!=len(set(ids)): return "unresolved", True, [issue("evidence_not_found","evidence_unit_ids","Evidence unit_id could not be resolved")], rows
+    if not rows: return "unresolved", True, [issue("evidence_not_found","evidence_unit_ids","Evidence is required")], rows
+    if any(not row.get("clause") and not row.get("point") for row in rows): return "article_fallback", True, [issue("article_fallback","evidence_unit_ids","Article-level evidence requires review", "blocking")], rows
+    return "precise", False, [], rows
+
+
+def source_evidence_issues(policy: dict, source: dict, document_id: str, version: int | None, evidence_rows: list[dict]) -> list[dict]:
+    """Verify the legal source chain without trusting policy payload metadata."""
+    issues=[]
+    source_id=source.get("document_id")
+    if document_id != "unmapped" and not source_id:
+        issues.append(issue("source_document_not_found","document_id",f"No current source document resolves {document_id}"))
+    if source_id and source_id != document_id:
+        issues.append(issue("source_document_mismatch","document_id",f"Source document {source_id} does not match policy document {document_id}"))
+    if policy.get("policy_id") in CANONICAL_TOPIC_BY_POLICY:
+        if not source_id or not source.get("document_number") or not source.get("source_url"):
+            issues.append(issue("source_document_not_found","document_id","Golden Policy source document metadata could not be resolved"))
+
+    expected_number=source.get("document_number")
+    expected_url=str(source.get("source_url") or "").rstrip("/")
+    policy_number=policy.get("document_number")
+    policy_url=str(policy.get("source_url") or "").rstrip("/")
+    if policy_number and expected_number and policy_number != expected_number:
+        issues.append(issue("source_document_number_mismatch","document_number","document_number does not belong to policy document_id"))
+    if policy_url and expected_url and policy_url != expected_url:
+        issues.append(issue("source_url_mismatch","source_url","source_url does not belong to policy document_id"))
+
+    cross_document={item.get("document_id"): set(item.get("evidence_unit_ids") or []) for item in policy.get("cross_document_evidence") or [] if isinstance(item,dict)}
+    for row in evidence_rows:
+        unit_id=row.get("unit_id")
+        row_document=row.get("document_id")
+        allowed=row_document == document_id or unit_id in cross_document.get(row_document, set())
+        if not allowed:
+            issues.append(issue("evidence_document_mismatch","evidence_unit_ids",f"{unit_id} belongs to {row_document}, not {document_id}"))
+            continue
+        if row_document == document_id and row.get("version") not in (None, "", version):
+            issues.append(issue("evidence_version_mismatch","evidence_unit_ids",f"{unit_id} belongs to document version {row.get('version')}, not {version}"))
+        if row_document == document_id and expected_number and row.get("document_number") and row.get("document_number") != expected_number:
+            issues.append(issue("evidence_document_number_mismatch","evidence_unit_ids",f"{unit_id} has a document_number from another source"))
+        row_url=str(row.get("source_url") or "").rstrip("/")
+        if row_document == document_id and expected_url and row_url and row_url != expected_url:
+            issues.append(issue("evidence_source_url_mismatch","evidence_unit_ids",f"{unit_id} has a source_url from another document"))
+    return issues
 
 
 def policy_hash(policy: dict) -> str:
@@ -139,11 +188,15 @@ def approval_valid(policy: dict, catalog: dict) -> bool:
 def prepare_policy_for_ingest(raw: dict, db=None, source: dict | None=None, catalog: dict | None=None, evidence_rows: list[dict] | None=None) -> dict:
     catalog=catalog or load_catalog(); source=source or {}; p=copy.deepcopy(raw); old=p.get("validation_issues_current") or []
     document_id=(p.get("pipeline") or {}).get("document_id") or p.get("document_id") or source.get("document_id", "unmapped")
-    doc=db.legal_documents.find_one({"document_id":document_id,"is_current":True},{"_id":0,"version":1}) if db is not None else {"version":source.get("version",1)}
-    version=(doc or {}).get("version"); rules, issues, parameters=normalize_rules(p.get("rules") or (p.get("payload") or {}).get("rules") or {},catalog)
+    doc=db.legal_documents.find_one({"document_id":document_id,"is_current":True},{"_id":0}) if db is not None else source
+    source_doc=doc or source; version=(source_doc or {}).get("version",1); rules, issues, parameters=normalize_rules(p.get("rules") or (p.get("payload") or {}).get("rules") or {},catalog)
+    issues += validate_discovery(p, catalog)
     evidence=list(dict.fromkeys(p.get("evidence_unit_ids") or (p.get("payload") or {}).get("evidence_unit_ids") or []))
     matching_rows = evidence_rows if evidence_rows is not None else None
-    resolution, needs_review, evidence_issues=evidence_context(db,document_id,version,evidence,matching_rows); issues += evidence_issues
+    resolution, needs_review, evidence_issues, resolved_rows=evidence_context(db,document_id,version,evidence,matching_rows); issues += evidence_issues
+    integrity_issues=source_evidence_issues(p, source_doc or {}, document_id, version, resolved_rows); issues += integrity_issues
+    if integrity_issues:
+        resolution, needs_review = "unresolved", True
     support_type=str((p.get("benefit_calculator") or {}).get("type") or p.get("category") or "other")
     first=(db.legal_units.find_one({"unit_id":evidence[0],"document_id":document_id,"version":version},{"_id":0}) if db is not None and evidence else next((row for row in (evidence_rows or []) if row.get("unit_id")==evidence[0]), {})) or {}
     rule_hash=hashlib.sha256(json.dumps(rules,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
@@ -154,12 +207,12 @@ def prepare_policy_for_ingest(raw: dict, db=None, source: dict | None=None, cata
         if history_key not in current_keys: record["resolved_at"]=stamp
         else: record.pop("resolved_at",None)
         history.append(record)
-    p.update({"document_id":document_id,"document_version":version,"source_document_version":version,"rules":rules,"normalized_rules":rules,"policy_rule_schema_version":SCHEMA_VERSION,"fact_catalog_version":catalog["catalog_version"],"evidence_unit_ids":evidence,"evidence_resolution":resolution,"requires_evidence_review":needs_review,"normalized_rule_hash":rule_hash,"canonical_policy_key":key,"validation_issues_current":issues,"validation_history":history,"policy_parameters":parameters})
+    p.update({"document_id":document_id,"document_number":(source_doc or {}).get("document_number") or p.get("document_number"),"source_url":(source_doc or {}).get("source_url") or p.get("source_url"),"document_version":version,"source_document_version":version,"rules":rules,"normalized_rules":rules,"policy_rule_schema_version":SCHEMA_VERSION,"fact_catalog_version":catalog["catalog_version"],"evidence_unit_ids":evidence,"evidence_resolution":resolution,"requires_evidence_review":needs_review,"normalized_rule_hash":rule_hash,"canonical_policy_key":key,"validation_issues_current":issues,"validation_history":history,"policy_parameters":parameters})
     blocking=any(x["severity"]=="blocking" for x in issues)
     status=p.get("review_status") or (p.get("review") or {}).get("status") or "candidate"; requested_approved = status == "approved"
     if status not in STATUSES: status="candidate"
     if any(x["code"]=="unknown_field" for x in issues): status="needs_schema_mapping"
-    elif blocking: status="rejected" if any(x["code"] in {"invalid_rule","invalid_operator","invalid_value","evidence_not_found"} for x in issues) else "candidate"
+    elif blocking: status="rejected" if any(x["code"] in {"invalid_rule","invalid_operator","invalid_value","evidence_not_found"} or x["code"].startswith(("source_","evidence_","discovery_")) for x in issues) else "candidate"
     if requested_approved and not approval_valid(p,catalog): status="candidate"; p["validation_issues_current"].append(issue("approval_invalidated","approval","Approval provenance/hash is missing or stale"))
     p["review_status"]=status; p.setdefault("review",{})["status"]=status; p["is_current"]=bool(p.get("is_current",True) and doc)
     p["eligible_for_decision"]=bool(p["is_current"] and status=="approved" and resolution=="precise" and not needs_review and not any(x["severity"]=="blocking" for x in p["validation_issues_current"]) and approval_valid(p,catalog))

@@ -125,6 +125,7 @@ def _policy_row(policy: dict, timestamp: datetime) -> dict:
         "requires_evidence_review", "policy_rule_schema_version", "fact_catalog_version", "canonical_policy_key",
         "normalized_rule_hash", "duplicate_group_id", "superseded_by_policy_id", "normalized_rules",
         "validation_issues_current", "validation_history", "policy_parameters",
+        "discovery", "document_number", "source_url",
     )
     payload = dict(policy)
     # A Mongo persistence row may have been read back during duplicate handling.
@@ -148,6 +149,7 @@ def _canonical_existing(row: dict) -> dict:
         "requires_evidence_review", "policy_rule_schema_version", "fact_catalog_version", "canonical_policy_key",
         "normalized_rule_hash", "duplicate_group_id", "superseded_by_policy_id", "normalized_rules",
         "validation_issues_current", "validation_history", "policy_parameters",
+        "discovery", "document_number", "source_url",
     )
     policy.update({field: row[field] for field in state_fields if field in row})
     return policy

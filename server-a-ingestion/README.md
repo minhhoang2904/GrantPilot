@@ -104,7 +104,20 @@ Evidence chỉ resolve tới Điều luôn mang `evidence_resolution=article_fal
 
 Hai entrypoint `python pipeline.py all` và `python ingest_mongodb.py` đều gọi chung `persist_policies()` để ghi policy qua cùng validation gate.
 
-## 5. Test retrieval
+## 5. Policy discovery metadata
+
+Bốn Golden Policy có `discovery.schema_version=policy-discovery-v1` với `topic_id` thuộc taxonomy đóng,
+nhãn tiếng Việt, search terms và intent examples. Metadata này chỉ giúp Server B chọn policy liên quan trước
+khi gọi eligibility; nó không phải company fact và không được đưa vào `rules` hoặc Fact Catalog.
+
+Canonical normalization giữ nguyên `discovery` vào cả policy row và `payload` Mongo. Ingest sẽ fail closed nếu
+topic/schema sai, topic bị trùng, metadata chứa company fact, hoặc chuỗi tìm kiếm kéo các chủ đề ngoài MVP như
+thuế TNDN/NATIF vào bốn Golden Policy.
+
+Write boundary đồng thời đối chiếu `document_id`, `document_number`, `source_url`, version và parent document
+của từng `evidence_unit_id`. Mismatch nguồn/evidence tạo blocking validation issue và không thể đi qua decision gate.
+
+## 6. Test retrieval
 
 ```bash
 python retrieve.py "Startup công nghệ được hỗ trợ những gì?" --top-k 5
@@ -112,7 +125,7 @@ python retrieve.py "Startup công nghệ được hỗ trợ những gì?" --top
 
 Query và documents bắt buộc dùng cùng model `Vietnamese_Embedding`.
 
-## 6. Test offline
+## 7. Test offline
 
 ```bash
 python -m unittest -v test_pipeline.py
