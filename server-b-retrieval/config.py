@@ -83,8 +83,13 @@ FPT_QUERY_REWRITE_MODEL = os.getenv(
     "FPT_QUERY_REWRITE_MODEL", "DeepSeek-V4-Flash"
 ).strip()
 FPT_ANSWER_MODEL = os.getenv("FPT_ANSWER_MODEL", _LEGACY_LLM_MODEL or "GLM-5.2").strip()
+FPT_ADVISORY_MODEL = os.getenv("FPT_ADVISORY_MODEL", FPT_ANSWER_MODEL).strip()
 FPT_QUERY_REWRITE_MAX_TOKENS = int(os.getenv("FPT_QUERY_REWRITE_MAX_TOKENS", "512"))
 FPT_ANSWER_MAX_TOKENS = int(os.getenv("FPT_ANSWER_MAX_TOKENS", "8192"))
+FPT_ADVISORY_MAX_TOKENS = int(os.getenv("FPT_ADVISORY_MAX_TOKENS", "1200"))
+FPT_ADVISORY_ENABLED = os.getenv("FPT_ADVISORY_ENABLED", "true").strip().lower() in {
+    "1", "true", "yes", "on",
+}
 
 # Grounded RAG answer khong can agentic/long-horizon reasoning. Tat thinking de
 # tranh GLM dung het completion budget cho reasoning_content ma content rong.
@@ -107,7 +112,9 @@ CHAT_STORED_MESSAGES = int(os.getenv("CHAT_STORED_MESSAGES", "20"))
 
 # Server C is called only in advisory mode. Lookup mode remains available when
 # Server C is down because it is a separate retrieval-only pipeline.
-SERVER_C_URL = os.getenv("SERVER_C_URL", "http://server-c-eligibility:8002").rstrip("/")
+# Local uvicorn is the default developer path. Docker Compose overrides this
+# with the service hostname explicitly.
+SERVER_C_URL = os.getenv("SERVER_C_URL", "http://localhost:8002").rstrip("/")
 SERVER_C_TIMEOUT_SECONDS = float(os.getenv("SERVER_C_TIMEOUT_SECONDS", "30"))
 
 # Retrieval defaults. Threshold reranker mac dinh tat (-1) vi moi model co

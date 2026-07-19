@@ -7,7 +7,7 @@ const STATUS_CONFIG: Record<EligibilityStatus, { label: string; className: strin
     className: 'bg-green-100 text-green-800',
   },
   not_eligible: {
-    label: 'Chưa đủ điều kiện',
+    label: 'Chưa đáp ứng',
     className: 'bg-orange-100 text-orange-700',
   },
   needs_more_information: {
@@ -31,19 +31,21 @@ function StatusBadge({ status }: { status: EligibilityStatus }) {
   )
 }
 
-function ScoreBar({ score }: { score: number }) {
-  const pct = Math.round(score * 100)
-  return (
-    <div className="flex items-center gap-1.5 mt-1">
-      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-brand rounded-full transition-all"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-[10px] text-gray-400 w-7 text-right">{pct}%</span>
-    </div>
-  )
+const FACT_LABELS: Record<string, string> = {
+  primary_business_activity_group: 'Nhóm ngành nghề kinh doanh chính',
+  sector: 'Lĩnh vực hoạt động',
+  legal_form: 'Loại hình pháp lý',
+  social_insurance_employees: 'Số lao động tham gia BHXH',
+  annual_revenue_vnd: 'Doanh thu năm',
+  total_capital_vnd: 'Tổng nguồn vốn',
+  first_business_registration_date: 'Ngày đăng ký doanh nghiệp lần đầu',
+  has_public_offering: 'Tình trạng chào bán chứng khoán ra công chúng',
+  has_business_registration: 'Giấy đăng ký kinh doanh',
+  is_sme: 'Thông tin xác định doanh nghiệp nhỏ và vừa',
+}
+
+function factLabel(value: string) {
+  return FACT_LABELS[value] ?? value.replace(/_/g, ' ')
 }
 
 function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
@@ -58,7 +60,6 @@ function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-gray-800 leading-snug">{policy.title}</p>
-          <ScoreBar score={policy.score} />
         </div>
         <StatusBadge status={policy.status} />
       </div>
@@ -88,7 +89,7 @@ function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
                 {policy.missing_fields.map((f) => (
                   <li key={f} className="text-xs text-gray-600 flex gap-1.5">
                     <span className="text-yellow-500 mt-0.5">•</span>
-                    <span>{f}</span>
+                    <span>{factLabel(f)}</span>
                   </li>
                 ))}
               </ul>
@@ -109,7 +110,7 @@ function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
           )}
           {hasRequirements && (
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">Hồ sơ cần chuẩn bị:</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">Yêu cầu khi đăng ký:</p>
               <ul className="space-y-0.5">
                 {policy.application_requirements!.map((req, i) => (
                   <li key={i} className="text-xs text-gray-600 flex gap-1.5">
@@ -147,10 +148,10 @@ export default function AdvisoryPanel({ result, coverageStatus }: Props) {
             </svg>
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-700 mb-0.5">Không tìm thấy chương trình phù hợp</p>
+            <p className="text-xs font-semibold text-gray-700 mb-0.5">Chủ đề chưa được hỗ trợ</p>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Dựa trên hồ sơ hiện tại, chưa có chương trình hỗ trợ nào khớp với câu hỏi này.
-              Bổ sung thêm thông tin vào hồ sơ hoặc thử hỏi theo chủ đề khác.
+              Chủ đề này chưa nằm trong bộ chính sách MVP, nên hệ thống chưa đánh giá
+              doanh nghiệp đủ hay không đủ điều kiện. Bạn có thể thử một chủ đề gợi ý khác.
             </p>
           </div>
         </div>

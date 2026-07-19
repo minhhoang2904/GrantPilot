@@ -71,7 +71,7 @@ class ChatStreamTest(unittest.IsolatedAsyncioTestCase):
                     "status": "needs_more_information",
                     "score": 0.5,
                     "missing_fields": ["has_coworking_contract"],
-                    "reasons": ["Cần hợp đồng."],
+                    "reasons": ["Thiếu thông tin: has_coworking_contract"],
                     "rule_errors": ["KeyError: internal_field"],
                     "sources": [RETRIEVAL_RESULT["legal_units"][0]],
                 }
@@ -119,7 +119,12 @@ class ChatStreamTest(unittest.IsolatedAsyncioTestCase):
         advisory = next(event["data"] for event in events if event["type"] == "advisory_result")
         self.assertEqual(advisory["policies"][0]["policy_id"], "p1")
         self.assertEqual(advisory["coverage_status"], "covered")
-        self.assertEqual(advisory["policies"][0]["reasons"], ["Cần hợp đồng."])
+        self.assertEqual(advisory["policies"][0]["reasons"], [])
+        self.assertEqual(
+            advisory["policies"][0]["missing_fields"],
+            ["hợp đồng thuê không gian làm việc chung"],
+        )
+        self.assertEqual(advisory["explanation"], "")
         self.assertNotIn("KeyError", json.dumps(advisory, ensure_ascii=False))
         self.assertEqual(advisory["profile_features"]["company_age_months"], 12)
         sent_facts = evaluate.call_args.args[0]

@@ -30,7 +30,9 @@ def evaluate_company(
             "candidate_policy_ids": candidate_policy_ids,
             "only_eligible": False,
             "top_k": top_k,
-            "include_explanation": True,
+            # Server B owns the final user-facing answer because it has the
+            # original question and advisory scope. Server C only decides.
+            "include_explanation": False,
             "evaluation_date": evaluation_date.isoformat() if evaluation_date else None,
         },
         timeout=config.SERVER_C_TIMEOUT_SECONDS,

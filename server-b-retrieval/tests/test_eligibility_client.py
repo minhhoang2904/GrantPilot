@@ -20,6 +20,7 @@ class EligibilityClientTest(unittest.TestCase):
         response.raise_for_status.assert_called_once_with()
         self.assertEqual(result["diagnostics"]["evaluated_policy_count"], 4)
         self.assertEqual(post.call_args.kwargs["json"]["candidate_policy_ids"], [])
+        self.assertIs(post.call_args.kwargs["json"]["include_explanation"], False)
 
 
 if __name__ == "__main__":

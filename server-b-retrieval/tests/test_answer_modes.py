@@ -104,6 +104,9 @@ class AnswerModesTest(unittest.TestCase):
         self.assertEqual(response["results"][0]["status"], "partial")
         self.assertNotEqual(response["results"], response["legal_units"])
         self.assertEqual(response["coverage_status"], "covered")
+        self.assertIn("Chưa thể kết luận", response["answer"])
+        self.assertIn("thông tin xác định doanh nghiệp khởi nghiệp sáng tạo", response["answer"])
+        self.assertNotIn("Cần bổ sung thông tin đổi mới sáng tạo", response["answer"])
         self.assertNotIn("rule engine", response["answer"])
         self.assertNotIn("RAG", response["answer"])
 
@@ -150,6 +153,7 @@ class AnswerModesTest(unittest.TestCase):
                 current_email="owner@example.test",
             )
         self.assertIn("Giải pháp chuyển đổi số phải được công bố", response["answer"])
+        self.assertIn("Kết luận: Có", response["answer"])
         self.assertEqual(response["eligibility_results"][0]["application_requirements"], [requirement])
         self.assertEqual(response["results"][0]["application_requirements"], [requirement])
 
@@ -168,6 +172,38 @@ class AnswerModesTest(unittest.TestCase):
         self.assertEqual(response["coverage_status"], "not_covered")
         self.assertEqual(response["results"], [])
         self.assertIn("chưa nằm trong bộ chính sách MVP", response["answer"])
+
+    def test_business_answer_translates_failed_golden_rule(self):
+        eligibility = {
+            "eligibility_results": [{
+                "policy_id": "direct-training",
+                "policy_name": "Hỗ trợ đào tạo trực tiếp",
+                "status": "not_eligible",
+                "missing_fields": [],
+                "reasons": [
+                    "Đạt điều kiện is_sme == True (giá trị hiện tại: True).",
+                    "Không đạt điều kiện primary_business_activity_group in ['manufacturing', 'processing'].",
+                ],
+            }],
+        }
+        answer = main._advisory_answer("Có được đào tạo trực tiếp không?", eligibility, "question")
+        self.assertIn("chưa đáp ứng", answer)
+        self.assertIn("không thuộc nhóm sản xuất hoặc chế biến", answer)
+        self.assertNotIn("primary_business_activity_group", answer)
+        self.assertNotIn("Đạt điều kiện", answer)
+
+    def test_profile_scan_summarizes_programs_without_internal_jargon(self):
+        eligibility = {
+            "eligibility_results": [
+                {"policy_id": "p1", "policy_name": "Chương trình A", "status": "eligible"},
+                {"policy_id": "p2", "policy_name": "Chương trình B", "status": "not_eligible"},
+            ],
+        }
+        answer = main._advisory_answer("Quét hồ sơ", eligibility, "profile_scan")
+        self.assertIn("1 chương trình phù hợp", answer)
+        self.assertIn("1 chương trình chưa đáp ứng", answer)
+        self.assertIn("Chương trình A", answer)
+        self.assertNotIn("rule engine", answer)
 
 
 if __name__ == "__main__":
