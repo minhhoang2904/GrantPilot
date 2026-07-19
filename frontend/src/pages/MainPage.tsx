@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { ChatMode, Company, LegalForm, Message, Sector } from '../types'
-import { ask, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
+import { askStream, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
 import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
 import ChatInput from '../components/ChatInput'
@@ -221,30 +221,55 @@ export default function MainPage({
       role: 'user',
       content: question,
     }
-    setMessages((prev) => [...prev, userMsg])
+    const assistantId = `a-${Date.now()}`
+    const assistantDraft: Message = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      streaming: true,
+    }
+    setMessages((prev) => [...prev, userMsg, assistantDraft])
     setLoading(true)
     try {
-      const res = await ask(email, question, sessionId, mode)
+      const res = await askStream(email, question, sessionId, mode, (text) => {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantId
+              ? { ...message, content: message.content + text }
+              : message,
+          ),
+        )
+      })
       if (res.session_id) {
         setSessionId(res.session_id)
         // Refresh session list so new / updated session appears
         const list = await getHistory(email)
         setSessions(list)
       }
-      const assistantMsg: Message = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: res.answer,
-        results: mode === 'eligibility' ? res.results : undefined,
-      }
-      setMessages((prev) => [...prev, assistantMsg])
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === assistantId
+            ? {
+                ...message,
+                content: res.answer,
+                results: mode === 'eligibility' ? res.results : undefined,
+                streaming: false,
+              }
+            : message,
+        ),
+      )
     } catch (err) {
-      const errMsg: Message = {
-        id: `e-${Date.now()}`,
-        role: 'assistant',
-        content: err instanceof ApiError ? err.message : 'Đã xảy ra lỗi, vui lòng thử lại.',
-      }
-      setMessages((prev) => [...prev, errMsg])
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === assistantId
+            ? {
+                ...message,
+                content: err instanceof ApiError ? err.message : 'Đã xảy ra lỗi, vui lòng thử lại.',
+                streaming: false,
+              }
+            : message,
+        ),
+      )
     } finally {
       setLoading(false)
     }

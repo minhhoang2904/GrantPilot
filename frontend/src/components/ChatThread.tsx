@@ -12,7 +12,7 @@ function UserBubble({ content }: { content: string }) {
   )
 }
 
-function AssistantBubble({ content, results }: { content: string; results?: Message['results'] }) {
+function AssistantBubble({ content, results, streaming }: { content: string; results?: Message['results']; streaming?: boolean }) {
   return (
     <div className="flex gap-3 items-start">
       <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand to-purple-500 rounded-full flex items-center justify-center shadow-sm">
@@ -23,7 +23,8 @@ function AssistantBubble({ content, results }: { content: string; results?: Mess
       </div>
       <div className="flex-1 min-w-0">
         <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed text-gray-800 shadow-sm whitespace-pre-wrap">
-          {content}
+          {content || (streaming ? 'Đang phân tích hồ sơ và chính sách...' : '')}
+          {streaming && <span className="inline-block ml-0.5 text-brand animate-pulse">▍</span>}
         </div>
         {results && results.length > 0 && <ResultsTable results={results} />}
       </div>
@@ -107,10 +108,10 @@ export default function ChatThread({ messages, loading, mode = 'rag', onSend }: 
         msg.role === 'user' ? (
           <UserBubble key={msg.id} content={msg.content} />
         ) : (
-          <AssistantBubble key={msg.id} content={msg.content} results={msg.results} />
+          <AssistantBubble key={msg.id} content={msg.content} results={msg.results} streaming={msg.streaming} />
         ),
       )}
-      {loading && <TypingIndicator />}
+      {loading && !messages.some((message) => message.streaming) && <TypingIndicator />}
       <div ref={bottomRef} />
     </div>
   )

@@ -67,7 +67,6 @@ export interface PolicyResult {
   policy_id: string
   title: string
   status: PolicyStatus
-  value?: number
   gap?: string[]
   roi_missed?: number
   source?: PolicySource
@@ -88,4 +87,5 @@ export interface Message {
   role: 'user' | 'assistant'
   content: string
   results?: PolicyResult[]
+  streaming?: boolean
 }

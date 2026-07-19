@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
+import re
+import time
 import uuid
 from datetime import date
 from typing import Any, Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
@@ -497,6 +501,66 @@ def ask(
         },
     }
     return response
+
+
+def _answer_chunks(answer: str, max_chars: int = 72) -> list[str]:
+    """Split text on word boundaries while preserving the original content."""
+    tokens = re.findall(r"\S+\s*|\s+", answer)
+    chunks: list[str] = []
+    current = ""
+    for token in tokens:
+        if current and len(current) + len(token) > max_chars:
+            chunks.append(current)
+            current = token
+        else:
+            current += token
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _stream_event(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, default=str) + "\n"
+
+
+@app.post("/ask/stream")
+def ask_stream(
+    payload: AskIn,
+    current_email: str = Depends(get_current_email),
+) -> StreamingResponse:
+    """NDJSON stream for progressive chat rendering; /ask stays compatible."""
+
+    def events():
+        yield _stream_event({"type": "status", "message": "Đang phân tích hồ sơ và chính sách..."})
+        try:
+            response = ask(payload, current_email)
+        except HTTPException as exc:
+            yield _stream_event({"type": "error", "message": str(exc.detail)})
+            return
+        except Exception:
+            yield _stream_event({"type": "error", "message": "Không thể tạo câu trả lời lúc này."})
+            return
+
+        answer = str(response.get("answer") or "")
+        for chunk in _answer_chunks(answer):
+            yield _stream_event({"type": "delta", "text": chunk})
+            # Keep chunks visibly progressive in the MVP UI even when the
+            # upstream model returns its complete answer in one response.
+            time.sleep(0.02)
+        yield _stream_event(
+            {
+                "type": "done",
+                "session_id": response.get("session_id"),
+                "results": response.get("results") or [],
+                "mode": response.get("mode"),
+            }
+        )
+
+    return StreamingResponse(
+        events(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/ask/flat")

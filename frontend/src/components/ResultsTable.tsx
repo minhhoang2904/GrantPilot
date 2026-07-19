@@ -1,11 +1,6 @@
 import type { PolicyResult, PolicyStatus } from '../types'
 import GapDetail from './GapDetail'
 
-function formatVND(value?: number): string {
-  if (value == null || value === 0) return '—'
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
-}
-
 const STATUS_CONFIG: Record<PolicyStatus, { label: string; className: string }> = {
   eligible: {
     label: 'Đủ điều kiện',
@@ -66,10 +61,9 @@ export default function ResultsTable({ results }: Props) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Chính sách</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trạng thái</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Giá trị</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Nguồn</th>
+              <th className="w-[55%] px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Chính sách</th>
+              <th className="w-[20%] px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trạng thái</th>
+              <th className="w-[25%] px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Nguồn</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -81,9 +75,6 @@ export default function ResultsTable({ results }: Props) {
                 </td>
                 <td className="px-4 py-3 align-top">
                   <StatusBadge status={r.status} />
-                </td>
-                <td className="px-4 py-3 align-top text-xs text-gray-700 whitespace-nowrap">
-                  {formatVND(r.value)}
                 </td>
                 <td className="px-4 py-3 align-top">
                   <SourceLink source={r.source} />

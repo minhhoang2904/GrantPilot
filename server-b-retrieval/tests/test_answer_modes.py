@@ -6,7 +6,7 @@ from unittest.mock import patch
 from fastapi import HTTPException
 
 import main
-from main import AskIn
+from main import AskIn, _answer_chunks
 from policy_discovery import DIGITAL_TRANSFORMATION_POLICY_ID, GOLDEN_POLICY_IDS
 
 
@@ -46,6 +46,15 @@ class AnswerModesTest(unittest.TestCase):
         self.assertEqual(response["eligibility_results"], [])
         self.assertEqual(response["results"], [])
         self.assertEqual(response["eligibility"]["diagnostics"]["skipped"], "lookup_mode")
+
+    def test_stream_chunks_reconstruct_answer_exactly(self):
+        answer = "Kết luận nhanh.\n\n- Việc nên làm tiếp: kiểm tra hồ sơ doanh nghiệp."
+
+        chunks = _answer_chunks(answer, max_chars=18)
+
+        self.assertGreater(len(chunks), 1)
+        self.assertEqual("".join(chunks), answer)
+        self.assertTrue(all(chunks))
 
     def test_advisory_uses_canonical_facts_and_returns_only_policy_rows(self):
         eligibility = {
