@@ -83,8 +83,13 @@ FPT_QUERY_REWRITE_MODEL = os.getenv(
     "FPT_QUERY_REWRITE_MODEL", "DeepSeek-V4-Flash"
 ).strip()
 FPT_ANSWER_MODEL = os.getenv("FPT_ANSWER_MODEL", _LEGACY_LLM_MODEL or "GLM-5.2").strip()
+FPT_ADVISORY_MODEL = os.getenv("FPT_ADVISORY_MODEL", FPT_ANSWER_MODEL).strip()
 FPT_QUERY_REWRITE_MAX_TOKENS = int(os.getenv("FPT_QUERY_REWRITE_MAX_TOKENS", "512"))
 FPT_ANSWER_MAX_TOKENS = int(os.getenv("FPT_ANSWER_MAX_TOKENS", "8192"))
+FPT_ADVISORY_MAX_TOKENS = int(os.getenv("FPT_ADVISORY_MAX_TOKENS", "1200"))
+FPT_ADVISORY_ENABLED = os.getenv("FPT_ADVISORY_ENABLED", "true").strip().lower() in {
+    "1", "true", "yes", "on",
+}
 
 # Grounded RAG answer khong can agentic/long-horizon reasoning. Tat thinking de
 # tranh GLM dung het completion budget cho reasoning_content ma content rong.

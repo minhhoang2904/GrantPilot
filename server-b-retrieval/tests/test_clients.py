@@ -105,6 +105,30 @@ class FptClientPayloadTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "content rỗng"):
                 client.answer("Câu hỏi", evidence)
 
+    def test_advisory_prompt_keeps_decision_fixed_and_budget_small(self):
+        client = FptClient(api_key="test-key")
+        captured = {}
+
+        def fake_chat(payload):
+            captured.update(payload)
+            return {"choices": [{"message": {"content": "- Chuẩn bị hồ sơ."}}]}
+
+        client._post_chat = fake_chat
+        with (
+            patch.object(config, "FPT_ADVISORY_ENABLED", True),
+            patch.object(config, "FPT_ADVISORY_MODEL", "GLM-5.2"),
+            patch.object(config, "FPT_ADVISORY_MAX_TOKENS", 1200),
+        ):
+            result = client.advise({"eligibility_results": [{"status": "eligible"}]})
+
+        system_prompt = captured["messages"][0]["content"]
+        self.assertEqual(result, "- Chuẩn bị hồ sơ.")
+        self.assertEqual(captured["max_tokens"], 1200)
+        self.assertIn("Trạng thái eligibility là kết quả cố định", system_prompt)
+        self.assertIn("không thay đổi", system_prompt)
+        self.assertIn("Không thêm chính sách", system_prompt)
+        self.assertIn("Không nói doanh nghiệp chắc chắn", system_prompt)
+
 
 class PineconeDenseIndexTest(unittest.TestCase):
     def test_search_prefers_original_legal_unit_id_over_physical_id(self):

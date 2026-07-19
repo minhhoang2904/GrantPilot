@@ -15,6 +15,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 import answer_gen
+import advisory_writer
 import auth_service
 import company_service
 from company_profile import PROFILE_SCHEMA_VERSION, decision_facts
@@ -580,6 +581,20 @@ def ask(
             raw_results = eligibility.get("eligibility_results") or []
             frontend_results = eligibility_client.to_frontend_results(raw_results)
             answer = _advisory_answer(payload.question, eligibility, payload.advisory_scope)
+            written = advisory_writer.write_advisory_answer(
+                payload.question,
+                company,
+                selection,
+                eligibility,
+                answer,
+                fpt=retrieval.get_retriever().fpt,
+            )
+            answer = written.answer
+            diagnostics = dict(eligibility.get("diagnostics") or {})
+            diagnostics["answer_writer"] = written.writer
+            if written.fallback_reason:
+                diagnostics["answer_writer_fallback"] = written.fallback_reason
+            eligibility["diagnostics"] = diagnostics
 
     session_id = _persist_answer(
         payload,
@@ -841,6 +856,22 @@ async def chat_stream_endpoint(
                     )
                     eligibility = await asyncio.to_thread(evaluate_fn)
                     answer = _advisory_answer(payload.message, eligibility, payload.advisory_scope)
+                    write_fn = functools.partial(
+                        advisory_writer.write_advisory_answer,
+                        payload.message,
+                        company or {},
+                        selection,
+                        eligibility,
+                        answer,
+                        fpt=retrieval.get_retriever().fpt,
+                    )
+                    written = await asyncio.to_thread(write_fn)
+                    answer = written.answer
+                    diagnostics = dict(eligibility.get("diagnostics") or {})
+                    diagnostics["answer_writer"] = written.writer
+                    if written.fallback_reason:
+                        diagnostics["answer_writer_fallback"] = written.fallback_reason
+                    eligibility["diagnostics"] = diagnostics
                     advisory_result = _build_advisory_result(eligibility, selection)
                     sources = _eligibility_sources(eligibility)
                 except Exception:

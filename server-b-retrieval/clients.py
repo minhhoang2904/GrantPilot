@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -160,6 +161,48 @@ class FptClient:
             f"(model={config.FPT_ANSWER_MODEL}, finish_reason={finish_reason}, "
             f"reasoning_content={reasoning_present}, max_tokens={config.FPT_ANSWER_MAX_TOKENS})"
         )
+
+    def advise(self, advisory_payload: dict[str, Any]) -> str | None:
+        """Suggest next actions without changing deterministic decisions."""
+        if not self.enabled or not config.FPT_ADVISORY_ENABLED or not config.FPT_ADVISORY_MODEL:
+            return None
+        payload: dict[str, Any] = {
+            "model": config.FPT_ADVISORY_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Bạn là chuyên viên hỗ trợ doanh nghiệp nhỏ và vừa. Chỉ viết phần "
+                        "gợi ý hành động dựa trên JSON đầu vào. Trạng thái eligibility là kết "
+                        "quả cố định: không thay đổi, phủ định hoặc suy diễn lại. Không thêm "
+                        "chính sách, điều kiện, mức tiền, thời hạn, thủ tục hay giấy tờ không "
+                        "có trong dữ liệu. Không nói doanh nghiệp chắc chắn sẽ nhận hỗ trợ. "
+                        "Không dùng tên field kỹ thuật, JSON, RAG, rule engine hoặc thuật ngữ "
+                        "nội bộ. Không lặp lại phần kết luận. Chỉ nêu 2-4 việc thực tế nên làm "
+                        "tiếp bằng tiếng Việt rõ ràng và ngắn gọn."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(advisory_payload, ensure_ascii=False, default=str),
+                },
+            ],
+            "temperature": 0.2,
+            "max_tokens": config.FPT_ADVISORY_MAX_TOKENS,
+            "stream": False,
+        }
+        if config.FPT_ADVISORY_MODEL.lower().startswith("glm-5.2"):
+            payload["thinking"] = {
+                "type": config.FPT_ANSWER_THINKING,
+                "clear_thinking": True,
+            }
+            payload["reasoning_effort"] = config.FPT_ANSWER_REASONING_EFFORT
+        data = self._post_chat(payload)
+        message = (data.get("choices") or [{}])[0].get("message") or {}
+        content = (message.get("content") or "").strip()
+        if content:
+            return content
+        raise RuntimeError("LLM tư vấn trả content rỗng")
 
 
 def _deterministic_rewrite(question: str, history: list[dict[str, str]]) -> str:
