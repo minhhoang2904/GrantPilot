@@ -56,6 +56,12 @@ POLICIES_PATH = Path(
         PROJECT_DIR / "server-a-ingestion" / "data" / "policies.json",
     )
 )
+POLICY_DISCOVERY_PATH = Path(
+    os.getenv(
+        "POLICY_DISCOVERY_PATH",
+        PROJECT_DIR / "server-a-ingestion" / "data" / "golden_policies_mvp.json",
+    )
+)
 
 # Pinecone: ung dung chi query index da duoc Server A tao/upsert, tuyet doi
 # khong tu tao hay xoa index luc startup. Host duoc uu tien trong production de

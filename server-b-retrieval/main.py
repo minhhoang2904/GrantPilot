@@ -21,6 +21,7 @@ from company_profile import PROFILE_SCHEMA_VERSION, decision_facts
 import config
 import eligibility_client
 import profile_service
+import policy_discovery
 import retrieval
 from memory import ChatMemory, build_chat_memory
 
@@ -186,6 +187,7 @@ class AskIn(RetrieveIn):
     # rag/eligibility are retained for the current frontend; lookup/advisory are
     # the canonical public names for the two backend pipelines.
     mode: Literal["rag", "eligibility", "lookup", "advisory"] = "rag"
+    advisory_scope: Literal["question", "profile_scan"] = "question"
 
 
 @app.get("/health")
@@ -353,6 +355,28 @@ def _legal_citations(units: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+NOT_COVERED_ANSWER = (
+    "Chủ đề này hiện chưa nằm trong bộ chính sách MVP. "
+    "Hệ thống chưa thể đánh giá doanh nghiệp đủ hay không đủ điều kiện cho nội dung này. "
+    "Hiện bạn có thể hỏi về hỗ trợ thông tin, đào tạo trực tuyến, đào tạo trực tiếp "
+    "hoặc thuê/mua giải pháp chuyển đổi số."
+)
+
+
+def _select_advisory_policies(
+    question: str,
+    scope: Literal["question", "profile_scan"],
+) -> dict[str, Any]:
+    store = retrieval.get_retriever().store
+    policies = store.decision_policy_discovery()
+    return policy_discovery.select_policies(question, policies, scope=scope)
+
+
+def _advisory_answer(eligibility: dict[str, Any]) -> str:
+    explanation = str(eligibility.get("explanation") or "").strip()
+    return explanation or "Đã đánh giá các chính sách liên quan theo hồ sơ doanh nghiệp."
+
+
 def _persist_answer(
     payload: AskIn,
     email: str,
@@ -405,38 +429,37 @@ def ask(
         "diagnostics": {"skipped": "lookup_mode"},
     }
     frontend_results: list[dict[str, Any]] = []
+    selection = {
+        "advisory_scope": payload.advisory_scope,
+        "coverage_status": "not_applicable",
+        "policy_ids": [],
+        "topic_ids": [],
+    }
     if mode == "advisory":
         company = company_service.get_company(current_email)
         if company is None:
             raise HTTPException(status_code=409, detail="Cần tạo hồ sơ doanh nghiệp trước khi tư vấn.")
         if company.get("profile_schema_version") != PROFILE_SCHEMA_VERSION:
             raise HTTPException(status_code=409, detail="Cần cập nhật hồ sơ doanh nghiệp lên phiên bản mới.")
-        try:
-            eligibility = eligibility_client.evaluate_company(
-                decision_facts(company),
-                # Advisory mode answers "what is this company eligible for?",
-                # so the MVP must evaluate the complete approved decision set.
-                # Retrieval candidates still ground the prose answer, but they
-                # are too narrow to be the eligibility scope for multi-intent
-                # questions (for example, digital transformation + training).
-                [],
-                top_k=min(payload.top_k, 10),
-            )
-        except Exception as exc:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Eligibility service chưa sẵn sàng: {type(exc).__name__}",
-            ) from exc
-        raw_results = eligibility.get("eligibility_results") or []
-        frontend_results = eligibility_client.to_frontend_results(raw_results)
-        explanation = str(eligibility.get("explanation") or "").strip()
-        if explanation:
-            answer = (
-                "Đánh giá theo hồ sơ doanh nghiệp (rule engine):\n"
-                f"{explanation}\n\n"
-                "Thông tin pháp lý tham khảo (RAG, không dùng để chấm điều kiện):\n"
-                f"{answer}"
-            )
+        selection = _select_advisory_policies(payload.question, payload.advisory_scope)
+        if selection["coverage_status"] == "not_covered":
+            answer = NOT_COVERED_ANSWER
+            eligibility["diagnostics"] = {"skipped": "topic_not_covered"}
+        else:
+            try:
+                eligibility = eligibility_client.evaluate_company(
+                    decision_facts(company),
+                    selection["policy_ids"],
+                    top_k=min(payload.top_k, 10),
+                )
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Eligibility service chưa sẵn sàng: {type(exc).__name__}",
+                ) from exc
+            raw_results = eligibility.get("eligibility_results") or []
+            frontend_results = eligibility_client.to_frontend_results(raw_results)
+            answer = _advisory_answer(eligibility)
 
     session_id = _persist_answer(
         payload,
@@ -460,7 +483,10 @@ def ask(
         # Compatibility field consumed by Hoàng's current frontend. It now
         # contains only policy eligibility rows, never legal units.
         "results": frontend_results,
-        "candidate_policy_ids": result["candidate_policy_ids"],
+        "advisory_scope": selection["advisory_scope"],
+        "coverage_status": selection["coverage_status"],
+        "matched_topic_ids": selection["topic_ids"],
+        "candidate_policy_ids": selection["policy_ids"] if mode == "advisory" else result["candidate_policy_ids"],
         "retrieval": {
             "route": result["route"],
             "original_query": result["original_query"],
@@ -511,6 +537,7 @@ class ChatStreamIn(BaseModel):
     mode: str = "lookup"  # "lookup" | "advisory"
     message: str = Field(min_length=1)
     conversation_id: Optional[str] = None
+    advisory_scope: Literal["question", "profile_scan"] = "question"
     options: Optional[ChatStreamOptions] = None
 
 
@@ -536,7 +563,10 @@ def _build_sources(legal_units: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sources
 
 
-def _build_advisory_result(eligibility: dict[str, Any]) -> dict[str, Any]:
+def _build_advisory_result(
+    eligibility: dict[str, Any],
+    selection: dict[str, Any],
+) -> dict[str, Any]:
     policies = []
     allowed_statuses = {
         "eligible",
@@ -557,11 +587,15 @@ def _build_advisory_result(eligibility: dict[str, Any]) -> dict[str, Any]:
             # ``rule_errors`` is internal diagnostics and must not be exposed
             # through the user-facing advisory contract.
             "reasons": list(dict.fromkeys(result.get("reasons") or [])),
+            "application_requirements": list(result.get("application_requirements") or []),
             "sources": _build_sources(result.get("sources") or []),
         })
 
     derived = eligibility.get("derived_facts") or {}
     return {
+        "advisory_scope": selection["advisory_scope"],
+        "coverage_status": selection["coverage_status"],
+        "matched_topic_ids": selection["topic_ids"],
         "explanation": str(eligibility.get("explanation") or ""),
         "profile_features": {
             "enterprise_size": derived.get("enterprise_size"),
@@ -570,6 +604,18 @@ def _build_advisory_result(eligibility: dict[str, Any]) -> dict[str, Any]:
         },
         "policies": policies,
     }
+
+
+def _eligibility_sources(eligibility: dict[str, Any]) -> list[dict[str, Any]]:
+    units: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for result in eligibility.get("eligibility_results") or []:
+        for unit in result.get("sources") or []:
+            key = str(unit.get("unit_id") or "")
+            if key and key not in seen:
+                seen.add(key)
+                units.append(unit)
+    return _build_sources(units)
 
 
 
@@ -582,10 +628,13 @@ async def chat_stream_endpoint(
     top_k = payload.options.top_k if payload.options else 5
 
     # Pre-stream check: advisory requires a company profile
+    company: dict[str, Any] | None = None
     if mode == "advisory":
         company = await asyncio.to_thread(company_service.get_company, current_email)
         if not company:
             raise HTTPException(status_code=409, detail="PROFILE_REQUIRED")
+        if company.get("profile_schema_version") != PROFILE_SCHEMA_VERSION:
+            raise HTTPException(status_code=409, detail="PROFILE_UPDATE_REQUIRED")
 
     async def generate() -> Any:
         request_id = str(uuid.uuid4())
@@ -598,39 +647,84 @@ async def chat_stream_endpoint(
             "mode": mode,
         })
 
-        # Retrieval (blocking → thread pool)
-        retrieve_payload = RetrieveIn(
-            question=payload.message,
-            top_k=top_k,
-            thread_id=conversation_id,
-        )
-        try:
-            _, _, result = await asyncio.to_thread(_run_retrieval, retrieve_payload)
-        except HTTPException as exc:
-            yield _ndjson({
-                "type": "error",
-                "error": {
-                    "code": "RETRIEVAL_UNAVAILABLE",
-                    "message": exc.detail,
-                    "retryable": True,
-                },
-            })
-            return
+        legal_units: list[dict[str, Any]] = []
+        sources: list[dict[str, Any]] = []
+        advisory_result: dict[str, Any] | None = None
+        warning: dict[str, str] | None = None
 
-        legal_units: list[dict[str, Any]] = result["legal_units"]
-        fpt_client = retrieval.get_retriever().fpt
-
-        # Answer generation (blocking FPT API call → thread pool)
-        try:
-            gen_fn = functools.partial(
-                answer_gen.generate_answer,
-                payload.message,
-                legal_units,
-                fpt=fpt_client,
+        if mode == "lookup":
+            retrieve_payload = RetrieveIn(
+                question=payload.message,
+                top_k=top_k,
+                thread_id=conversation_id,
             )
-            answer: str = await asyncio.to_thread(gen_fn)
-        except Exception:
-            answer = answer_gen.NO_EVIDENCE
+            try:
+                _, _, result = await asyncio.to_thread(_run_retrieval, retrieve_payload)
+            except HTTPException as exc:
+                yield _ndjson({
+                    "type": "error",
+                    "error": {
+                        "code": "RETRIEVAL_UNAVAILABLE",
+                        "message": exc.detail,
+                        "retryable": True,
+                    },
+                })
+                return
+            legal_units = result["legal_units"]
+            fpt_client = retrieval.get_retriever().fpt
+            try:
+                gen_fn = functools.partial(
+                    answer_gen.generate_answer,
+                    payload.message,
+                    legal_units,
+                    fpt=fpt_client,
+                )
+                answer: str = await asyncio.to_thread(gen_fn)
+            except Exception:
+                answer = answer_gen.NO_EVIDENCE
+            sources = _build_sources(legal_units)
+        else:
+            try:
+                selection = await asyncio.to_thread(
+                    _select_advisory_policies,
+                    payload.message,
+                    payload.advisory_scope,
+                )
+            except Exception:
+                yield _ndjson({
+                    "type": "error",
+                    "error": {
+                        "code": "POLICY_DISCOVERY_UNAVAILABLE",
+                        "message": "Chưa thể xác định nhóm chính sách lúc này.",
+                        "retryable": True,
+                    },
+                })
+                return
+
+            if selection["coverage_status"] == "not_covered":
+                answer = NOT_COVERED_ANSWER
+                advisory_result = _build_advisory_result(
+                    {"eligibility_results": [], "derived_facts": {}, "explanation": ""},
+                    selection,
+                )
+            else:
+                try:
+                    evaluate_fn = functools.partial(
+                        eligibility_client.evaluate_company,
+                        decision_facts(company or {}),
+                        selection["policy_ids"],
+                        top_k=min(top_k, 10),
+                    )
+                    eligibility = await asyncio.to_thread(evaluate_fn)
+                    answer = _advisory_answer(eligibility)
+                    advisory_result = _build_advisory_result(eligibility, selection)
+                    sources = _eligibility_sources(eligibility)
+                except Exception:
+                    answer = "Chưa thể đánh giá hồ sơ lúc này. Vui lòng thử lại sau."
+                    warning = {
+                        "code": "ELIGIBILITY_UNAVAILABLE",
+                        "message": "Chưa thể đánh giá hồ sơ lúc này.",
+                    }
 
         # Stream answer word-by-word
         words = answer.split(" ")
@@ -638,17 +732,15 @@ async def chat_stream_endpoint(
             chunk = word if i == 0 else " " + word
             yield _ndjson({"type": "answer_delta", "text": chunk})
 
-        # Sources event
-        sources = _build_sources(legal_units)
         if sources:
             yield _ndjson({"type": "sources", "items": sources})
 
-        # Advisory result (Server C not yet available → warning)
-        if mode == "advisory":
+        if advisory_result is not None:
+            yield _ndjson({"type": "advisory_result", "data": advisory_result})
+        if warning is not None:
             yield _ndjson({
                 "type": "warning",
-                "code": "ELIGIBILITY_UNAVAILABLE",
-                "message": "Chưa thể đánh giá hồ sơ lúc này.",
+                **warning,
             })
 
         # Persist conversation history
@@ -660,9 +752,15 @@ async def chat_stream_endpoint(
                 conversation_id,
                 {"role": "user", "content": payload.message},
             )
-            asst_turn: dict[str, Any] = {"role": "assistant", "content": answer}
+            asst_turn: dict[str, Any] = {
+                "role": "assistant",
+                "content": answer,
+                "mode": mode,
+            }
             if sources:
                 asst_turn["sources"] = sources
+            if advisory_result is not None:
+                asst_turn["advisory_result"] = advisory_result
             await asyncio.to_thread(
                 company_service.append_chat_turn,
                 current_email,

@@ -28,8 +28,23 @@ RETRIEVAL_RESULT = {
 }
 
 
+class FakeStore:
+    def decision_policy_discovery(self):
+        return [{
+            "policy_id": "p1",
+            "discovery": {
+                "schema_version": "policy-discovery-v1",
+                "topic_id": "sme_digital_solution_rent_purchase",
+                "topic_label_vi": "Hỗ trợ thuê hoặc mua giải pháp chuyển đổi số",
+                "search_terms_vi": ["hỗ trợ chuyển đổi số"],
+                "intent_examples_vi": ["Doanh nghiệp có được hỗ trợ chuyển đổi số không?"],
+            },
+        }]
+
+
 class FakeRetriever:
     fpt = object()
+    store = FakeStore()
 
 
 async def collect_events(response) -> list[dict]:
@@ -91,7 +106,7 @@ class ChatStreamTest(unittest.IsolatedAsyncioTestCase):
             response = await main.chat_stream_endpoint(
                 main.ChatStreamIn(
                     mode="advisory",
-                    message="Có hỗ trợ không?",
+                    message="Có hỗ trợ chuyển đổi số không?",
                     conversation_id="conversation-1",
                 ),
                 current_email="owner@example.test",
@@ -103,12 +118,14 @@ class ChatStreamTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("warning", event_types)
         advisory = next(event["data"] for event in events if event["type"] == "advisory_result")
         self.assertEqual(advisory["policies"][0]["policy_id"], "p1")
+        self.assertEqual(advisory["coverage_status"], "covered")
         self.assertEqual(advisory["policies"][0]["reasons"], ["Cần hợp đồng."])
         self.assertNotIn("KeyError", json.dumps(advisory, ensure_ascii=False))
         self.assertEqual(advisory["profile_features"]["company_age_months"], 12)
         sent_facts = evaluate.call_args.args[0]
         self.assertEqual(sent_facts["sector"], "thuong_mai_dich_vu")
         self.assertNotIn("company_name", sent_facts)
+        self.assertEqual(evaluate.call_args.args[1], ["p1"])
         assistant_turn = append.call_args_list[1].args[2]
         self.assertEqual(assistant_turn["advisory_result"], advisory)
         self.assertEqual(assistant_turn["sources"][0]["unit_id"], "law_art-1")
@@ -139,7 +156,7 @@ class ChatStreamTest(unittest.IsolatedAsyncioTestCase):
             ),
         ):
             response = await main.chat_stream_endpoint(
-                main.ChatStreamIn(mode="advisory", message="Có hỗ trợ không?"),
+                main.ChatStreamIn(mode="advisory", message="Có hỗ trợ chuyển đổi số không?"),
                 current_email="owner@example.test",
             )
             events = await collect_events(response)
@@ -147,6 +164,27 @@ class ChatStreamTest(unittest.IsolatedAsyncioTestCase):
         warning = next(event for event in events if event["type"] == "warning")
         self.assertEqual(warning["code"], "ELIGIBILITY_UNAVAILABLE")
         self.assertNotIn("advisory_result", [event["type"] for event in events])
+
+    async def test_out_of_scope_emits_not_covered_without_server_c(self):
+        company = {"profile_schema_version": "company-profile-v1", "sector": "thuong_mai_dich_vu"}
+        with (
+            patch.object(main.company_service, "get_company", return_value=company),
+            patch.object(main.retrieval, "get_retriever", return_value=FakeRetriever()),
+            patch.object(main.eligibility_client, "evaluate_company") as evaluate,
+            patch.object(main.company_service, "append_chat_turn", return_value="conversation-1"),
+        ):
+            response = await main.chat_stream_endpoint(
+                main.ChatStreamIn(mode="advisory", message="Tôi có được ưu đãi thuế TNDN không?"),
+                current_email="owner@example.test",
+            )
+            events = await collect_events(response)
+
+        evaluate.assert_not_called()
+        advisory = next(event["data"] for event in events if event["type"] == "advisory_result")
+        self.assertEqual(advisory["coverage_status"], "not_covered")
+        self.assertEqual(advisory["policies"], [])
+        answer = "".join(event["text"] for event in events if event["type"] == "answer_delta")
+        self.assertIn("chưa nằm trong bộ chính sách MVP", answer)
 
     async def test_advisory_rejects_legacy_profile_before_stream(self):
         with patch.object(

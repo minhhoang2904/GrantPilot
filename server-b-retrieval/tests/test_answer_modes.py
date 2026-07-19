@@ -19,8 +19,23 @@ RETRIEVAL_RESULT = {
 }
 
 
+class FakeStore:
+    def decision_policy_discovery(self):
+        return [{
+            "policy_id": "p1",
+            "discovery": {
+                "schema_version": "policy-discovery-v1",
+                "topic_id": "sme_digital_solution_rent_purchase",
+                "topic_label_vi": "Hỗ trợ thuê hoặc mua giải pháp chuyển đổi số",
+                "search_terms_vi": ["hỗ trợ chuyển đổi số"],
+                "intent_examples_vi": ["Doanh nghiệp có được hỗ trợ chuyển đổi số không?"],
+            },
+        }]
+
+
 class FakeRetriever:
     fpt = object()
+    store = FakeStore()
 
 
 class AnswerModesTest(unittest.TestCase):
@@ -75,7 +90,7 @@ class AnswerModesTest(unittest.TestCase):
             patch.object(main.eligibility_client, "evaluate_company", return_value=eligibility) as evaluate,
         ):
             response = main.ask(
-                AskIn(question="Công ty tôi có được hỗ trợ không?", email="owner@example.test", mode="eligibility"),
+                AskIn(question="Công ty tôi có được hỗ trợ chuyển đổi số không?", email="owner@example.test", mode="eligibility"),
                 current_email="owner@example.test",
             )
         sent_facts = evaluate.call_args.args[0]
@@ -83,16 +98,14 @@ class AnswerModesTest(unittest.TestCase):
         self.assertEqual(sent_facts["sector"], "thuong_mai_dich_vu")
         self.assertNotIn("company_name", sent_facts)
         self.assertNotIn("has_patent", sent_facts)
-        self.assertEqual(sent_policy_ids, [])
+        self.assertEqual(sent_policy_ids, ["p1"])
         self.assertEqual(response["mode"], "advisory")
         self.assertEqual(response["eligibility_results"][0]["policy_id"], "p1")
         self.assertEqual(response["results"][0]["status"], "partial")
         self.assertNotEqual(response["results"], response["legal_units"])
-        self.assertIn("Đánh giá theo hồ sơ doanh nghiệp (rule engine)", response["answer"])
-        self.assertLess(
-            response["answer"].index("Đánh giá theo hồ sơ doanh nghiệp"),
-            response["answer"].index("Thông tin pháp lý tham khảo"),
-        )
+        self.assertEqual(response["coverage_status"], "covered")
+        self.assertNotIn("rule engine", response["answer"])
+        self.assertNotIn("RAG", response["answer"])
 
     def test_ask_cannot_write_another_users_history(self):
         with self.assertRaises(HTTPException) as raised:
@@ -133,12 +146,28 @@ class AnswerModesTest(unittest.TestCase):
             patch.object(main.eligibility_client, "evaluate_company", return_value=eligibility),
         ):
             response = main.ask(
-                AskIn(question="Tư vấn chuyển đổi số", email="owner@example.test", mode="advisory"),
+                AskIn(question="Tư vấn hỗ trợ chuyển đổi số", email="owner@example.test", mode="advisory"),
                 current_email="owner@example.test",
             )
         self.assertIn("Giải pháp chuyển đổi số phải được công bố", response["answer"])
         self.assertEqual(response["eligibility_results"][0]["application_requirements"], [requirement])
         self.assertEqual(response["results"][0]["application_requirements"], [requirement])
+
+    def test_advisory_out_of_scope_does_not_call_server_c(self):
+        patches = self.common_patches()
+        with (
+            patches[0], patches[1], patches[2], patches[3],
+            patch.object(main.company_service, "get_company", return_value={"profile_schema_version": "company-profile-v1"}),
+            patch.object(main.eligibility_client, "evaluate_company") as evaluate,
+        ):
+            response = main.ask(
+                AskIn(question="Tôi có được ưu đãi thuế TNDN không?", email="owner@example.test", mode="advisory"),
+                current_email="owner@example.test",
+            )
+        evaluate.assert_not_called()
+        self.assertEqual(response["coverage_status"], "not_covered")
+        self.assertEqual(response["results"], [])
+        self.assertIn("chưa nằm trong bộ chính sách MVP", response["answer"])
 
 
 if __name__ == "__main__":
