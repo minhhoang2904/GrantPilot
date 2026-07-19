@@ -676,6 +676,9 @@ def policy_is_decision_eligible(policy: dict) -> bool:
 
 
 def normalize_policy_artifact(policies: list[dict], units: list[dict], sources: dict[str, dict]) -> list[dict]:
+    from policy_discovery import validate_discovery_collection
+    from policy_normalization import load_catalog
+
     source_by_document = {row["document_id"]: row for row in sources.values()}
     normalized = []
     for policy in policies:
@@ -684,6 +687,7 @@ def normalize_policy_artifact(policies: list[dict], units: list[dict], sources: 
         evidence_ids = set(policy.get("evidence_unit_ids") or (policy.get("payload") or {}).get("evidence_unit_ids") or [])
         evidence_rows = [unit for unit in units if unit.get("unit_id") in evidence_ids]
         normalized.append(_prepare_policy_for_ingest(policy, None, source, evidence_rows=evidence_rows))
+    validate_discovery_collection(normalized, load_catalog())
     return apply_duplicate_metadata(normalized)
 
 

@@ -6,6 +6,7 @@ import copy
 import json
 from pathlib import Path
 
+from policy_discovery import validate_discovery_collection
 from policy_normalization import approval_valid, load_catalog, prepare_policy_for_ingest
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -67,6 +68,10 @@ def apply_golden_overlay(policies: list[dict], db=None, sources: dict[str, dict]
     golden_ids = {policy["policy_id"] for policy in golden}
     if set(approvals) != golden_ids:
         raise StaleGoldenApprovalError("Golden candidate and approval manifest IDs differ")
+    try:
+        validate_discovery_collection(golden, load_catalog())
+    except ValueError as exc:
+        raise StaleGoldenApprovalError(str(exc)) from exc
     merged = [copy.deepcopy(policy) for policy in policies if policy.get("policy_id") not in golden_ids]
     merged.extend(
         validate_committed_approval(policy, approvals[policy["policy_id"]], db=db, sources=sources, units=units)

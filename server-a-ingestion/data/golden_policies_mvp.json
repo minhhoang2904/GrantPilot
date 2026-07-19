@@ -3,6 +3,22 @@
     "policy_id": "decree_80_2021_nd_cp_ho_tro_thong_tin_a26213ed",
     "policy_name": "Hỗ trợ thông tin cho doanh nghiệp nhỏ và vừa",
     "category": "Hỗ trợ thông tin",
+    "discovery": {
+      "schema_version": "policy-discovery-v1",
+      "topic_id": "sme_information_support",
+      "topic_label_vi": "Hỗ trợ thông tin cho doanh nghiệp nhỏ và vừa",
+      "search_terms_vi": [
+        "hỗ trợ thông tin",
+        "thông tin cho doanh nghiệp nhỏ và vừa",
+        "cổng thông tin doanh nghiệp",
+        "chương trình hỗ trợ doanh nghiệp",
+        "tư vấn thông tin cho DNNVV"
+      ],
+      "intent_examples_vi": [
+        "Doanh nghiệp nhỏ và vừa được hỗ trợ tiếp cận thông tin gì?",
+        "Tôi có thể tìm chương trình hỗ trợ DNNVV ở đâu?"
+      ]
+    },
     "pipeline": {"document_id": "decree-80-2021-nd-cp", "source": "golden_mvp_review"},
     "evidence_unit_ids": ["decree-80-2021-nd-cp_art-12_cl-1"],
     "rules": {"all": [{"field": "is_sme", "operator": "==", "value": true}]},
@@ -13,6 +29,22 @@
     "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tuyen_d470ff1d",
     "policy_name": "Hỗ trợ đào tạo trực tuyến về khởi sự kinh doanh và quản trị doanh nghiệp",
     "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "discovery": {
+      "schema_version": "policy-discovery-v1",
+      "topic_id": "sme_online_training",
+      "topic_label_vi": "Đào tạo trực tuyến cho doanh nghiệp nhỏ và vừa",
+      "search_terms_vi": [
+        "đào tạo trực tuyến",
+        "khóa học online",
+        "đào tạo khởi sự kinh doanh",
+        "đào tạo quản trị doanh nghiệp",
+        "khóa học cho DNNVV"
+      ],
+      "intent_examples_vi": [
+        "Có khóa học online miễn phí cho doanh nghiệp nhỏ và vừa không?",
+        "DNNVV có được hỗ trợ đào tạo quản trị trực tuyến không?"
+      ]
+    },
     "pipeline": {"document_id": "decree-80-2021-nd-cp", "source": "golden_mvp_review"},
     "evidence_unit_ids": ["decree-80-2021-nd-cp_art-14_cl-2_pt-a", "decree-80-2021-nd-cp_art-14_cl-2_pt-b"],
     "rules": {"all": [{"field": "is_sme", "operator": "==", "value": true}]},
@@ -23,6 +55,22 @@
     "policy_id": "decree_80_2021_nd_cp_hd_dao_tao_truc_tiep_d470ff1d",
     "policy_name": "Hỗ trợ đào tạo trực tiếp tại DNNVV lĩnh vực sản xuất, chế biến",
     "category": "Hỗ trợ phát triển nguồn nhân lực",
+    "discovery": {
+      "schema_version": "policy-discovery-v1",
+      "topic_id": "sme_direct_training_manufacturing_processing",
+      "topic_label_vi": "Đào tạo trực tiếp cho DNNVV sản xuất, chế biến",
+      "search_terms_vi": [
+        "đào tạo trực tiếp",
+        "đào tạo tại doanh nghiệp",
+        "đào tạo doanh nghiệp sản xuất",
+        "đào tạo doanh nghiệp chế biến",
+        "hỗ trợ chi phí đào tạo trực tiếp"
+      ],
+      "intent_examples_vi": [
+        "Doanh nghiệp sản xuất có được hỗ trợ đào tạo trực tiếp không?",
+        "Chi phí đào tạo tại doanh nghiệp chế biến được hỗ trợ thế nào?"
+      ]
+    },
     "pipeline": {"document_id": "decree-80-2021-nd-cp", "source": "golden_mvp_review"},
     "evidence_unit_ids": ["decree-80-2021-nd-cp_art-14_cl-3"],
     "rules": {"all": [
@@ -36,6 +84,22 @@
     "policy_id": "circular_06_2022_tt_bkhdt_ho_tro_cong_nghe_48284a5c",
     "policy_name": "Hỗ trợ thuê hoặc mua giải pháp chuyển đổi số",
     "category": "Hỗ trợ công nghệ và chuyển đổi số",
+    "discovery": {
+      "schema_version": "policy-discovery-v1",
+      "topic_id": "sme_digital_solution_rent_purchase",
+      "topic_label_vi": "Hỗ trợ thuê hoặc mua giải pháp chuyển đổi số",
+      "search_terms_vi": [
+        "hỗ trợ chuyển đổi số",
+        "thuê giải pháp chuyển đổi số",
+        "mua giải pháp chuyển đổi số",
+        "hỗ trợ phần mềm cho DNNVV",
+        "chi phí giải pháp số"
+      ],
+      "intent_examples_vi": [
+        "DNNVV có được hỗ trợ mua phần mềm chuyển đổi số không?",
+        "Chi phí thuê giải pháp chuyển đổi số được hỗ trợ thế nào?"
+      ]
+    },
     "pipeline": {"document_id": "circular-06-2022-tt-bkhdt", "source": "golden_mvp_review"},
     "evidence_unit_ids": ["circular-06-2022-tt-bkhdt_art-7_cl-1"],
     "rules": {"all": [{"field": "is_sme", "operator": "==", "value": true}]},
