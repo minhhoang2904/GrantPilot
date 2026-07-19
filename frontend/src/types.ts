@@ -129,6 +129,9 @@ export interface AdvisoryProfileFeatures {
 
 /** Data payload from the advisory_result stream event */
 export interface AdvisoryResult {
+  advisory_scope?: AdvisoryScope
+  coverage_status?: 'covered' | 'not_covered' | 'not_applicable'
+  matched_topic_ids?: string[]
   explanation: string
   profile_features: AdvisoryProfileFeatures
   policies: AdvisoryPolicy[]

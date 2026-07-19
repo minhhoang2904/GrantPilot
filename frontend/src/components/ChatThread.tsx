@@ -56,8 +56,8 @@ function AssistantBubble({
         {sources && sources.length > 0 && (
           <SourcesPanel items={sources} onOpenPdf={onOpenPdf} />
         )}
-        {/* New: advisory result */}
-        {(advisoryResult || coverageStatus === 'not_covered') && (
+        {/* New: advisory result — hide panel when topic is not_covered (neutral text answer is sufficient) */}
+        {advisoryResult && advisoryResult.coverage_status !== 'not_covered' && (
           <AdvisoryPanel result={advisoryResult} coverageStatus={coverageStatus} />
         )}
         {/* Legacy: old eligibility results from history */}
@@ -141,7 +141,7 @@ export default function ChatThread({ messages, loading, mode = 'lookup', onSend,
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
-            Quét toàn bộ hồ sơ — xem tất cả ưu đãi phù hợp
+            Quét chính sách phù hợp với hồ sơ
           </button>
         )}
 

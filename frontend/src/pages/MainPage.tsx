@@ -290,13 +290,22 @@ export default function MainPage({
             )
             break
 
-          case 'advisory_result':
+          case 'advisory_result': {
+            const cs = event.data.coverage_status
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, advisoryResult: event.data } : m,
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      advisoryResult: event.data,
+                      coverageStatus:
+                        cs === 'covered' || cs === 'not_covered' ? cs : m.coverageStatus,
+                    }
+                  : m,
               ),
             )
             break
+          }
 
           case 'coverage_status':
             setMessages((prev) =>
@@ -368,7 +377,7 @@ export default function MainPage({
   }
 
   function handleProfileScan() {
-    void handleSend('Quét toàn bộ hồ sơ doanh nghiệp — đánh giá tất cả ưu đãi phù hợp', 'profile_scan')
+    void handleSend('Quét chính sách phù hợp với hồ sơ doanh nghiệp', 'profile_scan')
   }
 
   const sessionsNewestFirst = [...sessions].reverse()
