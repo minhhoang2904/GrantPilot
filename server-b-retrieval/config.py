@@ -107,7 +107,9 @@ CHAT_STORED_MESSAGES = int(os.getenv("CHAT_STORED_MESSAGES", "20"))
 
 # Server C is called only in advisory mode. Lookup mode remains available when
 # Server C is down because it is a separate retrieval-only pipeline.
-SERVER_C_URL = os.getenv("SERVER_C_URL", "http://server-c-eligibility:8002").rstrip("/")
+# Local uvicorn is the default developer path. Docker Compose overrides this
+# with the service hostname explicitly.
+SERVER_C_URL = os.getenv("SERVER_C_URL", "http://localhost:8002").rstrip("/")
 SERVER_C_TIMEOUT_SECONDS = float(os.getenv("SERVER_C_TIMEOUT_SECONDS", "30"))
 
 # Retrieval defaults. Threshold reranker mac dinh tat (-1) vi moi model co

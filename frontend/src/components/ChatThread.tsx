@@ -56,8 +56,8 @@ function AssistantBubble({
         {sources && sources.length > 0 && (
           <SourcesPanel items={sources} onOpenPdf={onOpenPdf} />
         )}
-        {/* New: advisory result — hide panel when topic is not_covered (neutral text answer is sufficient) */}
-        {advisoryResult && advisoryResult.coverage_status !== 'not_covered' && (
+        {/* AdvisoryPanel owns both covered results and the neutral not-covered card. */}
+        {advisoryResult && (
           <AdvisoryPanel result={advisoryResult} coverageStatus={coverageStatus} />
         )}
         {/* Legacy: old eligibility results from history */}

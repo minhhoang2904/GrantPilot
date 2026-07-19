@@ -6,7 +6,7 @@ chat_history) lưu trong MongoDB.
 
 Kết nối qua biến môi trường:
   MONGODB_URI  — mặc định mongodb://localhost:27017
-  MONGODB_DB   — mặc định policy_advisor
+  MONGODB_DATABASE / MONGODB_DB — mặc định grantpilot
 
 Schema companies (canonical Company Profile v1):
   {
@@ -57,7 +57,7 @@ from company_profile import (
 )
 
 _MONGO_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-_MONGO_DB = os.environ.get("MONGODB_DB", "policy_advisor")
+_MONGO_DB = os.environ.get("MONGODB_DATABASE") or os.environ.get("MONGODB_DB") or "grantpilot"
 
 _client: Optional[MongoClient] = None  # type: ignore[type-arg]
 

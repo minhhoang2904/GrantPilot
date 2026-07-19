@@ -362,6 +362,25 @@ NOT_COVERED_ANSWER = (
     "hoặc thuê/mua giải pháp chuyển đổi số."
 )
 
+FACT_LABELS = {
+    "sector": "lĩnh vực hoạt động",
+    "primary_business_activity_group": "nhóm ngành nghề kinh doanh chính",
+    "legal_form": "loại hình pháp lý",
+    "province_code": "tỉnh/thành phố",
+    "social_insurance_employees": "số lao động tham gia BHXH",
+    "annual_revenue_vnd": "doanh thu năm",
+    "total_capital_vnd": "tổng nguồn vốn",
+    "first_business_registration_date": "ngày đăng ký doanh nghiệp lần đầu",
+    "has_public_offering": "tình trạng chào bán chứng khoán ra công chúng",
+    "has_business_registration": "giấy đăng ký kinh doanh",
+    "has_coworking_contract": "hợp đồng thuê không gian làm việc chung",
+    "coworking_monthly_cost_vnd": "chi phí thuê không gian làm việc chung",
+    "is_sme": "thông tin xác định doanh nghiệp nhỏ và vừa",
+    "enterprise_size": "quy mô doanh nghiệp",
+    "company_age_months": "thời gian hoạt động của doanh nghiệp",
+    "is_innovative_startup": "thông tin xác định doanh nghiệp khởi nghiệp sáng tạo",
+}
+
 
 def _select_advisory_policies(
     question: str,
@@ -372,9 +391,110 @@ def _select_advisory_policies(
     return policy_discovery.select_policies(question, policies, scope=scope)
 
 
-def _advisory_answer(eligibility: dict[str, Any]) -> str:
-    explanation = str(eligibility.get("explanation") or "").strip()
-    return explanation or "Đã đánh giá các chính sách liên quan theo hồ sơ doanh nghiệp."
+def _fact_label(field: Any) -> str:
+    value = str(field or "").strip()
+    return FACT_LABELS.get(value, value.replace("_", " "))
+
+
+def _friendly_reason(reason: Any) -> str:
+    text = str(reason or "").strip()
+    lowered = text.casefold()
+    if "primary_business_activity_group" in text:
+        return "Ngành nghề kinh doanh chính không thuộc nhóm sản xuất hoặc chế biến."
+    if "is_sme" in text:
+        if lowered.startswith("không đạt"):
+            return "Hồ sơ hiện tại chưa đáp ứng tiêu chí doanh nghiệp nhỏ và vừa."
+        if lowered.startswith("thiếu thông tin"):
+            return "Chưa đủ thông tin để xác định doanh nghiệp nhỏ và vừa."
+    if lowered.startswith("thiếu thông tin:"):
+        return f"Chưa có {_fact_label(text.split(':', 1)[1])}."
+    return text
+
+
+def _user_facing_reasons(result: dict[str, Any]) -> list[str]:
+    status = result.get("status")
+    reasons = list(result.get("reasons") or [])
+    if status == "eligible":
+        return []
+    if status == "not_eligible":
+        reasons = [reason for reason in reasons if str(reason).casefold().startswith("không đạt")]
+    elif status == "needs_more_information":
+        # Missing facts are rendered once in the dedicated information list.
+        reasons = []
+    return list(dict.fromkeys(_friendly_reason(reason) for reason in reasons if reason))
+
+
+def _advisory_answer(
+    question: str,
+    eligibility: dict[str, Any],
+    scope: Literal["question", "profile_scan"],
+) -> str:
+    """Compose a stable business-facing answer from Server C's fixed decision."""
+    # Policy discovery already used the original question to bind these results;
+    # keeping it in this boundary prevents Server C from becoming the copywriter.
+    question = " ".join(question.split())
+    if scope == "question" and not question:
+        return "Vui lòng nhập nội dung cần tư vấn."
+    results = list(eligibility.get("eligibility_results") or [])
+    if not results:
+        return "Chưa có kết quả chính sách để đánh giá cho hồ sơ này."
+
+    by_status = {
+        status: [result for result in results if result.get("status") == status]
+        for status in ("eligible", "not_eligible", "needs_more_information", "manual_review")
+    }
+
+    if scope == "profile_scan":
+        summary = []
+        labels = {
+            "eligible": "phù hợp",
+            "not_eligible": "chưa đáp ứng",
+            "needs_more_information": "cần bổ sung thông tin",
+            "manual_review": "cần kiểm tra thêm",
+        }
+        for status, label in labels.items():
+            count = len(by_status[status])
+            if count:
+                summary.append(f"{count} chương trình {label}")
+        lines = ["Kết quả quét hồ sơ: " + ", ".join(summary) + "."]
+        if by_status["eligible"]:
+            lines.append("\nDoanh nghiệp có thể xem xét đăng ký:")
+            lines.extend(f"- {result.get('policy_name') or result.get('policy_id')}" for result in by_status["eligible"])
+        if by_status["not_eligible"]:
+            lines.append("\nChương trình chưa phù hợp với hồ sơ hiện tại:")
+            lines.extend(f"- {result.get('policy_name') or result.get('policy_id')}" for result in by_status["not_eligible"])
+    else:
+        primary = results[0]
+        title = primary.get("policy_name") or primary.get("policy_id") or "chương trình này"
+        status = primary.get("status")
+        conclusion = {
+            "eligible": f"Có. Theo hồ sơ hiện tại, doanh nghiệp phù hợp với “{title}”",
+            "not_eligible": f"Hiện doanh nghiệp chưa đáp ứng điều kiện của “{title}”",
+            "needs_more_information": f"Chưa thể kết luận doanh nghiệp có phù hợp với “{title}”",
+            "manual_review": f"“{title}” cần được kiểm tra thêm trước khi kết luận",
+        }.get(status, f"Đã đánh giá “{title}” theo hồ sơ hiện tại")
+        lines = [f"Kết luận: {conclusion}."]
+
+        reasons = _user_facing_reasons(primary)
+        if reasons:
+            lines.append("\nLý do chính:")
+            lines.extend(f"- {reason}" for reason in reasons)
+
+        missing = list(dict.fromkeys(_fact_label(field) for field in primary.get("missing_fields") or []))
+        if missing:
+            lines.append("\nThông tin cần bổ sung:")
+            lines.extend(f"- {label}" for label in missing)
+
+    requirements = list(dict.fromkeys(
+        requirement
+        for result in results
+        if result.get("status") == "eligible"
+        for requirement in (result.get("application_requirements") or [])
+    ))
+    if requirements:
+        lines.append("\nViệc cần kiểm tra trước khi đăng ký:")
+        lines.extend(f"- {requirement}" for requirement in requirements)
+    return "\n".join(lines)
 
 
 def _persist_answer(
@@ -459,7 +579,7 @@ def ask(
                 ) from exc
             raw_results = eligibility.get("eligibility_results") or []
             frontend_results = eligibility_client.to_frontend_results(raw_results)
-            answer = _advisory_answer(eligibility)
+            answer = _advisory_answer(payload.question, eligibility, payload.advisory_scope)
 
     session_id = _persist_answer(
         payload,
@@ -583,10 +703,12 @@ def _build_advisory_result(
             "title": result.get("policy_name") or result.get("policy_id") or "",
             "status": status,
             "score": float(result.get("score") or 0.0),
-            "missing_fields": list(result.get("missing_fields") or []),
+            "missing_fields": list(dict.fromkeys(
+                _fact_label(field) for field in (result.get("missing_fields") or [])
+            )),
             # ``rule_errors`` is internal diagnostics and must not be exposed
             # through the user-facing advisory contract.
-            "reasons": list(dict.fromkeys(result.get("reasons") or [])),
+            "reasons": _user_facing_reasons(result),
             "application_requirements": list(result.get("application_requirements") or []),
             "sources": _build_sources(result.get("sources") or []),
         })
@@ -596,7 +718,9 @@ def _build_advisory_result(
         "advisory_scope": selection["advisory_scope"],
         "coverage_status": selection["coverage_status"],
         "matched_topic_ids": selection["topic_ids"],
-        "explanation": str(eligibility.get("explanation") or ""),
+        # The chat bubble already contains the business-facing summary. Do not
+        # repeat Server C's internal/fallback explanation in the policy panel.
+        "explanation": "",
         "profile_features": {
             "enterprise_size": derived.get("enterprise_size"),
             "is_sme": derived.get("is_sme"),
@@ -716,7 +840,7 @@ async def chat_stream_endpoint(
                         top_k=min(top_k, 10),
                     )
                     eligibility = await asyncio.to_thread(evaluate_fn)
-                    answer = _advisory_answer(eligibility)
+                    answer = _advisory_answer(payload.message, eligibility, payload.advisory_scope)
                     advisory_result = _build_advisory_result(eligibility, selection)
                     sources = _eligibility_sources(eligibility)
                 except Exception:
