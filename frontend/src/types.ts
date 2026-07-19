@@ -6,6 +6,9 @@ export type Sector =
 /** lookup = Tra cứu quy định/văn bản; advisory = Tư vấn theo hồ sơ doanh nghiệp */
 export type ChatMode = 'lookup' | 'advisory'
 
+/** question = hỏi theo chủ đề; profile_scan = quét toàn bộ hồ sơ */
+export type AdvisoryScope = 'question' | 'profile_scan'
+
 export type BusinessActivityGroup =
   | 'agriculture'
   | 'forestry'
@@ -115,6 +118,7 @@ export interface AdvisoryPolicy {
   missing_fields: string[]
   reasons: string[]
   sources: SourceItem[]
+  application_requirements?: string[]
 }
 
 export interface AdvisoryProfileFeatures {
@@ -125,6 +129,9 @@ export interface AdvisoryProfileFeatures {
 
 /** Data payload from the advisory_result stream event */
 export interface AdvisoryResult {
+  advisory_scope?: AdvisoryScope
+  coverage_status?: 'covered' | 'not_covered' | 'not_applicable'
+  matched_topic_ids?: string[]
   explanation: string
   profile_features: AdvisoryProfileFeatures
   policies: AdvisoryPolicy[]
@@ -144,6 +151,10 @@ export interface Message {
   advisoryResult?: AdvisoryResult
   /** Non-fatal warning from BE (e.g. ELIGIBILITY_UNAVAILABLE) */
   warning?: string
+  /** Whether relevant policies were found for the query */
+  coverageStatus?: 'covered' | 'not_covered'
+  /** Scope that generated this advisory response */
+  advisoryScope?: AdvisoryScope
 }
 
 // ── Legacy response types (kept for old /ask endpoint) ───────────────────────

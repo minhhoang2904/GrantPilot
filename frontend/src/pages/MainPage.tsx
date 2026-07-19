@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { ChatMode, Company, LegalForm, Message, Sector } from '../types'
+import type { AdvisoryScope, ChatMode, Company, LegalForm, Message, Sector } from '../types'
 import { chatStream, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
 import { clearSession } from '../auth'
 import ChatThread from '../components/ChatThread'
@@ -92,6 +92,9 @@ function turnsToMessages(turns: HistorySession['turns']): Message[] {
     role: t.role,
     content: t.content,
     results: t.results as Message['results'],
+    sources: t.sources as Message['sources'],
+    advisoryResult: t.advisory_result as Message['advisoryResult'],
+    warning: t.warning,
   }))
 }
 
@@ -197,6 +200,8 @@ export default function MainPage({
       return
     }
     persistMode(next)
+    setMessages([])
+    setSessionId(undefined)
   }
 
   function handleLogout() {
@@ -237,7 +242,7 @@ export default function MainPage({
     }
   }
 
-  async function handleSend(question: string) {
+  async function handleSend(question: string, scope: AdvisoryScope = 'question') {
     if (mode === 'advisory' && !profileComplete) {
       onOpenOnboarding(true)
       return
@@ -255,7 +260,7 @@ export default function MainPage({
     let assistantStarted = false
 
     try {
-      for await (const event of chatStream(question, mode, sessionId ?? null)) {
+      for await (const event of chatStream(question, mode, sessionId ?? null, scope)) {
         switch (event.type) {
           case 'started':
             setSessionId(event.conversation_id)
@@ -285,10 +290,27 @@ export default function MainPage({
             )
             break
 
-          case 'advisory_result':
+          case 'advisory_result': {
+            const cs = event.data.coverage_status
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, advisoryResult: event.data } : m,
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      advisoryResult: event.data,
+                      coverageStatus:
+                        cs === 'covered' || cs === 'not_covered' ? cs : m.coverageStatus,
+                    }
+                  : m,
+              ),
+            )
+            break
+          }
+
+          case 'coverage_status':
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, coverageStatus: event.status } : m,
               ),
             )
             break
@@ -352,6 +374,10 @@ export default function MainPage({
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleProfileScan() {
+    void handleSend('Quét chính sách phù hợp với hồ sơ doanh nghiệp', 'profile_scan')
   }
 
   const sessionsNewestFirst = [...sessions].reverse()
@@ -524,10 +550,12 @@ export default function MainPage({
               label="Coworking"
               value={triboolLabel(company?.has_coworking_contract)}
             />
-            <SidebarStat
-              label="Chi phí CW"
-              value={compactVnd(company?.coworking_monthly_cost_vnd)}
-            />
+            {company?.has_coworking_contract === true && (
+              <SidebarStat
+                label="Chi phí CW"
+                value={compactVnd(company?.coworking_monthly_cost_vnd)}
+              />
+            )}
           </div>
         </div>
 
@@ -605,6 +633,7 @@ export default function MainPage({
             loading={loading}
             mode={mode}
             onSend={loading || historyLoading ? undefined : handleSend}
+            onProfileScan={mode === 'advisory' && profileComplete && !loading ? handleProfileScan : undefined}
             onOpenPdf={handleOpenPdf}
           />
         )}

@@ -20,6 +20,7 @@ function AssistantBubble({
   sources,
   advisoryResult,
   warning,
+  coverageStatus,
   onOpenPdf,
 }: {
   content: string
@@ -27,6 +28,7 @@ function AssistantBubble({
   sources?: Message['sources']
   advisoryResult?: Message['advisoryResult']
   warning?: string
+  coverageStatus?: Message['coverageStatus']
   onOpenPdf?: (url: string, label: string) => void
 }) {
   return (
@@ -54,8 +56,10 @@ function AssistantBubble({
         {sources && sources.length > 0 && (
           <SourcesPanel items={sources} onOpenPdf={onOpenPdf} />
         )}
-        {/* New: advisory result */}
-        {advisoryResult && <AdvisoryPanel result={advisoryResult} />}
+        {/* New: advisory result — hide panel when topic is not_covered (neutral text answer is sufficient) */}
+        {advisoryResult && advisoryResult.coverage_status !== 'not_covered' && (
+          <AdvisoryPanel result={advisoryResult} coverageStatus={coverageStatus} />
+        )}
         {/* Legacy: old eligibility results from history */}
         {results && results.length > 0 && <ResultsTable results={results} onOpenPdf={onOpenPdf} />}
       </div>
@@ -83,15 +87,23 @@ function TypingIndicator() {
   )
 }
 
+const GOLDEN_POLICY_CHIPS = [
+  'Hỗ trợ thông tin và tư vấn cho doanh nghiệp nhỏ và vừa',
+  'Hỗ trợ đào tạo trực tuyến cho doanh nghiệp nhỏ và vừa',
+  'Hỗ trợ đào tạo trực tiếp cho doanh nghiệp nhỏ và vừa',
+  'Hỗ trợ chuyển đổi số cho doanh nghiệp nhỏ và vừa',
+]
+
 interface Props {
   messages: Message[]
   loading: boolean
   mode?: ChatMode
   onSend?: (question: string) => void
+  onProfileScan?: () => void
   onOpenPdf?: (url: string, label: string) => void
 }
 
-export default function ChatThread({ messages, loading, mode = 'lookup', onSend, onOpenPdf }: Props) {
+export default function ChatThread({ messages, loading, mode = 'lookup', onSend, onProfileScan, onOpenPdf }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -114,15 +126,28 @@ export default function ChatThread({ messages, loading, mode = 'lookup', onSend,
         <h3 className="text-base font-semibold text-gray-700 mb-1">Bắt đầu tư vấn chính sách</h3>
         <p className="text-sm text-gray-400 max-w-xs">
           {mode === 'advisory'
-            ? 'Hỏi về ưu đãi / chính sách — chế độ Tư vấn sâu đối chiếu với hồ sơ doanh nghiệp để xem bạn đủ điều kiện hay chưa.'
-            : 'Hỏi về ưu đãi hay chính sách hỗ trợ. Chế độ Tra cứu nhanh không yêu cầu hồ sơ doanh nghiệp.'}
+            ? 'Hỏi về chương trình hỗ trợ — chế độ Tư vấn sâu đối chiếu với hồ sơ doanh nghiệp để xem bạn đủ điều kiện hay chưa.'
+            : 'Hỏi về ưu đãi hay chương trình hỗ trợ. Chế độ Tra cứu nhanh không yêu cầu hồ sơ doanh nghiệp.'}
         </p>
-        <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm text-left">
-          {[
-            'Tôi có đủ điều kiện nhận ưu đãi thuế TNDN không?',
-            'Doanh nghiệp tôi có thể xin quỹ NATIF không?',
-            'Có chính sách nào hỗ trợ doanh nghiệp công nghệ không?',
-          ].map((q) => (
+
+        {/* Advisory-only: scan full profile CTA */}
+        {mode === 'advisory' && onProfileScan && (
+          <button
+            type="button"
+            onClick={onProfileScan}
+            className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 transition shadow-sm"
+          >
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            Quét chính sách phù hợp với hồ sơ
+          </button>
+        )}
+
+        <div className="mt-5 grid grid-cols-1 gap-2 w-full max-w-sm text-left">
+          <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium mb-0.5">Gợi ý chủ đề</p>
+          {GOLDEN_POLICY_CHIPS.map((q) => (
             <button
               key={q}
               type="button"
@@ -151,6 +176,7 @@ export default function ChatThread({ messages, loading, mode = 'lookup', onSend,
             sources={msg.sources}
             advisoryResult={msg.advisoryResult}
             warning={msg.warning}
+            coverageStatus={msg.coverageStatus}
             onOpenPdf={onOpenPdf}
           />
         ),
