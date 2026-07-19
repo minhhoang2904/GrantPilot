@@ -550,10 +550,12 @@ export default function MainPage({
               label="Coworking"
               value={triboolLabel(company?.has_coworking_contract)}
             />
-            <SidebarStat
-              label="Chi phí CW"
-              value={compactVnd(company?.coworking_monthly_cost_vnd)}
-            />
+            {company?.has_coworking_contract === true && (
+              <SidebarStat
+                label="Chi phí CW"
+                value={compactVnd(company?.coworking_monthly_cost_vnd)}
+              />
+            )}
           </div>
         </div>
 
