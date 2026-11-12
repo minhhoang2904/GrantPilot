@@ -4,6 +4,7 @@ services:
     name: grandpilot-ingestion
     runtime: docker
     dockerfilePath: ./server-a-ingestion/Dockerfile
+    dockerContext: ./server-a-ingestion
     dockerCommand: uvicorn api:app --host 0.0.0.0 --port 10000
     plan: free
     envVars:
@@ -19,6 +20,7 @@ services:
     name: grandpilot-eligibility
     runtime: docker
     dockerfilePath: ./server-c-eligibility/Dockerfile
+    dockerContext: ./server-c-eligibility
     dockerCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     plan: free
     envVars:
@@ -41,7 +43,7 @@ services:
   - type: web
     name: grandpilot-api
     runtime: docker
-    dockerfilePath: ./server-b-retrieval/Dockerfile
+    dockerfilePath: ./server-b-retrieval/Dockerfile.render
     dockerCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     plan: free
     envVars:
@@ -105,6 +107,7 @@ services:
     name: grandpilot
     runtime: docker
     dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
     plan: free
     envVars:
       - key: PORT
