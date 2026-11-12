@@ -1,4 +1,8 @@
-"""Environment-only configuration for Server C."""
+"""Environment-only configuration for Server C.
+
+Multi-provider: eligibility explanation LLM reads its own API key and base URL.
+Falls back to legacy FPT_* variables for backward compatibility.
+"""
 
 from __future__ import annotations
 
@@ -33,11 +37,29 @@ MONGODB_SERVER_SELECTION_TIMEOUT_MS = int(
     os.getenv("MONGODB_SERVER_SELECTION_TIMEOUT_MS", "5000")
 )
 
-FPT_BASE_URL = os.getenv("FPT_BASE_URL", "https://mkp-api.fptcloud.com").rstrip("/")
-FPT_API_KEY = os.getenv("FPT_API_KEY", "").strip()
-FPT_ELIGIBILITY_MODEL = os.getenv("FPT_ELIGIBILITY_MODEL", "GLM-5.2").strip()
-FPT_ELIGIBILITY_MAX_TOKENS = int(os.getenv("FPT_ELIGIBILITY_MAX_TOKENS", "1200"))
-FPT_TIMEOUT_SECONDS = float(os.getenv("FPT_TIMEOUT_SECONDS", "60"))
+# -- Eligibility explanation LLM (default: Groq) ---------------------------
+_FPT_BASE_URL = os.getenv("FPT_BASE_URL", "").strip().rstrip("/")
+_FPT_API_KEY = os.getenv("FPT_API_KEY", "").strip()
+
+ELIGIBILITY_API_KEY = os.getenv("ELIGIBILITY_API_KEY", _FPT_API_KEY).strip()
+ELIGIBILITY_BASE_URL = os.getenv(
+    "ELIGIBILITY_BASE_URL",
+    _FPT_BASE_URL or "https://api.groq.com/openai/v1",
+).strip().rstrip("/")
+ELIGIBILITY_MODEL = os.getenv(
+    "ELIGIBILITY_MODEL",
+    os.getenv("FPT_ELIGIBILITY_MODEL", "llama-3.3-70b-versatile"),
+).strip()
+ELIGIBILITY_CHAT_URL = os.getenv(
+    "ELIGIBILITY_CHAT_URL",
+    f"{ELIGIBILITY_BASE_URL}/chat/completions",
+).strip()
+ELIGIBILITY_MAX_TOKENS = int(
+    os.getenv("ELIGIBILITY_MAX_TOKENS", os.getenv("FPT_ELIGIBILITY_MAX_TOKENS", "1200"))
+)
+LLM_TIMEOUT_SECONDS = float(
+    os.getenv("LLM_TIMEOUT_SECONDS", os.getenv("FPT_TIMEOUT_SECONDS", "60"))
+)
 ELIGIBILITY_LLM_ENABLED = os.getenv("ELIGIBILITY_LLM_ENABLED", "true").lower() in {
     "1", "true", "yes",
 }
@@ -54,4 +76,4 @@ def mongodb_enabled() -> bool:
 
 
 def llm_enabled() -> bool:
-    return bool(ELIGIBILITY_LLM_ENABLED and FPT_API_KEY and FPT_ELIGIBILITY_MODEL)
+    return bool(ELIGIBILITY_LLM_ENABLED and ELIGIBILITY_API_KEY and ELIGIBILITY_MODEL)

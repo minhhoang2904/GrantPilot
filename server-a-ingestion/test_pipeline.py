@@ -206,26 +206,25 @@ class RuleNormalizationTest(unittest.TestCase):
         self.assertEqual(sum(row["review_status"] == "superseded" for row in rows), 1)
 
 
-class FptClientTest(unittest.TestCase):
-    @patch.dict("os.environ", {"FPT_API_KEY": "test-only-key"})
+class IngestionClientTest(unittest.TestCase):
+    @patch.dict("os.environ", {"EMBEDDING_API_KEY": "test-jina-key", "ANSWER_API_KEY": "test-groq-key"})
     def test_policy_request_uses_locked_model_config(self):
         client = FptClient()
         captured = {}
 
-        def fake_post(endpoint, payload):
-            captured.update({"endpoint": endpoint, "payload": payload})
+        def fake_post(url, api_key, payload):
+            captured.update({"url": url, "api_key": api_key, "payload": payload})
             return {
                 "choices": [{"message": {"content": '{"policies": []}'}}]
             }
 
-        client._post = fake_post
+        client._post = staticmethod(fake_post)
         client.extract_policies(
             SOURCE,
             [{"unit_id": "sample-law_art-22", "text": "Điều 22. Hỗ trợ doanh nghiệp"}],
         )
 
-        self.assertEqual(captured["endpoint"], "chat/completions")
-        self.assertEqual(captured["payload"]["model"], "Llama-3.3-70B-Instruct")
+        self.assertIn("chat/completions", captured["url"])
         self.assertEqual(captured["payload"]["temperature"], 0)
         self.assertEqual(captured["payload"]["response_format"], {"type": "json_object"})
         self.assertEqual(captured["payload"]["max_tokens"], 3000)

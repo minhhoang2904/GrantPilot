@@ -83,7 +83,7 @@ class EligibilityExplainer:
         }
         safe_profile = {key: value for key, value in profile.items() if key not in pii_fields}
         payload: dict[str, Any] = {
-            "model": config.FPT_ELIGIBILITY_MODEL,
+            "model": config.ELIGIBILITY_MODEL,
             "messages": [
                 {
                     "role": "system",
@@ -103,33 +103,19 @@ class EligibilityExplainer:
                 },
             ],
             "temperature": 0,
-            "max_tokens": config.FPT_ELIGIBILITY_MAX_TOKENS,
+            "max_tokens": config.ELIGIBILITY_MAX_TOKENS,
             "stream": False,
         }
-        if config.FPT_ELIGIBILITY_MODEL.lower().startswith("glm-5.2"):
-            payload["thinking"] = {"type": "disabled", "clear_thinking": True}
-            payload["reasoning_effort"] = "none"
         try:
-            with httpx.Client(timeout=config.FPT_TIMEOUT_SECONDS) as client:
+            with httpx.Client(timeout=config.LLM_TIMEOUT_SECONDS) as client:
                 response = client.post(
-                    f"{config.FPT_BASE_URL}/chat/completions",
+                    config.ELIGIBILITY_CHAT_URL,
                     headers={
-                        "Authorization": f"Bearer {config.FPT_API_KEY}",
+                        "Authorization": f"Bearer {config.ELIGIBILITY_API_KEY}",
                         "Content-Type": "application/json",
                     },
                     json=payload,
                 )
-                if response.status_code in {400, 422} and "thinking" in payload:
-                    payload.pop("thinking", None)
-                    payload.pop("reasoning_effort", None)
-                    response = client.post(
-                        f"{config.FPT_BASE_URL}/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {config.FPT_API_KEY}",
-                            "Content-Type": "application/json",
-                        },
-                        json=payload,
-                    )
                 response.raise_for_status()
                 content = response.json()["choices"][0]["message"].get("content") or ""
                 return content.strip() or fallback

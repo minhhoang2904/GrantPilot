@@ -55,9 +55,29 @@ ALLOWED_OPERATORS = {"==", "!=", ">", ">=", "<", "<=", "in", "not_in", "exists",
 REVIEW_STATUSES = {"candidate", "needs_schema_mapping", "approved", "rejected", "superseded"}
 POLICY_RULE_SCHEMA_VERSION = "policy-rule-schema-v1"
 
-FPT_BASE_URL = os.getenv("FPT_BASE_URL", "https://mkp-api.fptcloud.com").rstrip("/")
-POLICY_MODEL = os.getenv("FPT_POLICY_MODEL", "Llama-3.3-70B-Instruct")
-EMBEDDING_MODEL = os.getenv("FPT_EMBEDDING_MODEL", "Vietnamese_Embedding")
+# -- Multi-provider config (falls back to legacy FPT_* vars) ----------------
+_FPT_BASE_URL = os.getenv("FPT_BASE_URL", "").strip().rstrip("/")
+_FPT_API_KEY = os.getenv("FPT_API_KEY", "").strip()
+
+# Embeddings (Jina AI)
+EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY", _FPT_API_KEY).strip()
+EMBEDDING_BASE_URL = os.getenv(
+    "EMBEDDING_BASE_URL", _FPT_BASE_URL or "https://api.jina.ai/v1"
+).strip().rstrip("/")
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL", os.getenv("FPT_EMBEDDING_MODEL", "jina-embeddings-v3")
+).strip()
+EMBEDDING_URL = os.getenv("EMBEDDING_URL", f"{EMBEDDING_BASE_URL}/embeddings").strip()
+
+# Policy extraction LLM (Groq)
+POLICY_API_KEY = os.getenv("POLICY_API_KEY", os.getenv("ANSWER_API_KEY", _FPT_API_KEY)).strip()
+POLICY_BASE_URL = os.getenv(
+    "POLICY_BASE_URL", os.getenv("ANSWER_BASE_URL", _FPT_BASE_URL or "https://api.groq.com/openai/v1")
+).strip().rstrip("/")
+POLICY_MODEL = os.getenv(
+    "POLICY_MODEL", os.getenv("FPT_POLICY_MODEL", "llama-3.3-70b-versatile")
+).strip()
+POLICY_CHAT_URL = os.getenv("POLICY_CHAT_URL", f"{POLICY_BASE_URL}/chat/completions").strip()
 
 OCR_PREFIX = r"^[\s\.\-:|`¡_‡]*"
 ARTICLE_RE = re.compile(OCR_PREFIX + r"Đi[eêềệ]u\s+([0-9Il]+)[\.:]\s*(.+)$", re.IGNORECASE)
@@ -318,20 +338,30 @@ def parse_pages(pages: list[dict], source: dict) -> list[dict]:
     return units
 
 
-class FptClient:
-    def __init__(self) -> None:
-        self.api_key = os.getenv("FPT_API_KEY", "").strip()
-        if not self.api_key:
-            raise RuntimeError("Chưa có FPT_API_KEY. Hãy đặt key mới trong biến môi trường.")
-        self.headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+class IngestionClient:
+    """Multi-provider client for the ingestion pipeline.
 
-    def _post(self, endpoint: str, payload: dict) -> dict:
+    Policy extraction uses POLICY_API_KEY / POLICY_CHAT_URL (Groq by default).
+    Embedding uses EMBEDDING_API_KEY / EMBEDDING_URL (Jina by default).
+    """
+
+    def __init__(self) -> None:
+        if not POLICY_API_KEY and not EMBEDDING_API_KEY:
+            raise RuntimeError(
+                "Chưa có API key. Đặt EMBEDDING_API_KEY (Jina) và ANSWER_API_KEY hoặc POLICY_API_KEY (Groq)."
+            )
+
+    @staticmethod
+    def _post(url: str, api_key: str, payload: dict) -> dict:
         error: Exception | None = None
         for attempt in range(3):
             try:
                 response = requests.post(
-                    f"{FPT_BASE_URL}/{endpoint.lstrip('/')}",
-                    headers=self.headers,
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
                     json=payload,
                     timeout=120,
                 )
@@ -341,7 +371,7 @@ class FptClient:
                 error = exc
                 if attempt < 2:
                     time.sleep(2**attempt)
-        raise RuntimeError(f"FPT API lỗi tại {endpoint}: {error}") from error
+        raise RuntimeError(f"API lỗi tại {url}: {error}") from error
 
     def extract_policies(self, source: dict, units: list[dict]) -> list[dict]:
         evidence = [u["unit_id"] for u in units]
@@ -383,7 +413,7 @@ Tài liệu: {source['document_title']} ({source['document_number']})
             "max_tokens": 3000,
             "stream": False,
         }
-        data = self._post("chat/completions", payload)
+        data = self._post(POLICY_CHAT_URL, POLICY_API_KEY, payload)
         content = data["choices"][0]["message"]["content"].strip()
         if content.startswith("```"):
             content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.IGNORECASE)
@@ -393,10 +423,15 @@ Tài liệu: {source['document_title']} ({source['document_number']})
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         data = self._post(
-            "embeddings",
+            EMBEDDING_URL,
+            EMBEDDING_API_KEY,
             {"model": EMBEDDING_MODEL, "input": texts, "encoding_format": "float"},
         )
         return [item["embedding"] for item in sorted(data["data"], key=lambda item: item["index"])]
+
+
+# Backward-compatible alias.
+FptClient = IngestionClient
 
 
 def enrich_policy_source(policy: dict, source: dict) -> dict:
@@ -607,21 +642,21 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
         embeddings = client.embed(texts)
         metadatas = [
             {
-                "document_id": u["document_id"],
-                "article": u["article"],
-                "clause": u["clause"],
-                "point": u["point"],
-                "page_start": u["page_start"],
-                "page_end": u["page_end"],
-                "source_file": u["source_file"],
-                "source_url": u["source_url"],
-                "document_number": u["document_number"],
-                "article_title": u["article_title"],
-                "issued_date": u["issued_date"] or "",
-                "effective_from": u["effective_from"] or "",
-                "effective_to": u["effective_to"] or "",
-                "document_status": u["document_status"],
-                "legal_status_checked_at": u["legal_status_checked_at"] or "",
+                "document_id": u.get("document_id", ""),
+                "article": u.get("article", ""),
+                "clause": u.get("clause", ""),
+                "point": u.get("point", ""),
+                "page_start": u.get("page_start", 0),
+                "page_end": u.get("page_end", 0),
+                "source_file": u.get("source_file", ""),
+                "source_url": u.get("source_url", ""),
+                "document_number": u.get("document_number", ""),
+                "article_title": u.get("article_title", ""),
+                "issued_date": u.get("issued_date") or "",
+                "effective_from": u.get("effective_from") or "",
+                "effective_to": u.get("effective_to") or "",
+                "document_status": u.get("document_status", "unknown"),
+                "legal_status_checked_at": u.get("legal_status_checked_at") or "",
                 "version": u.get("version", 1),
                 "is_current": bool(u.get("is_current", True)),
                 "embedding_model": EMBEDDING_MODEL,

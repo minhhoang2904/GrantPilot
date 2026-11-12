@@ -1,4 +1,8 @@
-"""External clients cho FPT va Pinecone, co the inject fake trong test."""
+"""Multi-provider LLM clients cho embedding, rerank, rewrite, answer.
+
+Moi nhiem vu co the dung provider rieng (Jina, Groq, Mistral, ...)
+voi API key va base URL doc lap. Tat ca deu dung OpenAI-compatible format.
+"""
 
 from __future__ import annotations
 
@@ -9,50 +13,45 @@ from typing import Any
 import config
 
 
-class FptClient:
-    def __init__(self, api_key: str | None = None) -> None:
-        self.api_key = (api_key if api_key is not None else config.FPT_API_KEY).strip()
+class LLMClient:
+    """Unified client that routes each operation to its configured provider."""
+
+    def __init__(self, *, embedding_api_key: str | None = None) -> None:
+        self._embedding_api_key = (
+            embedding_api_key if embedding_api_key is not None
+            else config.EMBEDDING_API_KEY
+        ).strip()
 
     @property
     def enabled(self) -> bool:
-        return bool(self.api_key)
+        return bool(self._embedding_api_key or config.ANSWER_API_KEY)
 
-    def _post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self.api_key:
-            raise RuntimeError("Chua cau hinh FPT_API_KEY")
+    @staticmethod
+    def _post(url: str, api_key: str, payload: dict[str, Any]) -> dict[str, Any]:
+        if not api_key:
+            raise RuntimeError("Chua cau hinh API key cho provider")
         try:
             import httpx
         except ImportError as exc:
             raise RuntimeError("Thieu package httpx") from exc
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "GrandPilot-Retrieval/1.0",
+            "User-Agent": "GrandPilot-Retrieval/2.0",
         }
-        with httpx.Client(timeout=config.FPT_TIMEOUT_SECONDS) as client:
+        with httpx.Client(timeout=config.LLM_TIMEOUT_SECONDS) as client:
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
 
-    def _post_chat(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Gui chat payload, retry neu FPT proxy chua pass-through GLM controls."""
-        try:
-            return self._post(config.FPT_CHAT_URL, payload)
-        except Exception as exc:
-            status_code = getattr(getattr(exc, "response", None), "status_code", None)
-            has_glm_controls = "thinking" in payload or "reasoning_effort" in payload
-            if not has_glm_controls or status_code not in {400, 422}:
-                raise
-            compatible = dict(payload)
-            compatible.pop("thinking", None)
-            compatible.pop("reasoning_effort", None)
-            return self._post(config.FPT_CHAT_URL, compatible)
+    # -- Embeddings (Jina AI) -----------------------------------------------
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         data = self._post(
-            config.FPT_EMBEDDINGS_URL,
+            config.EMBEDDING_URL,
+            config.EMBEDDING_API_KEY,
             {
-                "model": config.FPT_EMBEDDING_MODEL,
+                "model": config.EMBEDDING_MODEL,
                 "input": texts,
                 "encoding_format": "float",
             },
@@ -62,13 +61,16 @@ class FptClient:
             raise RuntimeError(f"Embedding API tra {len(rows)}/{len(texts)} vectors")
         return [row["embedding"] for row in rows]
 
+    # -- Reranker (Jina AI) -------------------------------------------------
+
     def rerank(self, query: str, documents: list[str], top_n: int) -> list[tuple[int, float]]:
         if not documents:
             return []
         data = self._post(
-            config.FPT_RERANK_URL,
+            config.RERANK_URL,
+            config.RERANK_API_KEY,
             {
-                "model": config.FPT_RERANK_MODEL,
+                "model": config.RERANK_MODEL,
                 "query": query,
                 "documents": documents,
                 "top_n": min(top_n, len(documents)),
@@ -79,13 +81,17 @@ class FptClient:
             for item in data.get("results", [])
         ]
 
+    # -- Query rewrite (Groq) -----------------------------------------------
+
     def rewrite_query(self, question: str, history: list[dict[str, str]]) -> str:
-        if not self.enabled or not config.FPT_QUERY_REWRITE_MODEL or not history:
+        if not config.rewrite_enabled() or not history:
             return _deterministic_rewrite(question, history)
         prior = "\n".join(f"{m['role']}: {m['content']}" for m in history[-6:])
-        data = self._post_chat(
+        data = self._post(
+            config.REWRITE_CHAT_URL,
+            config.REWRITE_API_KEY,
             {
-                "model": config.FPT_QUERY_REWRITE_MODEL,
+                "model": config.REWRITE_MODEL,
                 "messages": [
                     {
                         "role": "system",
@@ -101,15 +107,17 @@ class FptClient:
                     },
                 ],
                 "temperature": 0,
-                "max_tokens": config.FPT_QUERY_REWRITE_MAX_TOKENS,
+                "max_tokens": config.REWRITE_MAX_TOKENS,
                 "stream": False,
             },
         )
         content = data["choices"][0]["message"].get("content") or ""
         return content.strip() or _deterministic_rewrite(question, history)
 
+    # -- Grounded answer (Groq / Mistral) -----------------------------------
+
     def answer(self, question: str, evidence: list[dict]) -> str | None:
-        if not self.enabled or not config.FPT_ANSWER_MODEL or not evidence:
+        if not config.answer_enabled() or not evidence:
             return None
         blocks = []
         for unit in evidence:
@@ -121,7 +129,7 @@ class FptClient:
             blocks.append(f"[{unit['unit_id']}] {location}\n{unit.get('text', '')}")
         evidence_text = "\n\n".join(blocks)
         payload: dict[str, Any] = {
-            "model": config.FPT_ANSWER_MODEL,
+            "model": config.ANSWER_MODEL,
             "messages": [
                 {
                     "role": "system",
@@ -138,36 +146,29 @@ class FptClient:
                 },
             ],
             "temperature": 0,
-            "max_tokens": config.FPT_ANSWER_MAX_TOKENS,
+            "max_tokens": config.ANSWER_MAX_TOKENS,
             "stream": False,
         }
-        if config.FPT_ANSWER_MODEL.lower().startswith("glm-5.2"):
-            payload["thinking"] = {
-                "type": config.FPT_ANSWER_THINKING,
-                "clear_thinking": True,
-            }
-            payload["reasoning_effort"] = config.FPT_ANSWER_REASONING_EFFORT
-
-        data = self._post_chat(payload)
+        data = self._post(config.ANSWER_CHAT_URL, config.ANSWER_API_KEY, payload)
         choice = data.get("choices", [{}])[0]
         message = choice.get("message") or {}
         content = (message.get("content") or "").strip()
         if content:
             return content
         finish_reason = choice.get("finish_reason", "unknown")
-        reasoning_present = bool((message.get("reasoning_content") or "").strip())
         raise RuntimeError(
             "LLM trả content rỗng "
-            f"(model={config.FPT_ANSWER_MODEL}, finish_reason={finish_reason}, "
-            f"reasoning_content={reasoning_present}, max_tokens={config.FPT_ANSWER_MAX_TOKENS})"
+            f"(model={config.ANSWER_MODEL}, finish_reason={finish_reason}, "
+            f"max_tokens={config.ANSWER_MAX_TOKENS})"
         )
 
+    # -- Advisory suggestions (Groq / Mistral) ------------------------------
+
     def advise(self, advisory_payload: dict[str, Any]) -> str | None:
-        """Suggest next actions without changing deterministic decisions."""
-        if not self.enabled or not config.FPT_ADVISORY_ENABLED or not config.FPT_ADVISORY_MODEL:
+        if not config.ADVISORY_ENABLED or not config.ADVISORY_MODEL:
             return None
         payload: dict[str, Any] = {
-            "model": config.FPT_ADVISORY_MODEL,
+            "model": config.ADVISORY_MODEL,
             "messages": [
                 {
                     "role": "system",
@@ -188,21 +189,19 @@ class FptClient:
                 },
             ],
             "temperature": 0.2,
-            "max_tokens": config.FPT_ADVISORY_MAX_TOKENS,
+            "max_tokens": config.ADVISORY_MAX_TOKENS,
             "stream": False,
         }
-        if config.FPT_ADVISORY_MODEL.lower().startswith("glm-5.2"):
-            payload["thinking"] = {
-                "type": config.FPT_ANSWER_THINKING,
-                "clear_thinking": True,
-            }
-            payload["reasoning_effort"] = config.FPT_ANSWER_REASONING_EFFORT
-        data = self._post_chat(payload)
+        data = self._post(config.ADVISORY_CHAT_URL, config.ADVISORY_API_KEY, payload)
         message = (data.get("choices") or [{}])[0].get("message") or {}
         content = (message.get("content") or "").strip()
         if content:
             return content
         raise RuntimeError("LLM tư vấn trả content rỗng")
+
+
+# Backward-compatible alias so existing imports keep working.
+FptClient = LLMClient
 
 
 def _deterministic_rewrite(question: str, history: list[dict[str, str]]) -> str:
@@ -266,9 +265,6 @@ class PineconeDenseIndex:
                 metadata = getattr(match, "metadata", {}) or {}
                 physical_id = getattr(match, "id", None)
                 score = getattr(match, "score", 0.0)
-            # Server A co the encode ID vat ly thanh ``u_<hex>`` de Pinecone
-            # chi nhan ASCII. Retrieval phai hop nhat theo ID phap ly goc,
-            # khong theo ID luu tru. Ho tro ca contract cu ``unit_id``.
             unit_id = (
                 metadata.get("original_unit_id")
                 or metadata.get("unit_id")

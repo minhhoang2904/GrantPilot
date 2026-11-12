@@ -199,7 +199,8 @@ def health() -> dict[str, Any]:
         "legal_data_configured": config.legal_data_configured(),
         "mongodb_configured": config.mongodb_enabled(),
         "pinecone_configured": config.pinecone_enabled(),
-        "fpt_configured": config.fpt_enabled(),
+        "embedding_configured": config.embedding_enabled(),
+        "answer_configured": config.answer_enabled(),
         "redis_configured": bool(config.REDIS_URL),
     }
 
