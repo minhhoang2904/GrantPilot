@@ -120,151 +120,160 @@ def reciprocal_rank_fusion(
             fusion_score=merged[unit_id].get("fusion_score", 0.0) + 1 / (rrf_k + rank),
         )
     for rank, (unit_id, score) in enumerate(sparse, start=1):
-        merged[unit_id].setdefault("unit_id", unit_id)
-        merged[unit_id]["bm25_score"] = score
-        merged[unit_id]["bm25_rank"] = rank
-        merged[unit_id]["fusion_score"] = (
-            merged[unit_id].get("fusion_score", 0.0) + 1 / (rrf_k + rank)
+        merged[unit_id].update(
+            unit_id=unit_id,
+            bm25_score=score,
+            bm25_rank=rank,
+            fusion_score=merged[unit_id].get("fusion_score", 0.0) + 1 / (rrf_k + rank),
         )
-    return sorted(merged.values(), key=lambda c: c.get("fusion_score", 0.0), reverse=True)
+    return sorted(merged.values(), key=lambda item: item.get("fusion_score", 0.0), reverse=True)
 
 
-# ── LegalRetriever ────────────────────────────────────────────────────────────
-
-class LegalRetriever:
-    """Hybrid retriever: dense (Pinecone) + sparse (BM25) -> RRF -> rerank."""
-
-    def __init__(self) -> None:
-        self.fpt = FptClient()
-        self._dense = PineconeDenseIndex()
-        self._store: Any = None
-        self._bm25: BM25Index | None = None
-        self._bm25_loaded = False
-
-    @property
-    def store(self) -> Any:
-        if self._store is None:
-            self._store = build_legal_unit_store()
-        return self._store
-
-    def _get_bm25(self) -> BM25Index | None:
-        """BM25 chỉ khả dụng khi backend JSONL (toàn bộ units trong RAM)."""
-        if self._bm25_loaded:
-            return self._bm25
-        self._bm25_loaded = True
-        units = getattr(self.store, "units", None)
-        if units:
-            self._bm25 = BM25Index(units)
-        return self._bm25
+class HybridRetriever:
+    def __init__(
+        self,
+        store: Any,
+        *,
+        fpt: FptClient | None = None,
+        dense_index: DenseIndex | None = None,
+    ) -> None:
+        self.store = store
+        self.fpt = fpt or FptClient()
+        self.dense_index = dense_index or PineconeDenseIndex()
+        self.bm25 = BM25Index(store.units)
 
     def retrieve(
         self,
-        question: str,
+        query: str,
         *,
         history: list[dict[str, str]] | None = None,
-        top_k: int = 5,
+        top_k: int = config.RERANK_TOP_K,
     ) -> RetrievalResult:
         history = history or []
-        route, filters = detect_route(question, bool(history))
-        diagnostics: dict[str, Any] = {}
-
-        # Rewrite câu hỏi follow-up thành câu độc lập
-        if route == "follow_up" and history:
-            retrieval_query = self.fpt.rewrite_query(question, history)
-        else:
-            retrieval_query = question
-
-        legal_units: list[dict[str, Any]] = []
+        route, reference = detect_route(query, bool(history))
+        retrieval_query = query
+        diagnostics: dict[str, Any] = {"dense_error": None, "rerank_error": None}
 
         if route == "exact_citation":
-            legal_units = self.store.exact_lookup(**filters)
-            # Thêm context cấp cha (điều/khoản)
-            seen = {u.get("unit_id") for u in legal_units}
-            for unit in list(legal_units):
-                for parent in self.store.parents(unit):
-                    pid = parent.get("unit_id")
-                    if pid and pid not in seen:
-                        legal_units.append(parent)
-                        seen.add(pid)
-            legal_units = legal_units[:top_k]
-            diagnostics["exact_hits"] = len(legal_units)
+            exact = self.store.exact_lookup(**reference)
+            selected = [self._hydrate(unit, score=1.0, mode="exact") for unit in exact[:top_k]]
+            return self._result(query, retrieval_query, route, selected, diagnostics)
 
-        else:
-            # Dense search (Pinecone)
-            dense_results: list[tuple[str, float]] = []
-            if self._dense.enabled and self.fpt.enabled:
-                try:
-                    vectors = self.fpt.embed([retrieval_query])
-                    dense_results = self._dense.search(vectors[0], top_k=config.DENSE_TOP_K)
-                except Exception as exc:
-                    diagnostics["dense_error"] = str(exc)
+        if route == "follow_up":
+            retrieval_query = self.fpt.rewrite_query(query, history)
 
-            # Sparse search (BM25, JSONL backend only)
-            sparse_results: list[tuple[str, float]] = []
-            bm25 = self._get_bm25()
-            if bm25:
-                sparse_results = bm25.search(retrieval_query, top_k=config.BM25_TOP_K)
+        dense: list[tuple[str, float]] = []
+        if self.dense_index.enabled and self.fpt.enabled:
+            try:
+                vector = self.fpt.embed([retrieval_query])[0]
+                dense = self.dense_index.search(vector, config.DENSE_TOP_K)
+                hydrated_ids = {
+                    unit["unit_id"] for unit in self.store.get_many(uid for uid, _ in dense)
+                }
+                dense = [(uid, score) for uid, score in dense if uid in hydrated_ids]
+            except Exception as exc:  # BM25 fallback must still serve the request.
+                diagnostics["dense_error"] = f"{type(exc).__name__}: {exc}"
 
-            diagnostics.update(
-                dense_count=len(dense_results),
-                sparse_count=len(sparse_results),
+        sparse = self.bm25.search(retrieval_query, config.BM25_TOP_K)
+        candidates = reciprocal_rank_fusion(dense, sparse, rrf_k=config.RRF_K)[: config.FUSION_TOP_K]
+        candidates = self._rerank(retrieval_query, candidates, diagnostics)
+        selected = self._select(candidates, top_k)
+        units = [
+            self._hydrate(
+                self.store.by_id[candidate["unit_id"]],
+                score=float(candidate.get("rerank_score", candidate.get("fusion_score", 0.0))),
+                mode="hybrid_rerank" if "rerank_score" in candidate else "hybrid_rrf",
             )
-
-            # Fuse + hydrate
-            if dense_results or sparse_results:
-                fused = reciprocal_rank_fusion(
-                    dense_results, sparse_results, rrf_k=config.RRF_K
-                )
-                top_ids = [c["unit_id"] for c in fused[: config.FUSION_TOP_K]]
-                hydrated = self.store.get_many(top_ids)
-            else:
-                hydrated = []
-
-            diagnostics["hydrated_count"] = len(hydrated)
-
-            # Rerank
-            if hydrated and self.fpt.enabled and config.FPT_RERANK_MODEL:
-                docs = [embedding_text(u) for u in hydrated]
-                try:
-                    ranked = self.fpt.rerank(retrieval_query, docs, top_n=top_k)
-                    scored = [(hydrated[idx], score) for idx, score in ranked]
-                    if config.RERANK_MIN_SCORE >= 0:
-                        scored = [(u, s) for u, s in scored if s >= config.RERANK_MIN_SCORE]
-                    for u, score in scored:
-                        u["rerank_score"] = score
-                    legal_units = [u for u, _ in scored]
-                except Exception as exc:
-                    diagnostics["rerank_error"] = str(exc)
-                    legal_units = hydrated[:top_k]
-            else:
-                legal_units = hydrated[:top_k]
-
-        # Tìm candidate policy IDs từ unit_ids
-        unit_ids = [u.get("unit_id") for u in legal_units if u.get("unit_id")]
-        candidate_policy_ids = self.store.policy_ids_for(unit_ids) if unit_ids else []
-
-        return RetrievalResult(
-            original_query=question,
-            retrieval_query=retrieval_query,
-            route=route,
-            legal_units=legal_units,
-            candidate_policy_ids=candidate_policy_ids,
-            diagnostics=diagnostics,
+            for candidate in selected
+        ]
+        diagnostics.update(
+            dense_count=len(dense),
+            bm25_count=len(sparse),
+            fusion_count=len(candidates),
         )
+        return self._result(query, retrieval_query, route, units, diagnostics)
+
+    def _rerank(
+        self,
+        query: str,
+        candidates: list[RankedCandidate],
+        diagnostics: dict[str, Any],
+    ) -> list[RankedCandidate]:
+        if not candidates or not self.fpt.enabled:
+            return candidates
+        documents = [embedding_text(self.store.by_id[item["unit_id"]]) for item in candidates]
+        try:
+            ranking = self.fpt.rerank(query, documents, min(config.RERANK_TOP_K * 3, len(documents)))
+        except Exception as exc:
+            diagnostics["rerank_error"] = f"{type(exc).__name__}: {exc}"
+            return candidates
+        out = []
+        for index, score in ranking:
+            if not 0 <= index < len(candidates):
+                continue
+            item = dict(candidates[index])
+            item["rerank_score"] = score
+            out.append(item)
+        return out or candidates
+
+    def _select(self, candidates: list[RankedCandidate], top_k: int) -> list[RankedCandidate]:
+        selected = []
+        per_article: Counter[tuple[str, str]] = Counter()
+        for candidate in candidates:
+            score = float(candidate.get("rerank_score", candidate.get("fusion_score", 0.0)))
+            if "rerank_score" in candidate and score < config.RERANK_MIN_SCORE:
+                continue
+            unit = self.store.by_id.get(candidate["unit_id"])
+            if not unit:
+                continue
+            group = (unit.get("document_id", ""), unit.get("article", ""))
+            if per_article[group] >= config.MAX_RESULTS_PER_ARTICLE:
+                continue
+            per_article[group] += 1
+            selected.append(candidate)
+            if len(selected) >= top_k:
+                break
+        return selected
+
+    def _hydrate(self, unit: dict, *, score: float, mode: str) -> dict:
+        out = dict(unit)
+        out["score"] = round(score, 6)
+        out["retrieval_mode"] = mode
+        out["context_units"] = [dict(parent) for parent in self.store.parents(unit)]
+        return out
+
+    def _result(
+        self,
+        original_query: str,
+        retrieval_query: str,
+        route: Route,
+        units: list[dict],
+        diagnostics: dict[str, Any],
+    ) -> RetrievalResult:
+        unit_ids: list[str] = []
+        for unit in units:
+            unit_ids.append(unit["unit_id"])
+            unit_ids.extend(context["unit_id"] for context in unit.get("context_units", []))
+        return {
+            "original_query": original_query,
+            "retrieval_query": retrieval_query,
+            "route": route,
+            "legal_units": units,
+            "candidate_policy_ids": self.store.policy_ids_for(dict.fromkeys(unit_ids)),
+            "diagnostics": diagnostics,
+        }
 
 
-# ── Singleton + helpers ───────────────────────────────────────────────────────
-
-_retriever: LegalRetriever | None = None
+_default_retriever: HybridRetriever | None = None
 
 
-def get_retriever() -> LegalRetriever:
-    global _retriever
-    if _retriever is None:
-        _retriever = LegalRetriever()
-    return _retriever
+def get_retriever() -> HybridRetriever:
+    global _default_retriever
+    if _default_retriever is None:
+        _default_retriever = HybridRetriever(build_legal_unit_store())
+    return _default_retriever
 
 
 def search_legal_units(query: str, top_k: int = 5) -> list[dict[str, Any]]:
-    """Wrapper cho /search endpoint."""
+    """Backward-compatible wrapper for GET /search."""
     return get_retriever().retrieve(query, top_k=top_k)["legal_units"]

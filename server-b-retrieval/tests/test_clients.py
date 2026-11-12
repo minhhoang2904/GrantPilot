@@ -4,34 +4,38 @@ import unittest
 from unittest.mock import patch
 
 import config
-from clients import FptClient, PineconeDenseIndex, _decode_physical_unit_id
+from clients import LLMClient, FptClient, PineconeDenseIndex, _decode_physical_unit_id
 
 
-class FptClientPayloadTest(unittest.TestCase):
-    def test_embed_does_not_depend_on_answer_state(self):
-        client = FptClient(api_key="test-key")
+class LLMClientPayloadTest(unittest.TestCase):
+    def test_embed_sends_correct_model(self):
+        client = LLMClient(embedding_api_key="test-key")
         captured = {}
 
-        def fake_post(url, payload):
+        def fake_post(url, api_key, payload):
             captured.update(url=url, payload=payload)
             return {"data": [{"index": 0, "embedding": [0.1, 0.2]}]}
 
-        client._post = fake_post
+        client._post = staticmethod(fake_post)
         self.assertEqual(client.embed(["xin chào"]), [[0.1, 0.2]])
-        self.assertEqual(captured["payload"]["model"], config.FPT_EMBEDDING_MODEL)
+        self.assertEqual(captured["payload"]["model"], config.EMBEDDING_MODEL)
 
-    def test_rewrite_uses_fast_model_and_small_budget(self):
-        client = FptClient(api_key="test-key")
+    def test_fptclient_alias_is_llmclient(self):
+        self.assertIs(FptClient, LLMClient)
+
+    def test_rewrite_uses_configured_model_and_budget(self):
+        client = LLMClient(embedding_api_key="test-key")
         captured = {}
 
-        def fake_chat(payload):
+        def fake_post(url, api_key, payload):
             captured.update(payload)
             return {"choices": [{"message": {"content": "Câu hỏi độc lập"}}]}
 
-        client._post_chat = fake_chat
+        client._post = staticmethod(fake_post)
         with (
-            patch.object(config, "FPT_QUERY_REWRITE_MODEL", "DeepSeek-V4-Flash"),
-            patch.object(config, "FPT_QUERY_REWRITE_MAX_TOKENS", 512),
+            patch.object(config, "REWRITE_MODEL", "llama-3.3-70b-versatile"),
+            patch.object(config, "REWRITE_MAX_TOKENS", 512),
+            patch.object(config, "REWRITE_API_KEY", "test-key"),
         ):
             result = client.rewrite_query(
                 "Thế tối đa bao nhiêu?",
@@ -39,15 +43,15 @@ class FptClientPayloadTest(unittest.TestCase):
             )
 
         self.assertEqual(result, "Câu hỏi độc lập")
-        self.assertEqual(captured["model"], "DeepSeek-V4-Flash")
+        self.assertEqual(captured["model"], "llama-3.3-70b-versatile")
         self.assertEqual(captured["max_tokens"], 512)
         self.assertNotIn("thinking", captured)
 
-    def test_glm_answer_disables_thinking_and_uses_safe_budget(self):
-        client = FptClient(api_key="test-key")
+    def test_answer_no_glm_specific_fields(self):
+        client = LLMClient(embedding_api_key="test-key")
         captured = {}
 
-        def fake_chat(payload):
+        def fake_post(url, api_key, payload):
             captured.update(payload)
             return {
                 "choices": [
@@ -58,7 +62,7 @@ class FptClientPayloadTest(unittest.TestCase):
                 ]
             }
 
-        client._post_chat = fake_chat
+        client._post = staticmethod(fake_post)
         evidence = [
             {
                 "unit_id": "law-04_art-17",
@@ -70,29 +74,32 @@ class FptClientPayloadTest(unittest.TestCase):
             }
         ]
         with (
-            patch.object(config, "FPT_ANSWER_MODEL", "GLM-5.2"),
-            patch.object(config, "FPT_ANSWER_MAX_TOKENS", 8192),
-            patch.object(config, "FPT_ANSWER_THINKING", "disabled"),
-            patch.object(config, "FPT_ANSWER_REASONING_EFFORT", "none"),
+            patch.object(config, "ANSWER_MODEL", "llama-3.3-70b-versatile"),
+            patch.object(config, "ANSWER_MAX_TOKENS", 8192),
+            patch.object(config, "ANSWER_API_KEY", "test-key"),
         ):
             result = client.answer("Có được hỗ trợ không?", evidence)
 
         self.assertEqual(result, "Câu trả lời có căn cứ.")
-        self.assertEqual(captured["model"], "GLM-5.2")
+        self.assertEqual(captured["model"], "llama-3.3-70b-versatile")
         self.assertEqual(captured["max_tokens"], 8192)
-        self.assertEqual(captured["thinking"], {"type": "disabled", "clear_thinking": True})
-        self.assertEqual(captured["reasoning_effort"], "none")
+        self.assertNotIn("thinking", captured)
+        self.assertNotIn("reasoning_effort", captured)
 
-    def test_empty_glm_content_is_explicit_error(self):
-        client = FptClient(api_key="test-key")
-        client._post_chat = lambda payload: {
-            "choices": [
-                {
-                    "message": {"content": None, "reasoning_content": "đang suy luận"},
-                    "finish_reason": "length",
-                }
-            ]
-        }
+    def test_empty_content_is_explicit_error(self):
+        client = LLMClient(embedding_api_key="test-key")
+
+        def fake_post(url, api_key, payload):
+            return {
+                "choices": [
+                    {
+                        "message": {"content": None},
+                        "finish_reason": "length",
+                    }
+                ]
+            }
+
+        client._post = staticmethod(fake_post)
         evidence = [
             {
                 "unit_id": "law-04_art-17",
@@ -101,9 +108,38 @@ class FptClientPayloadTest(unittest.TestCase):
                 "text": "Nội dung căn cứ.",
             }
         ]
-        with patch.object(config, "FPT_ANSWER_MODEL", "GLM-5.2"):
+        with (
+            patch.object(config, "ANSWER_MODEL", "llama-3.3-70b-versatile"),
+            patch.object(config, "ANSWER_API_KEY", "test-key"),
+        ):
             with self.assertRaisesRegex(RuntimeError, "content rỗng"):
                 client.answer("Câu hỏi", evidence)
+
+    def test_advisory_prompt_keeps_decision_fixed_and_budget_small(self):
+        client = LLMClient(embedding_api_key="test-key")
+        captured = {}
+
+        def fake_post(url, api_key, payload):
+            captured.update(payload)
+            return {"choices": [{"message": {"content": "- Chuẩn bị hồ sơ."}}]}
+
+        client._post = staticmethod(fake_post)
+        with (
+            patch.object(config, "ADVISORY_ENABLED", True),
+            patch.object(config, "ADVISORY_MODEL", "llama-3.3-70b-versatile"),
+            patch.object(config, "ADVISORY_MAX_TOKENS", 1200),
+            patch.object(config, "ADVISORY_API_KEY", "test-key"),
+        ):
+            result = client.advise({"eligibility_results": [{"status": "eligible"}]})
+
+        system_prompt = captured["messages"][0]["content"]
+        self.assertEqual(result, "- Chuẩn bị hồ sơ.")
+        self.assertEqual(captured["max_tokens"], 1200)
+        self.assertIn("Trạng thái eligibility là kết quả cố định", system_prompt)
+        self.assertIn("không thay đổi", system_prompt)
+        self.assertIn("Không thêm chính sách", system_prompt)
+        self.assertIn("Không nói doanh nghiệp chắc chắn", system_prompt)
+        self.assertNotIn("thinking", captured)
 
 
 class PineconeDenseIndexTest(unittest.TestCase):

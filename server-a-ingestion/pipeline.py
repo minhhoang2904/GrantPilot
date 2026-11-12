@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 import time
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
@@ -48,10 +49,35 @@ POLICY_CANDIDATES_PATH = LEGAL_DIR / "policy_candidates.json"
 POLICY_CACHE_DIR = DATA_DIR / "processed" / "policy_candidates"
 PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE", "legal_units")
 SOURCES_PATH = BASE_DIR / "source_documents.json"
+FACT_CATALOG_PATH = Path(os.getenv("FACT_CATALOG_PATH", BASE_DIR / "fact-catalog-v1.json"))
 
-FPT_BASE_URL = os.getenv("FPT_BASE_URL", "https://mkp-api.fptcloud.com").rstrip("/")
-POLICY_MODEL = os.getenv("FPT_POLICY_MODEL", "Llama-3.3-70B-Instruct")
-EMBEDDING_MODEL = os.getenv("FPT_EMBEDDING_MODEL", "Vietnamese_Embedding")
+ALLOWED_OPERATORS = {"==", "!=", ">", ">=", "<", "<=", "in", "not_in", "exists", "contains"}
+REVIEW_STATUSES = {"candidate", "needs_schema_mapping", "approved", "rejected", "superseded"}
+POLICY_RULE_SCHEMA_VERSION = "policy-rule-schema-v1"
+
+# -- Multi-provider config (falls back to legacy FPT_* vars) ----------------
+_FPT_BASE_URL = os.getenv("FPT_BASE_URL", "").strip().rstrip("/")
+_FPT_API_KEY = os.getenv("FPT_API_KEY", "").strip()
+
+# Embeddings (Jina AI)
+EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY", _FPT_API_KEY).strip()
+EMBEDDING_BASE_URL = os.getenv(
+    "EMBEDDING_BASE_URL", _FPT_BASE_URL or "https://api.jina.ai/v1"
+).strip().rstrip("/")
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL", os.getenv("FPT_EMBEDDING_MODEL", "jina-embeddings-v3")
+).strip()
+EMBEDDING_URL = os.getenv("EMBEDDING_URL", f"{EMBEDDING_BASE_URL}/embeddings").strip()
+
+# Policy extraction LLM (Groq)
+POLICY_API_KEY = os.getenv("POLICY_API_KEY", os.getenv("ANSWER_API_KEY", _FPT_API_KEY)).strip()
+POLICY_BASE_URL = os.getenv(
+    "POLICY_BASE_URL", os.getenv("ANSWER_BASE_URL", _FPT_BASE_URL or "https://api.groq.com/openai/v1")
+).strip().rstrip("/")
+POLICY_MODEL = os.getenv(
+    "POLICY_MODEL", os.getenv("FPT_POLICY_MODEL", "llama-3.3-70b-versatile")
+).strip()
+POLICY_CHAT_URL = os.getenv("POLICY_CHAT_URL", f"{POLICY_BASE_URL}/chat/completions").strip()
 
 OCR_PREFIX = r"^[\s\.\-:|`¡_‡]*"
 ARTICLE_RE = re.compile(OCR_PREFIX + r"Đi[eêềệ]u\s+([0-9Il]+)[\.:]\s*(.+)$", re.IGNORECASE)
@@ -151,6 +177,54 @@ def read_jsonl(path: Path) -> list[dict]:
         return []
     with path.open(encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
+
+
+def _field_token(value: object) -> str:
+    """Normalize spelling only; never infer a different business concept."""
+    text = unicodedata.normalize("NFD", str(value or ""))
+    text = "".join(char for char in text if unicodedata.category(char) != "Mn")
+    return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
+
+
+def load_fact_catalog(path: Path = FACT_CATALOG_PATH) -> dict:
+    """Load the shared contract. The path is overridable when Huy publishes it."""
+    catalog = json.loads(path.read_text(encoding="utf-8"))
+    if catalog.get("schema_version") != "fact-catalog-v1" or not isinstance(catalog.get("fields"), dict):
+        raise RuntimeError(f"Fact Catalog không hợp lệ: {path}")
+    return catalog
+
+
+def fact_aliases(catalog: dict) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for field, definition in catalog["fields"].items():
+        for alias in [field, *(definition.get("aliases") or [])]:
+            token = _field_token(alias)
+            previous = aliases.get(token)
+            if previous and previous != field:
+                raise RuntimeError(f"Alias Fact Catalog bị trùng: {alias}")
+            aliases[token] = field
+    return aliases
+
+
+def _value_is_valid(value: object, field_type: str, operator: str, definition: dict) -> bool:
+    if operator == "exists":
+        return isinstance(value, bool)
+    values = value if operator in {"in", "not_in"} else [value]
+    if operator in {"in", "not_in"} and (not isinstance(value, list) or not value):
+        return False
+    if field_type == "boolean":
+        return all(isinstance(item, bool) for item in values)
+    if field_type == "integer":
+        return all(isinstance(item, int) and not isinstance(item, bool) for item in values)
+    if field_type == "number":
+        return all(isinstance(item, (int, float)) and not isinstance(item, bool) for item in values)
+    if field_type == "enum":
+        return all(isinstance(item, str) and item in definition.get("enum", []) for item in values)
+    if field_type == "string":
+        if operator == "contains" and isinstance(value, list):
+            return all(isinstance(item, str) for item in value)
+        return all(isinstance(item, str) for item in values)
+    return False
 
 
 def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
@@ -264,20 +338,30 @@ def parse_pages(pages: list[dict], source: dict) -> list[dict]:
     return units
 
 
-class FptClient:
-    def __init__(self) -> None:
-        self.api_key = os.getenv("FPT_API_KEY", "").strip()
-        if not self.api_key:
-            raise RuntimeError("Chưa có FPT_API_KEY. Hãy đặt key mới trong biến môi trường.")
-        self.headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+class IngestionClient:
+    """Multi-provider client for the ingestion pipeline.
 
-    def _post(self, endpoint: str, payload: dict) -> dict:
+    Policy extraction uses POLICY_API_KEY / POLICY_CHAT_URL (Groq by default).
+    Embedding uses EMBEDDING_API_KEY / EMBEDDING_URL (Jina by default).
+    """
+
+    def __init__(self) -> None:
+        if not POLICY_API_KEY and not EMBEDDING_API_KEY:
+            raise RuntimeError(
+                "Chưa có API key. Đặt EMBEDDING_API_KEY (Jina) và ANSWER_API_KEY hoặc POLICY_API_KEY (Groq)."
+            )
+
+    @staticmethod
+    def _post(url: str, api_key: str, payload: dict) -> dict:
         error: Exception | None = None
         for attempt in range(3):
             try:
                 response = requests.post(
-                    f"{FPT_BASE_URL}/{endpoint.lstrip('/')}",
-                    headers=self.headers,
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
                     json=payload,
                     timeout=120,
                 )
@@ -287,11 +371,16 @@ class FptClient:
                 error = exc
                 if attempt < 2:
                     time.sleep(2**attempt)
-        raise RuntimeError(f"FPT API lỗi tại {endpoint}: {error}") from error
+        raise RuntimeError(f"API lỗi tại {url}: {error}") from error
 
     def extract_policies(self, source: dict, units: list[dict]) -> list[dict]:
         evidence = [u["unit_id"] for u in units]
         legal_text = "\n\n".join(f"[{u['unit_id']}]\n{u['text']}" for u in units)
+        catalog = load_fact_catalog()
+        fact_contract = "\n".join(
+            f"- {name}: {definition['type']}, operators={','.join(definition['operators'])}, source={definition['source']}"
+            for name, definition in catalog["fields"].items()
+        )
         prompt = f"""Đọc nguyên văn pháp luật dưới đây và trích các chính sách hỗ trợ doanh nghiệp có thể dùng để kiểm tra điều kiện.
 
 Chỉ trả JSON object đúng dạng:
@@ -306,7 +395,10 @@ Chỉ trả JSON object đúng dạng:
   "document_requirements_status": "known|requires_implementing_document"
 }}]}}
 
-Quy tắc: không suy diễn ngoài văn bản; không có chính sách thì trả policies rỗng; mọi evidence_unit_ids phải thuộc danh sách đã cung cấp.
+Fact Catalog bắt buộc (chỉ dùng đúng field bên dưới, không tự tạo field mới):
+{fact_contract}
+
+Quy tắc: không suy diễn ngoài văn bản; không có chính sách thì trả policies rỗng; mọi evidence_unit_ids phải thuộc danh sách đã cung cấp. `contains` nghĩa là chuỗi chứa substring hoặc danh sách chứa phần tử; `in` nghĩa là giá trị thực tế thuộc tập giá trị cho phép. Không thay thế hai operator này cho nhau.
 Tài liệu: {source['document_title']} ({source['document_number']})
 
 {legal_text[:30000]}"""
@@ -321,7 +413,7 @@ Tài liệu: {source['document_title']} ({source['document_number']})
             "max_tokens": 3000,
             "stream": False,
         }
-        data = self._post("chat/completions", payload)
+        data = self._post(POLICY_CHAT_URL, POLICY_API_KEY, payload)
         content = data["choices"][0]["message"]["content"].strip()
         if content.startswith("```"):
             content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.IGNORECASE)
@@ -331,61 +423,15 @@ Tài liệu: {source['document_title']} ({source['document_number']})
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         data = self._post(
-            "embeddings",
+            EMBEDDING_URL,
+            EMBEDDING_API_KEY,
             {"model": EMBEDDING_MODEL, "input": texts, "encoding_format": "float"},
         )
         return [item["embedding"] for item in sorted(data["data"], key=lambda item: item["index"])]
 
 
-def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> dict:
-    # LLM đôi khi trả ID ở cấp Điều (prefix) thay vì ID Khoản/Điểm đầy đủ.
-    # Ánh xạ theo prefix để không làm mất policy; nếu vẫn không khớp thì
-    # dùng toàn bộ units của Điều và đánh dấu cần review.
-    raw_evidence = policy.get("evidence_unit_ids", []) or []
-    evidence: list[str] = []
-    for candidate in raw_evidence:
-        if candidate in valid_evidence:
-            evidence.append(candidate)
-            continue
-        evidence.extend(uid for uid in valid_evidence if uid.startswith(candidate + "_"))
-    evidence = list(dict.fromkeys(evidence))
-    evidence_repaired = False
-    if not evidence:
-        evidence = valid_evidence
-        evidence_repaired = True
-    raw_id = policy.get("policy_id") or policy.get("policy_name", "policy")
-    clean_id = re.sub(r"[^a-z0-9_]+", "_", raw_id.lower()).strip("_")
-    if not clean_id:
-        clean_id = "policy_" + hashlib.sha1(raw_id.encode()).hexdigest()[:10]
-    document_prefix = source["document_id"].replace("-", "_")
-    evidence_suffix = hashlib.sha1("|".join(evidence).encode()).hexdigest()[:8]
-    clean_id = f"{document_prefix}_{clean_id}_{evidence_suffix}"
-    return {
-        "policy_id": clean_id,
-        "policy_name": policy.get("policy_name", "Chưa đặt tên"),
-        "category": policy.get("category", "Khác"),
-        "legal_source": {
-            "document": source["document_title"],
-            "document_number": source["document_number"],
-            "url": source["source_url"],
-            "local_file": f"data/raw/{source['file']}",
-            "issued_date": source.get("issued_date"),
-            "effective_from": source.get("effective_from"),
-            "effective_to": source.get("effective_to"),
-            "status": source.get("status", "unknown"),
-            "legal_status_checked_at": source.get("legal_status_checked_at"),
-        },
-        "evidence_unit_ids": evidence,
-        "rules": policy.get("rules", {"all": []}),
-        "benefit_calculator": policy.get("benefit_calculator", {}),
-        "required_documents": policy.get("required_documents", []),
-        "document_requirements_status": policy.get("document_requirements_status", "requires_implementing_document"),
-        "review": {
-            "status": "ai_extracted_requires_review",
-            "evidence_repaired": evidence_repaired,
-        },
-        "pipeline": {"document_id": source["document_id"], "model": POLICY_MODEL},
-    }
+# Backward-compatible alias.
+FptClient = IngestionClient
 
 
 def enrich_policy_source(policy: dict, source: dict) -> dict:
@@ -410,26 +456,6 @@ def enrich_policy_source(policy: dict, source: dict) -> dict:
     pipeline.setdefault("document_id", source["document_id"])
     pipeline.setdefault("model", POLICY_MODEL)
     policy["pipeline"] = pipeline
-    return policy
-
-
-def canonicalize_legacy_policy(policy: dict, source: dict | None) -> dict:
-    """Giữ policy cũ nhưng đưa về schema chung, không coi là policy AI đã duyệt."""
-    policy = dict(policy)
-    policy.setdefault("evidence_unit_ids", [])
-    policy.setdefault("pipeline", {"source": "legacy_manual"})
-    if source:
-        legal_source = dict(policy.get("legal_source") or {})
-        legal_source.update(
-            {
-                "issued_date": source.get("issued_date"),
-                "effective_from": source.get("effective_from"),
-                "effective_to": source.get("effective_to"),
-                "status": source.get("status", "unknown"),
-                "legal_status_checked_at": source.get("legal_status_checked_at"),
-            }
-        )
-        policy["legal_source"] = legal_source
     return policy
 
 
@@ -502,9 +528,7 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
         cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
         # Cache cũ được tạo trước khi bổ sung metadata ngày tháng có fingerprint
         # khác dù nội dung pháp lý không đổi; vẫn tái sử dụng để tránh gọi LLM lại.
-        cache_is_usable = "policies" in cache and (
-            cache.get("fingerprint") == fingerprint or "schema_version" not in cache
-        )
+        cache_is_usable = cache.get("schema_version") == 3 and cache.get("fingerprint") == fingerprint and "policies" in cache
         if not force and cache_is_usable:
             policies = [enrich_policy_source(p, sources[document_id]) for p in cache["policies"]]
             label = "POLICY cache"
@@ -512,7 +536,7 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
             policies = client.extract_policies(sources[document_id], article_units)
             cache_path.write_text(
                 json.dumps(
-                    {"schema_version": 2, "fingerprint": fingerprint, "policies": policies},
+                    {"schema_version": 3, "fingerprint": fingerprint, "policies": policies},
                     ensure_ascii=False,
                     indent=2,
                 ),
@@ -524,41 +548,46 @@ def run_policies(document_ids: set[str] | None = None, force: bool = False) -> l
 
     existing = json.loads(POLICIES_PATH.read_text(encoding="utf-8")) if POLICIES_PATH.exists() else []
     generated_documents = {document_id for document_id, _ in grouped}
-    source_by_file = {source["file"]: source for source in sources.values()}
     kept = []
     for policy in existing:
         if policy.get("pipeline", {}).get("document_id") in generated_documents:
             continue
-        local_file = Path(policy.get("legal_source", {}).get("local_file", "")).name
-        kept.append(canonicalize_legacy_policy(policy, source_by_file.get(local_file)))
+        # The canonical normalizer below handles both current and legacy shapes.
+        # Missing source mapping intentionally becomes a non-decision candidate.
+        kept.append(policy)
     merged = {p["policy_id"]: p for p in kept}
     merged.update({p["policy_id"]: p for p in generated})
-    all_policies = list(merged.values())
+    all_policies = normalize_policy_artifact(list(merged.values()), units, sources)
     POLICIES_PATH.parent.mkdir(parents=True, exist_ok=True)
     POLICIES_PATH.write_text(json.dumps(all_policies, ensure_ascii=False, indent=2), encoding="utf-8")
-    candidates = [p for p in all_policies if p.get("review", {}).get("status") == "ai_extracted_requires_review"]
+    candidates = [p for p in all_policies if p.get("review_status") in {"candidate", "needs_schema_mapping"}]
     POLICY_CANDIDATES_PATH.write_text(json.dumps(candidates, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[POLICY] Đã lưu {len(all_policies)} records vào {POLICIES_PATH}")
     print(f"[POLICY] Candidate records: {len(candidates)} -> {POLICY_CANDIDATES_PATH}")
     return all_policies
 
 
-def run_policy_mongo(strict_document_status: bool = True) -> dict:
-    """Validate and upsert policies only after legal documents/units exist in MongoDB."""
-    from mongo_store import database, ensure_indexes
-    from policy_quality import ingest_policies
+def persist_policies(policies: list[dict]) -> dict:
+    """Single persistence path used by both pipeline.py and ingest_mongodb.py."""
+    from golden_policy_mvp import apply_golden_overlay
+    from mongo_store import database, ensure_indexes, ingest_policies
 
-    if not POLICIES_PATH.exists():
-        raise FileNotFoundError(f"Không có policies tại {POLICIES_PATH}")
-    policies = json.loads(POLICIES_PATH.read_text(encoding="utf-8"))
     client, db = database()
     try:
         ensure_indexes(db)
-        result = ingest_policies(db, policies, strict_document_status=strict_document_status)
-        print(f"[POLICY MONGO] {result}")
+        # The reviewed MVP overlay is part of canonical persistence, not a manual Mongo edit.
+        result = ingest_policies(db, apply_golden_overlay(policies, db=db))
+        print(f"[MONGO POLICY] {result}")
         return result
     finally:
         client.close()
+
+
+def run_policy_mongo() -> dict:
+    """Persist an existing policies artifact through the same guarded path."""
+    if not POLICIES_PATH.exists():
+        raise FileNotFoundError(f"Không có policies tại {POLICIES_PATH}")
+    return persist_policies(json.loads(POLICIES_PATH.read_text(encoding="utf-8")))
 
 
 def embedding_text(unit: dict) -> str:
@@ -613,21 +642,21 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
         embeddings = client.embed(texts)
         metadatas = [
             {
-                "document_id": u["document_id"],
-                "article": u["article"],
-                "clause": u["clause"],
-                "point": u["point"],
-                "page_start": u["page_start"],
-                "page_end": u["page_end"],
-                "source_file": u["source_file"],
-                "source_url": u["source_url"],
-                "document_number": u["document_number"],
-                "article_title": u["article_title"],
-                "issued_date": u["issued_date"] or "",
-                "effective_from": u["effective_from"] or "",
-                "effective_to": u["effective_to"] or "",
-                "document_status": u["document_status"],
-                "legal_status_checked_at": u["legal_status_checked_at"] or "",
+                "document_id": u.get("document_id", ""),
+                "article": u.get("article", ""),
+                "clause": u.get("clause", ""),
+                "point": u.get("point", ""),
+                "page_start": u.get("page_start", 0),
+                "page_end": u.get("page_end", 0),
+                "source_file": u.get("source_file", ""),
+                "source_url": u.get("source_url", ""),
+                "document_number": u.get("document_number", ""),
+                "article_title": u.get("article_title", ""),
+                "issued_date": u.get("issued_date") or "",
+                "effective_from": u.get("effective_from") or "",
+                "effective_to": u.get("effective_to") or "",
+                "document_status": u.get("document_status", "unknown"),
+                "legal_status_checked_at": u.get("legal_status_checked_at") or "",
                 "version": u.get("version", 1),
                 "is_current": bool(u.get("is_current", True)),
                 "embedding_model": EMBEDDING_MODEL,
@@ -644,6 +673,59 @@ def run_embed(batch_size: int = 32, force: bool = False) -> None:
         print(f"[EMBED] {min(start + batch_size, len(pending))}/{len(pending)}")
 
 
+# Policy normalization is intentionally centralized. These compatibility wrappers
+# keep the OCR/LLM pipeline API stable while Mongo recomputes evidence at write time.
+from policy_normalization import (  # noqa: E402
+    SCHEMA_VERSION as POLICY_RULE_SCHEMA_VERSION,
+    apply_duplicates as apply_duplicate_metadata,
+    dry_run as policy_dry_run,
+    prepare_policy_for_ingest as _prepare_policy_for_ingest,
+)
+
+
+def normalize_rules(rules: object, catalog: dict | None = None):
+    from policy_normalization import normalize_rules as canonical_normalize_rules
+    normalized, issues, _ = canonical_normalize_rules(rules, catalog)
+    status = "needs_schema_mapping" if any(i["code"] == "unknown_field" for i in issues) else ("rejected" if any(i["severity"] == "blocking" for i in issues) else None)
+    return normalized, [i["message"] for i in issues], status
+
+
+def normalize_policy(policy: dict, source: dict, valid_evidence: list[str]) -> dict:
+    policy = {**policy, "pipeline": {**(policy.get("pipeline") or {}), "document_id": source["document_id"]}}
+    policy["evidence_unit_ids"] = [x for x in policy.get("evidence_unit_ids", []) if x in valid_evidence]
+    result = _prepare_policy_for_ingest(policy, None, source)
+    if not result["evidence_unit_ids"]:
+        result["evidence_resolution"] = "unresolved"
+    elif any("_cl-" not in x and "_pt-" not in x for x in result["evidence_unit_ids"]):
+        result["evidence_resolution"] = "article_fallback"
+    else:
+        result["evidence_resolution"] = "precise"
+    result["requires_evidence_review"] = result["evidence_resolution"] != "precise"
+    result["eligible_for_decision"] = False
+    return result
+
+
+def policy_is_decision_eligible(policy: dict) -> bool:
+    from policy_normalization import approval_valid, load_catalog
+    return bool(policy.get("eligible_for_decision") and approval_valid(policy, load_catalog()))
+
+
+def normalize_policy_artifact(policies: list[dict], units: list[dict], sources: dict[str, dict]) -> list[dict]:
+    from policy_discovery import validate_discovery_collection
+    from policy_normalization import load_catalog
+
+    source_by_document = {row["document_id"]: row for row in sources.values()}
+    normalized = []
+    for policy in policies:
+        document_id = (policy.get("pipeline") or {}).get("document_id") or policy.get("document_id")
+        source = source_by_document.get(document_id, {})
+        evidence_ids = set(policy.get("evidence_unit_ids") or (policy.get("payload") or {}).get("evidence_unit_ids") or [])
+        evidence_rows = [unit for unit in units if unit.get("unit_id") in evidence_ids]
+        normalized.append(_prepare_policy_for_ingest(policy, None, source, evidence_rows=evidence_rows))
+    validate_discovery_collection(normalized, load_catalog())
+    return apply_duplicate_metadata(normalized)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="OCR và ingest văn bản pháp luật")
     parser.add_argument("stage", choices=["ocr", "parse", "mongo", "policies", "policy-mongo", "embed", "all"])
@@ -651,7 +733,6 @@ def main() -> None:
     parser.add_argument("--force-ocr", action="store_true")
     parser.add_argument("--force-policy", action="store_true")
     parser.add_argument("--force-embed", action="store_true")
-    parser.add_argument("--allow-unknown-document-status", action="store_true", help="Chỉ dùng cho development; production mặc định từ chối status=unknown")
     parser.add_argument("--batch-size", type=int, default=32)
     args = parser.parse_args()
     selected_pdfs = pdf_files(args.pdf)
@@ -667,7 +748,7 @@ def main() -> None:
     if args.stage in {"policies", "all"}:
         run_policies(document_ids=selected_document_ids if args.pdf else None, force=args.force_policy)
     if args.stage in {"policy-mongo", "all"}:
-        run_policy_mongo(strict_document_status=not args.allow_unknown_document_status)
+        run_policy_mongo()
     if args.stage in {"embed", "all"}:
         run_embed(args.batch_size, force=args.force_embed)
 

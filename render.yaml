@@ -1,0 +1,117 @@
+services:
+  # --- Server A: Internal API (legal unit hydration) ---
+  - type: web
+    name: grandpilot-ingestion
+    runtime: docker
+    dockerfilePath: ./server-a-ingestion/Dockerfile
+    dockerContext: ./server-a-ingestion
+    dockerCommand: uvicorn api:app --host 0.0.0.0 --port 10000
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: grantpilot
+
+  # --- Server C: Eligibility engine ---
+  - type: web
+    name: grandpilot-eligibility
+    runtime: docker
+    dockerfilePath: ./server-c-eligibility/Dockerfile
+    dockerContext: ./server-c-eligibility
+    dockerCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DATABASE
+        value: grantpilot
+      - key: ELIGIBILITY_API_KEY
+        sync: false
+      - key: ELIGIBILITY_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: ELIGIBILITY_MODEL
+        value: llama-3.3-70b-versatile
+      - key: ELIGIBILITY_LLM_ENABLED
+        value: "true"
+
+  # --- Server B: Retrieval API (main backend) ---
+  - type: web
+    name: grandpilot-api
+    runtime: docker
+    dockerfilePath: ./server-b-retrieval/Dockerfile.render
+    dockerContext: .
+    dockerCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DATABASE
+        value: grantpilot
+      - key: LEGAL_DATA_BACKEND
+        value: mongodb
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        value: grant-pilot
+      - key: PINECONE_NAMESPACE
+        value: legal_units
+      # Inter-service URLs (public Render URLs, no private networking on free tier)
+      - key: SERVER_A_URL
+        value: https://grandpilot-ingestion.onrender.com
+      - key: SERVER_C_URL
+        value: https://grandpilot-eligibility.onrender.com
+      # Embeddings (Jina AI)
+      - key: EMBEDDING_API_KEY
+        sync: false
+      - key: EMBEDDING_BASE_URL
+        value: https://api.jina.ai/v1
+      - key: EMBEDDING_MODEL
+        value: jina-embeddings-v3
+      # Reranker (Jina AI)
+      - key: RERANK_API_KEY
+        sync: false
+      - key: RERANK_BASE_URL
+        value: https://api.jina.ai/v1
+      - key: RERANK_MODEL
+        value: jina-reranker-v2-base-multilingual
+      # Query rewrite (Groq)
+      - key: REWRITE_API_KEY
+        sync: false
+      - key: REWRITE_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: REWRITE_MODEL
+        value: llama-3.3-70b-versatile
+      # Answer generation (Groq)
+      - key: ANSWER_API_KEY
+        sync: false
+      - key: ANSWER_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: ANSWER_MODEL
+        value: llama-3.3-70b-versatile
+      - key: ANSWER_MAX_TOKENS
+        value: "8192"
+      # Advisory
+      - key: ADVISORY_ENABLED
+        value: "true"
+      - key: ADVISORY_MAX_TOKENS
+        value: "1200"
+
+  # --- Frontend ---
+  - type: web
+    name: grandpilot
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: SERVER_B_URL
+        value: https://grandpilot-api.onrender.com

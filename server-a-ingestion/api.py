@@ -64,4 +64,4 @@ def exact_unit(
 @app.get("/health")
 def health():
     app.state.mongo_db.command("ping")
-    return {"status": "ok", "database": os.getenv("MONGO_DB", "grantpilot")}
+    return {"status": "ok", "database": os.getenv("MONGODB_DB") or os.getenv("MONGO_DB", "grantpilot")}

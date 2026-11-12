@@ -1,5 +1,6 @@
 import type {
   AdvisoryResult,
+  AdvisoryScope,
   AskResponse,
   ChatMode,
   Company,
@@ -26,6 +27,21 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+async function responseErrorDetail(res: Response): Promise<string> {
+  const fallback = res.statusText || 'Không thể xử lý yêu cầu.'
+  try {
+    const body = (await res.json()) as unknown
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) return fallback
+
+    const { detail, message } = body as Record<string, unknown>
+    if (typeof detail === 'string' && detail.trim()) return detail.trim()
+    if (typeof message === 'string' && message.trim()) return message.trim()
+  } catch {
+    // Non-JSON error bodies are intentionally not exposed to the UI.
+  }
+  return fallback
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T | null> {
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -43,8 +59,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     return null
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new ApiError(res.status, `Server lỗi ${res.status}: ${text}`)
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
   }
   return res.json() as Promise<T>
 }
@@ -100,6 +116,10 @@ export interface HistoryTurn {
   role: 'user' | 'assistant'
   content: string
   results?: unknown[]
+  sources?: unknown[]
+  advisory_result?: unknown
+  warning?: string
+  mode?: string
   ts: string
 }
 
@@ -166,11 +186,17 @@ type WarningEvent = {
   message: string
 }
 
+type CoverageStatusEvent = {
+  type: 'coverage_status'
+  status: 'covered' | 'not_covered'
+}
+
 export type ChatStreamEvent =
   | StartedEvent
   | AnswerDeltaEvent
   | SourcesEvent
   | AdvisoryResultEvent
+  | CoverageStatusEvent
   | CompletedEvent
   | ErrorEvent
   | WarningEvent
@@ -179,6 +205,7 @@ export async function* chatStream(
   message: string,
   mode: ChatMode,
   conversationId: string | null,
+  advisoryScope?: AdvisoryScope,
 ): AsyncGenerator<ChatStreamEvent> {
   const res = await fetch(`${BASE}/v1/chat/stream`, {
     method: 'POST',
@@ -191,6 +218,7 @@ export async function* chatStream(
       mode,
       message,
       conversation_id: conversationId,
+      advisory_scope: advisoryScope ?? 'question',
       options: { top_k: 5 },
     }),
   })
@@ -202,12 +230,13 @@ export async function* chatStream(
   }
 
   if (res.status === 409) {
-    throw new ApiError(409, 'Cần hồ sơ doanh nghiệp để dùng chế độ tư vấn.')
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(409, detail || 'Cần hồ sơ doanh nghiệp để dùng chế độ tư vấn.')
   }
 
   if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new ApiError(res.status, `Server lỗi ${res.status}: ${text}`)
+    const detail = await responseErrorDetail(res)
+    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
   }
 
   if (!res.body) {

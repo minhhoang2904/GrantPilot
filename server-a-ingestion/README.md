@@ -2,10 +2,10 @@
 
 Luồng dữ liệu:
 
-`PDF scan -> OCR -> legal_units.jsonl -> policies.json + Chroma legal_units`
+`PDF scan -> OCR/parse -> MongoDB -> embedding -> Pinecone legal_units`
 
 - Retrieval tìm trên `legal_units`; đây là nguyên văn có Điều/Khoản/Điểm và số trang.
-- `policies.json` là dữ liệu nghiệp vụ có cấu trúc để bước eligibility sử dụng sau.
+- `policies.json` là output review/audit. MongoDB `policies` là nguồn dữ liệu của policy/rule cho các service.
 - `evidence_unit_ids` nối mỗi policy trở lại đúng phần nguyên văn.
 
 ## 1. Chuẩn bị
@@ -87,7 +87,37 @@ Script tính SHA-256 cho mỗi PDF để tránh trùng, lưu metadata/version v�
 đẩy units vào `legal_units`, rồi upsert toàn bộ `policies.json` vào collection `policies`.
 Nó nhận cả tên biến `MONGO_URI`/`MONGO_DB` và `MONGODB_URI`/`MONGODB_DB`.
 
-## 4. Test retrieval
+## 4. Rule normalization và review gate
+
+`fact-catalog-v1.json` là hợp đồng field dùng chung. Có thể trỏ tới catalog Huy chốt bằng:
+
+```bash
+export FACT_CATALOG_PATH=/absolute/path/to/fact-catalog-v1.json
+```
+
+Ingest chỉ giữ rule có `field` trong catalog và kiểm tra kiểu dữ liệu, enum, operator và nguồn fact (`direct`/`derived`).
+`contains` không bị đổi thành `in`: `contains` kiểm tra substring/phần tử của danh sách, còn `in` kiểm tra giá trị thực tế thuộc danh sách cho phép.
+
+Trạng thái chuẩn: `candidate`, `needs_schema_mapping`, `approved`, `rejected`, `superseded`.
+Chỉ record có đủ `review_status=approved`, `is_current=true`, evidence chính xác cấp khoản/điểm và không có warning mới được đánh dấu `eligible_for_decision=true`.
+Evidence chỉ resolve tới Điều luôn mang `evidence_resolution=article_fallback`, `requires_evidence_review=true` và không được đưa vào decision.
+
+Hai entrypoint `python pipeline.py all` và `python ingest_mongodb.py` đều gọi chung `persist_policies()` để ghi policy qua cùng validation gate.
+
+## 5. Policy discovery metadata
+
+Bốn Golden Policy có `discovery.schema_version=policy-discovery-v1` với `topic_id` thuộc taxonomy đóng,
+nhãn tiếng Việt, search terms và intent examples. Metadata này chỉ giúp Server B chọn policy liên quan trước
+khi gọi eligibility; nó không phải company fact và không được đưa vào `rules` hoặc Fact Catalog.
+
+Canonical normalization giữ nguyên `discovery` vào cả policy row và `payload` Mongo. Ingest sẽ fail closed nếu
+topic/schema sai, topic bị trùng, metadata chứa company fact, hoặc chuỗi tìm kiếm kéo các chủ đề ngoài MVP như
+thuế TNDN/NATIF vào bốn Golden Policy.
+
+Write boundary đồng thời đối chiếu `document_id`, `document_number`, `source_url`, version và parent document
+của từng `evidence_unit_id`. Mismatch nguồn/evidence tạo blocking validation issue và không thể đi qua decision gate.
+
+## 6. Test retrieval
 
 ```bash
 python retrieve.py "Startup công nghệ được hỗ trợ những gì?" --top-k 5
@@ -95,7 +125,7 @@ python retrieve.py "Startup công nghệ được hỗ trợ những gì?" --top
 
 Query và documents bắt buộc dùng cùng model `Vietnamese_Embedding`.
 
-## 4. Test offline
+## 7. Test offline
 
 ```bash
 python -m unittest -v test_pipeline.py

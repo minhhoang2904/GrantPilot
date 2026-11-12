@@ -136,6 +136,14 @@ class LegalUnitStore:
                     result.append(policy_id)
         return result
 
+    def decision_policy_discovery(self) -> list[dict]:
+        """Offline discovery uses the committed, reviewed Golden manifest."""
+        path = config.POLICY_DISCOVERY_PATH
+        if not path.exists():
+            return []
+        rows = json.loads(path.read_text(encoding="utf-8"))
+        return rows if isinstance(rows, list) else []
+
 
 class MongoLegalUnitStore:
     """Lazy MongoDB repository used by the online retrieval path.
@@ -287,6 +295,28 @@ class MongoLegalUnitStore:
             {"_id": 0, "policy_id": 1},
         )
         return list(dict.fromkeys(row.get("policy_id") for row in rows if row.get("policy_id")))
+
+    def decision_policy_discovery(self) -> list[dict]:
+        rows = list(
+            self.policies_collection.find(
+                {
+                    "review_status": "approved",
+                    "is_current": True,
+                    "eligible_for_decision": True,
+                    "discovery.schema_version": "policy-discovery-v1",
+                },
+                {"_id": 0, "policy_id": 1, "discovery": 1},
+            )
+        )
+        # The committed manifest keeps local/MVP routing available before a
+        # controlled Mongo rollout. Server C still enforces the decision gate.
+        if rows:
+            return rows
+        path = config.POLICY_DISCOVERY_PATH
+        if not path.exists():
+            return []
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, list) else []
 
 
 def build_legal_unit_store():

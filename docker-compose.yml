@@ -54,6 +54,7 @@ services:
         condition: service_healthy
     environment:
       - POLICY_DB_PATH=/app/shared/policy.db
+      - POLICY_DISCOVERY_PATH=/app/shared/golden_policies_mvp.json
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${MONGODB_DB:-grantpilot}
       - LEGAL_DATA_BACKEND=${LEGAL_DATA_BACKEND:-mongodb}
@@ -67,25 +68,52 @@ services:
       - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME:-}
       - PINECONE_NAMESPACE=${PINECONE_NAMESPACE:-legal_units}
       - SERVER_A_URL=http://server-a-api:8000
-      - FPT_BASE_URL=${FPT_BASE_URL:-https://mkp-api.fptcloud.com}
-      - FPT_API_KEY=${FPT_API_KEY:-}
-      - FPT_EMBEDDING_MODEL=${FPT_EMBEDDING_MODEL:-Vietnamese_Embedding}
-      - FPT_RERANK_MODEL=${FPT_RERANK_MODEL:-bge-reranker-v2-m3}
-      - FPT_QUERY_REWRITE_MODEL=${FPT_QUERY_REWRITE_MODEL:-DeepSeek-V4-Flash}
-      - FPT_ANSWER_MODEL=${FPT_ANSWER_MODEL:-GLM-5.2}
-      - FPT_QUERY_REWRITE_MAX_TOKENS=${FPT_QUERY_REWRITE_MAX_TOKENS:-512}
-      - FPT_ANSWER_MAX_TOKENS=${FPT_ANSWER_MAX_TOKENS:-8192}
-      - FPT_ANSWER_THINKING=${FPT_ANSWER_THINKING:-disabled}
-      - FPT_ANSWER_REASONING_EFFORT=${FPT_ANSWER_REASONING_EFFORT:-none}
+      - SERVER_C_URL=http://server-c-eligibility:8002
+      - SERVER_C_TIMEOUT_SECONDS=${SERVER_C_TIMEOUT_SECONDS:-30}
+      # Embeddings (Jina AI)
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-https://api.jina.ai/v1}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-jina-embeddings-v3}
+      # Reranker (Jina AI)
+      - RERANK_API_KEY=${RERANK_API_KEY:-${EMBEDDING_API_KEY:-}}
+      - RERANK_BASE_URL=${RERANK_BASE_URL:-https://api.jina.ai/v1}
+      - RERANK_MODEL=${RERANK_MODEL:-jina-reranker-v2-base-multilingual}
+      # Query rewrite LLM (Groq)
+      - REWRITE_API_KEY=${REWRITE_API_KEY:-}
+      - REWRITE_BASE_URL=${REWRITE_BASE_URL:-https://api.groq.com/openai/v1}
+      - REWRITE_MODEL=${REWRITE_MODEL:-llama-3.3-70b-versatile}
+      - REWRITE_MAX_TOKENS=${REWRITE_MAX_TOKENS:-512}
+      # Answer LLM (Groq)
+      - ANSWER_API_KEY=${ANSWER_API_KEY:-}
+      - ANSWER_BASE_URL=${ANSWER_BASE_URL:-https://api.groq.com/openai/v1}
+      - ANSWER_MODEL=${ANSWER_MODEL:-llama-3.3-70b-versatile}
+      - ANSWER_MAX_TOKENS=${ANSWER_MAX_TOKENS:-8192}
+      # Advisory LLM (defaults to answer provider)
+      - ADVISORY_API_KEY=${ADVISORY_API_KEY:-${ANSWER_API_KEY:-}}
+      - ADVISORY_MODEL=${ADVISORY_MODEL:-${ANSWER_MODEL:-llama-3.3-70b-versatile}}
+      - ADVISORY_MAX_TOKENS=${ADVISORY_MAX_TOKENS:-1200}
+      - ADVISORY_ENABLED=${ADVISORY_ENABLED:-true}
 
-  # server-c-eligibility:
-  #   build: ./server-c-eligibility
-  #   ports:
-  #     - "8002:8002"
-  #   volumes:
-  #     - ./shared:/app/shared
-  #   environment:
-  #     - POLICY_DB_PATH=/app/shared/policy.db
+  server-c-eligibility:
+    build: ./server-c-eligibility
+    restart: unless-stopped
+    env_file:
+      - .env
+      - ./server-a-ingestion/.env
+    expose:
+      - "8002"
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-grantpilot}
+      - MONGODB_DOCUMENTS_COLLECTION=${MONGODB_DOCUMENTS_COLLECTION:-legal_documents}
+      - MONGODB_LEGAL_UNITS_COLLECTION=${MONGODB_LEGAL_UNITS_COLLECTION:-legal_units}
+      - MONGODB_POLICIES_COLLECTION=${MONGODB_POLICIES_COLLECTION:-policies}
+      # Eligibility explanation LLM (Groq)
+      - ELIGIBILITY_API_KEY=${ELIGIBILITY_API_KEY:-${ANSWER_API_KEY:-}}
+      - ELIGIBILITY_BASE_URL=${ELIGIBILITY_BASE_URL:-https://api.groq.com/openai/v1}
+      - ELIGIBILITY_MODEL=${ELIGIBILITY_MODEL:-llama-3.3-70b-versatile}
+      - ELIGIBILITY_LLM_ENABLED=${ELIGIBILITY_LLM_ENABLED:-true}
+      - STRICT_LEGAL_STATUS=${STRICT_LEGAL_STATUS:-false}
 
   frontend:
     build: ./frontend
@@ -96,8 +124,8 @@ services:
       server-b-retrieval:
         condition: service_started
     environment:
+      - PORT=8501
       - SERVER_B_URL=http://server-b-retrieval:8001
-      - SERVER_C_URL=http://server-c-eligibility:8002
 
 volumes:
   redis-data:
