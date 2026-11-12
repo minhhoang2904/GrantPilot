@@ -44,6 +44,7 @@ services:
     name: grandpilot-api
     runtime: docker
     dockerfilePath: ./server-b-retrieval/Dockerfile.render
+    dockerContext: .
     dockerCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     plan: free
     envVars:
