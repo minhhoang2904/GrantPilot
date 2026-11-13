@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { apiRegister, apiLogin, ApiError } from '../api'
 import { setSession } from '../auth'
+import { useT } from '../i18n'
+import LanguageToggle from '../components/LanguageToggle'
 
 interface Props {
   onLogin: (email: string) => void
@@ -12,6 +14,7 @@ const inputCls =
   'w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition'
 
 export default function LoginPage({ onLogin }: Props) {
+  const t = useT()
   const [tab, setTab] = useState<Tab>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,15 +35,15 @@ export default function LoginPage({ onLogin }: Props) {
 
     const trimEmail = email.trim().toLowerCase()
     if (!trimEmail || !trimEmail.includes('@')) {
-      setError('Địa chỉ email không hợp lệ.')
+      setError(t('login.errorInvalidEmail'))
       return
     }
     if (password.length < 6) {
-      setError('Mật khẩu tối thiểu 6 ký tự.')
+      setError(t('login.errorPasswordTooShort'))
       return
     }
     if (tab === 'register' && password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.')
+      setError(t('login.errorPasswordMismatch'))
       return
     }
 
@@ -55,7 +58,7 @@ export default function LoginPage({ onLogin }: Props) {
         setError(err.message)
         if (tab === 'register' && err.status === 409) setTab('login')
       } else {
-        setError('Đã xảy ra lỗi, vui lòng thử lại.')
+        setError(t('common.error'))
       }
     } finally {
       setSubmitting(false)
@@ -63,7 +66,10 @@ export default function LoginPage({ onLogin }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageToggle variant="light" />
+      </div>
       <div className="w-full max-w-sm">
 
         {/* Brand */}
@@ -75,7 +81,7 @@ export default function LoginPage({ onLogin }: Props) {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">GrantPilot</h1>
-          <p className="mt-1 text-sm text-gray-500">Tư vấn ưu đãi và chính sách doanh nghiệp</p>
+          <p className="mt-1 text-sm text-gray-500">{t('login.tagline')}</p>
         </div>
 
         {/* Card */}
@@ -83,17 +89,17 @@ export default function LoginPage({ onLogin }: Props) {
 
           {/* Tabs */}
           <div className="flex border-b border-gray-200">
-            {(['login', 'register'] as Tab[]).map((t) => (
+            {(['login', 'register'] as Tab[]).map((tabKey) => (
               <button
-                key={t}
-                onClick={() => switchTab(t)}
+                key={tabKey}
+                onClick={() => switchTab(tabKey)}
                 className={`flex-1 py-3 text-sm font-medium transition ${
-                  tab === t
+                  tab === tabKey
                     ? 'text-brand border-b-2 border-brand bg-white'
                     : 'text-gray-500 hover:text-gray-700 bg-gray-50'
                 }`}
               >
-                {t === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}
+                {tabKey === 'login' ? t('login.tabLogin') : t('login.tabRegister')}
               </button>
             ))}
           </div>
@@ -101,39 +107,39 @@ export default function LoginPage({ onLogin }: Props) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-8 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email công ty</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('login.labelEmail')}</label>
               <input
                 type="email"
                 autoFocus
                 required
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError('') }}
-                placeholder="ten@congty.vn"
+                placeholder={t('login.placeholderEmail')}
                 className={inputCls}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('login.labelPassword')}</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError('') }}
-                placeholder="Tối thiểu 6 ký tự"
+                placeholder={t('login.placeholderPassword')}
                 className={inputCls}
               />
             </div>
 
             {tab === 'register' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('login.labelConfirmPassword')}</label>
                 <input
                   type="password"
                   required
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setError('') }}
-                  placeholder="Nhập lại mật khẩu"
+                  placeholder={t('login.placeholderConfirmPassword')}
                   className={inputCls}
                 />
               </div>
@@ -151,18 +157,18 @@ export default function LoginPage({ onLogin }: Props) {
               className="w-full py-2.5 px-4 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
             >
               {submitting
-                ? 'Đang xử lý...'
-                : tab === 'login' ? 'Đăng nhập' : 'Tạo tài khoản →'}
+                ? t('common.processing')
+                : tab === 'login' ? t('login.submitLogin') : t('login.submitRegister')}
             </button>
 
             <p className="text-center text-xs text-gray-400">
               {tab === 'login'
-                ? <>Chưa có tài khoản?{' '}
+                ? <>{t('login.noAccount')}{' '}
                     <button type="button" onClick={() => switchTab('register')}
-                      className="text-brand hover:underline font-medium">Đăng ký ngay</button></>
-                : <>Đã có tài khoản?{' '}
+                      className="text-brand hover:underline font-medium">{t('login.registerNow')}</button></>
+                : <>{t('login.hasAccount')}{' '}
                     <button type="button" onClick={() => switchTab('login')}
-                      className="text-brand hover:underline font-medium">Đăng nhập</button></>
+                      className="text-brand hover:underline font-medium">{t('login.submitLogin')}</button></>
               }
             </p>
           </form>

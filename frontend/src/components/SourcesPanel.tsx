@@ -1,12 +1,5 @@
 import type { SourceItem } from '../types'
-
-function refLabel(item: SourceItem): string {
-  const parts: string[] = []
-  if (item.article) parts.push(`Điều ${item.article}`)
-  if (item.clause) parts.push(`Khoản ${item.clause}`)
-  if (item.point) parts.push(`Điểm ${item.point}`)
-  return parts.join(', ')
-}
+import { useT } from '../i18n'
 
 interface Props {
   items: SourceItem[]
@@ -14,12 +7,22 @@ interface Props {
 }
 
 export default function SourcesPanel({ items, onOpenPdf }: Props) {
+  const t = useT()
+
   if (!items || items.length === 0) return null
+
+  function refLabel(item: SourceItem): string {
+    const parts: string[] = []
+    if (item.article) parts.push(t('sources.articleRef', { n: item.article }))
+    if (item.clause) parts.push(t('sources.clauseRef', { n: item.clause }))
+    if (item.point) parts.push(t('sources.pointRef', { n: item.point }))
+    return parts.join(', ')
+  }
 
   return (
     <div className="mt-3 space-y-2">
       <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400">
-        Nguồn trích dẫn
+        {t('sources.sectionLabel')}
       </p>
       <div className="space-y-2">
         {items.map((item) => {
@@ -39,10 +42,10 @@ export default function SourcesPanel({ items, onOpenPdf }: Props) {
                 {item.source_url ? (
                   <button
                     type="button"
-                    onClick={() => onOpenPdf?.(item.source_url!, title || 'Xem tài liệu')}
+                    onClick={() => onOpenPdf?.(item.source_url!, title || t('sources.viewDoc'))}
                     className="inline-flex items-center gap-1 text-brand hover:text-brand-dark underline underline-offset-2 transition"
                   >
-                    {documentTitle ? title || 'Xem nguồn' : title || 'Xem tài liệu nguồn'}
+                    {documentTitle ? title || t('sources.viewSource') : title || t('sources.viewSourceDoc')}
                     <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

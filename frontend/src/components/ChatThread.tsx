@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
 import type { ChatMode, Message } from '../types'
+import type { TranslationKey } from '../i18n/types'
 import ResultsTable from './ResultsTable'
 import SourcesPanel from './SourcesPanel'
 import AdvisoryPanel from './AdvisoryPanel'
+import { useT } from '../i18n'
 
 function UserBubble({ content }: { content: string }) {
   return (
@@ -87,11 +89,11 @@ function TypingIndicator() {
   )
 }
 
-const GOLDEN_POLICY_CHIPS = [
-  'Hỗ trợ thông tin và tư vấn cho doanh nghiệp nhỏ và vừa',
-  'Hỗ trợ đào tạo trực tuyến cho doanh nghiệp nhỏ và vừa',
-  'Hỗ trợ đào tạo trực tiếp cho doanh nghiệp nhỏ và vừa',
-  'Hỗ trợ chuyển đổi số cho doanh nghiệp nhỏ và vừa',
+const GOLDEN_POLICY_CHIPS: { displayKey: TranslationKey; queryKey: TranslationKey }[] = [
+  { displayKey: 'chat.chip1Display', queryKey: 'chat.chip1Query' },
+  { displayKey: 'chat.chip2Display', queryKey: 'chat.chip2Query' },
+  { displayKey: 'chat.chip3Display', queryKey: 'chat.chip3Query' },
+  { displayKey: 'chat.chip4Display', queryKey: 'chat.chip4Query' },
 ]
 
 interface Props {
@@ -104,6 +106,7 @@ interface Props {
 }
 
 export default function ChatThread({ messages, loading, mode = 'lookup', onSend, onProfileScan, onOpenPdf }: Props) {
+  const t = useT()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -123,11 +126,11 @@ export default function ChatThread({ messages, loading, mode = 'lookup', onSend,
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </div>
-        <h3 className="text-base font-semibold text-gray-700 mb-1">Bắt đầu tư vấn chính sách</h3>
+        <h3 className="text-base font-semibold text-gray-700 mb-1">{t('chat.emptyTitle')}</h3>
         <p className="text-sm text-gray-400 max-w-xs">
           {mode === 'advisory'
-            ? 'Hỏi về chương trình hỗ trợ — chế độ Tư vấn sâu đối chiếu với hồ sơ doanh nghiệp để xem bạn đủ điều kiện hay chưa.'
-            : 'Hỏi về ưu đãi hay chương trình hỗ trợ. Chế độ Tra cứu nhanh không yêu cầu hồ sơ doanh nghiệp.'}
+            ? t('chat.emptyAdvisoryDesc')
+            : t('chat.emptyLookupDesc')}
         </p>
 
         {/* Advisory-only: scan full profile CTA */}
@@ -141,21 +144,21 @@ export default function ChatThread({ messages, loading, mode = 'lookup', onSend,
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
-            Quét chính sách phù hợp với hồ sơ
+            {t('chat.profileScanButton')}
           </button>
         )}
 
         <div className="mt-5 grid grid-cols-1 gap-2 w-full max-w-sm text-left">
-          <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium mb-0.5">Gợi ý chủ đề</p>
-          {GOLDEN_POLICY_CHIPS.map((q) => (
+          <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium mb-0.5">{t('chat.suggestionsLabel')}</p>
+          {GOLDEN_POLICY_CHIPS.map((chip) => (
             <button
-              key={q}
+              key={chip.queryKey}
               type="button"
               disabled={!onSend}
-              onClick={() => onSend?.(q)}
+              onClick={() => onSend?.(t(chip.queryKey))}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs text-gray-600 bg-gray-50 text-left hover:border-brand hover:bg-brand/5 hover:text-brand transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {q}
+              {t(chip.displayKey)}
             </button>
           ))}
         </div>

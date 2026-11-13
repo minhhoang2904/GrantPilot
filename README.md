@@ -67,7 +67,7 @@ The system is built as three independent microservices:
 | Document DB | MongoDB Atlas |
 | Session Store | Redis 7 (in-memory fallback for local dev) |
 | Embeddings | Jina AI — `jina-embeddings-v3` (dense), `jina-reranker-v2-base-multilingual` (rerank) |
-| LLM | Groq — `llama-3.3-70b-versatile` (answer, rewrite, advisory, eligibility) |
+| LLM | Groq — `openai/gpt-oss-120b` (answer, rewrite, advisory, eligibility) |
 | OCR | Tesseract + PyTesseract + Pillow |
 | Infrastructure | Docker Compose, Nginx, Cloudflare Workers |
 
@@ -117,7 +117,7 @@ RERANK_MODEL=jina-reranker-v2-base-multilingual
 # LLMs (Groq — https://console.groq.com)
 REWRITE_API_KEY=gsk_...
 ANSWER_API_KEY=gsk_...
-ANSWER_MODEL=llama-3.3-70b-versatile
+ANSWER_MODEL=openai/gpt-oss-120b
 
 # Optional tuning
 LEGAL_DATA_BACKEND=mongodb        # or: jsonl (offline fallback)

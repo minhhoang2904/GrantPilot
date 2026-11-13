@@ -1,54 +1,60 @@
 import { useState } from 'react'
 import type { AdvisoryPolicy, AdvisoryResult, EligibilityStatus, Message } from '../types'
+import type { TranslationKey } from '../i18n/types'
+import { useT } from '../i18n'
 
-const STATUS_CONFIG: Record<EligibilityStatus, { label: string; className: string }> = {
+const STATUS_CONFIG: Record<EligibilityStatus, { labelKey: TranslationKey; className: string }> = {
   eligible: {
-    label: 'Đủ điều kiện',
+    labelKey: 'advisory.statusEligible',
     className: 'bg-green-100 text-green-800',
   },
   not_eligible: {
-    label: 'Chưa đáp ứng',
+    labelKey: 'advisory.statusNotEligible',
     className: 'bg-orange-100 text-orange-700',
   },
   needs_more_information: {
-    label: 'Cần bổ sung thông tin',
+    labelKey: 'advisory.statusNeedsInfo',
     className: 'bg-yellow-100 text-yellow-800',
   },
   manual_review: {
-    label: 'Cần xem xét thêm',
+    labelKey: 'advisory.statusManualReview',
     className: 'bg-blue-100 text-blue-700',
   },
 }
 
 function StatusBadge({ status }: { status: EligibilityStatus }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' }
+  const t = useT()
+  const cfg = STATUS_CONFIG[status]
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cfg.className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cfg ? cfg.className : 'bg-gray-100 text-gray-600'}`}
     >
-      {cfg.label}
+      {cfg ? t(cfg.labelKey) : status}
     </span>
   )
 }
 
-const FACT_LABELS: Record<string, string> = {
-  primary_business_activity_group: 'Nhóm ngành nghề kinh doanh chính',
-  sector: 'Lĩnh vực hoạt động',
-  legal_form: 'Loại hình pháp lý',
-  social_insurance_employees: 'Số lao động tham gia BHXH',
-  annual_revenue_vnd: 'Doanh thu năm',
-  total_capital_vnd: 'Tổng nguồn vốn',
-  first_business_registration_date: 'Ngày đăng ký doanh nghiệp lần đầu',
-  has_public_offering: 'Tình trạng chào bán chứng khoán ra công chúng',
-  has_business_registration: 'Giấy đăng ký kinh doanh',
-  is_sme: 'Thông tin xác định doanh nghiệp nhỏ và vừa',
+const FACT_KEY_MAP: Record<string, TranslationKey> = {
+  primary_business_activity_group: 'advisory.factActivityGroup',
+  sector: 'advisory.factSector',
+  legal_form: 'advisory.factLegalForm',
+  social_insurance_employees: 'advisory.factSiEmployees',
+  annual_revenue_vnd: 'advisory.factAnnualRevenue',
+  total_capital_vnd: 'advisory.factTotalCapital',
+  first_business_registration_date: 'advisory.factRegistrationDate',
+  has_public_offering: 'advisory.factPublicOffering',
+  has_business_registration: 'advisory.factBusinessReg',
+  is_sme: 'advisory.factIsSme',
 }
 
-function factLabel(value: string) {
-  return FACT_LABELS[value] ?? value.replace(/_/g, ' ')
+function FactLabel({ value }: { value: string }) {
+  const t = useT()
+  const key = FACT_KEY_MAP[value]
+  return <>{key ? t(key) : value.replace(/_/g, ' ')}</>
 }
 
 function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const hasMissing = policy.missing_fields.length > 0
   const hasReasons = policy.reasons.length > 0
@@ -76,7 +82,7 @@ function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          {open ? 'Ẩn chi tiết' : 'Xem chi tiết'}
+          {open ? t('advisory.hideDetail') : t('advisory.showDetail')}
         </button>
       )}
 
@@ -84,12 +90,12 @@ function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
         <div className="mt-2 pl-3 border-l-2 border-gray-200 space-y-2">
           {hasMissing && (
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">Thông tin cần bổ sung:</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">{t('advisory.missingFieldsLabel')}</p>
               <ul className="space-y-0.5">
                 {policy.missing_fields.map((f) => (
                   <li key={f} className="text-xs text-gray-600 flex gap-1.5">
                     <span className="text-yellow-500 mt-0.5">•</span>
-                    <span>{factLabel(f)}</span>
+                    <span><FactLabel value={f} /></span>
                   </li>
                 ))}
               </ul>
@@ -97,7 +103,7 @@ function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
           )}
           {hasReasons && (
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">Điều kiện chưa đáp ứng:</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">{t('advisory.unmetConditionsLabel')}</p>
               <ul className="space-y-0.5">
                 {policy.reasons.map((r, i) => (
                   <li key={i} className="text-xs text-gray-600 flex gap-1.5">
@@ -110,7 +116,7 @@ function PolicyRow({ policy }: { policy: AdvisoryPolicy }) {
           )}
           {hasRequirements && (
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">Yêu cầu khi đăng ký:</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">{t('advisory.requirementsLabel')}</p>
               <ul className="space-y-0.5">
                 {policy.application_requirements!.map((req, i) => (
                   <li key={i} className="text-xs text-gray-600 flex gap-1.5">
@@ -133,6 +139,7 @@ interface Props {
 }
 
 export default function AdvisoryPanel({ result, coverageStatus }: Props) {
+  const t = useT()
   const hasPolicies = (result?.policies?.length ?? 0) > 0
   const isNotCovered = coverageStatus === 'not_covered' || !hasPolicies
 
@@ -148,10 +155,9 @@ export default function AdvisoryPanel({ result, coverageStatus }: Props) {
             </svg>
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-700 mb-0.5">Chủ đề chưa được hỗ trợ</p>
+            <p className="text-xs font-semibold text-gray-700 mb-0.5">{t('advisory.notCoveredTitle')}</p>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Chủ đề này chưa nằm trong bộ chính sách MVP, nên hệ thống chưa đánh giá
-              doanh nghiệp đủ hay không đủ điều kiện. Bạn có thể thử một chủ đề gợi ý khác.
+              {t('advisory.notCoveredDesc')}
             </p>
           </div>
         </div>
@@ -163,7 +169,7 @@ export default function AdvisoryPanel({ result, coverageStatus }: Props) {
     <div className="mt-3 rounded-xl border border-gray-200 overflow-hidden bg-white">
       <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
         <p className="text-[11px] uppercase tracking-wide font-semibold text-gray-400">
-          Đánh giá hồ sơ doanh nghiệp
+          {t('advisory.sectionLabel')}
         </p>
       </div>
       {result!.explanation && (

@@ -13,7 +13,7 @@ class FakeFpt:
         self.payload = None
         self.calls = 0
 
-    def advise(self, payload):
+    def advise(self, payload, language="vi"):
         self.calls += 1
         self.payload = payload
         if self.error:
@@ -25,7 +25,7 @@ class RetryFpt:
     def __init__(self):
         self.calls = 0
 
-    def advise(self, payload):
+    def advise(self, payload, language="vi"):
         self.calls += 1
         if self.calls == 1:
             raise TimeoutError("first call timed out")

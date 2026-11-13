@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useT } from '../i18n'
 
 interface Props {
   url: string
@@ -16,6 +17,7 @@ function isPdfUrl(url: string): boolean {
 }
 
 export default function PdfSidePanel({ url, label, onClose }: Props) {
+  const t = useT()
   const [iframeError, setIframeError] = useState(false)
   const isInsecureHttp = url.trim().toLowerCase().startsWith('http://')
   const isPdf = isPdfUrl(url)
@@ -38,7 +40,7 @@ export default function PdfSidePanel({ url, label, onClose }: Props) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            title="Mở trong tab mới"
+            title={t('pdf.openNewTab')}
             className="p-1.5 rounded text-gray-400 hover:text-brand hover:bg-gray-100 transition"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +52,7 @@ export default function PdfSidePanel({ url, label, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            title="Đóng"
+            title={t('pdf.close')}
             className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,13 +81,13 @@ export default function PdfSidePanel({ url, label, onClose }: Props) {
             </div>
             <p className="text-sm font-semibold text-gray-800">
               {isInsecureHttp
-                ? 'Tài liệu HTTP không nhúng được'
-                : 'Xem tài liệu nguồn'}
+                ? t('pdf.insecureTitle')
+                : t('pdf.externalTitle')}
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
               {isInsecureHttp
-                ? 'Nguồn này không dùng kết nối HTTPS nên trình duyệt không thể nhúng an toàn.'
-                : 'Nhấn nút bên dưới để mở tài liệu gốc trên trang Chính phủ.'}
+                ? t('pdf.insecureDesc')
+                : t('pdf.externalDesc')}
             </p>
             <a
               href={url}
@@ -97,7 +99,7 @@ export default function PdfSidePanel({ url, label, onClose }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
-              Mở trong tab mới
+              {t('pdf.openButton')}
             </a>
           </div>
         </div>

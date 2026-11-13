@@ -26,12 +26,18 @@ class AdvisoryWriteResult:
 def _company_summary(
     company: dict[str, Any],
     derived_facts: dict[str, Any],
+    language: str = "vi",
 ) -> dict[str, Any]:
     """Return the minimum useful, PII-free company context for copywriting."""
     sector_labels = {
         "nong_lam_ngu_nghiep": "nông, lâm, ngư nghiệp",
         "cong_nghiep_xay_dung": "công nghiệp và xây dựng",
         "thuong_mai_dich_vu": "thương mại và dịch vụ",
+    }
+    sector_labels_en = {
+        "nong_lam_ngu_nghiep": "agriculture, forestry, and fisheries",
+        "cong_nghiep_xay_dung": "industry and construction",
+        "thuong_mai_dich_vu": "trade and services",
     }
     activity_labels = {
         "agriculture": "nông nghiệp",
@@ -44,26 +50,59 @@ def _company_summary(
         "services": "dịch vụ",
         "other": "khác",
     }
+    activity_labels_en = {
+        "agriculture": "agriculture",
+        "forestry": "forestry",
+        "fisheries": "fisheries",
+        "manufacturing": "manufacturing",
+        "processing": "processing",
+        "construction": "construction",
+        "trade": "trade",
+        "services": "services",
+        "other": "other",
+    }
     size_labels = {
         "micro": "siêu nhỏ",
         "small": "nhỏ",
         "medium": "vừa",
         "large": "lớn",
     }
+    size_labels_en = {
+        "micro": "micro",
+        "small": "small",
+        "medium": "medium",
+        "large": "large",
+    }
+    lang = language if language == "en" else "vi"
     summary: dict[str, Any] = {}
     if company.get("sector") is not None:
         sector = company["sector"]
-        summary["lĩnh vực"] = sector_labels.get(sector, sector)
+        if lang == "en":
+            summary["sector"] = sector_labels_en.get(sector, sector)
+        else:
+            summary["lĩnh vực"] = sector_labels.get(sector, sector)
     if company.get("primary_business_activity_group") is not None:
         activity = company["primary_business_activity_group"]
-        summary["hoạt động chính"] = activity_labels.get(activity, activity)
+        if lang == "en":
+            summary["main_activity"] = activity_labels_en.get(activity, activity)
+        else:
+            summary["hoạt động chính"] = activity_labels.get(activity, activity)
     if company.get("business_description") is not None:
-        summary["mô tả hoạt động"] = company["business_description"]
+        if lang == "en":
+            summary["activity_description"] = company["business_description"]
+        else:
+            summary["mô tả hoạt động"] = company["business_description"]
     if derived_facts.get("enterprise_size") is not None:
         size = derived_facts["enterprise_size"]
-        summary["quy mô suy dẫn"] = size_labels.get(size, size)
+        if lang == "en":
+            summary["derived_size"] = size_labels_en.get(size, size)
+        else:
+            summary["quy mô suy dẫn"] = size_labels.get(size, size)
     if derived_facts.get("is_sme") is not None:
-        summary["thuộc nhóm DNNVV"] = bool(derived_facts["is_sme"])
+        if lang == "en":
+            summary["is_sme"] = bool(derived_facts["is_sme"])
+        else:
+            summary["thuộc nhóm DNNVV"] = bool(derived_facts["is_sme"])
     return summary
 
 
@@ -135,8 +174,10 @@ def write_advisory_answer(
     deterministic_answer: str,
     *,
     fpt: FptClient,
+    language: str = "vi",
 ) -> AdvisoryWriteResult:
     """Append optional suggestions without letting the LLM decide eligibility."""
+    lang = language if language == "en" else "vi"
     results = list(eligibility.get("eligibility_results") or [])
     if selection.get("coverage_status") != "covered" or not results:
         return AdvisoryWriteResult(
@@ -149,6 +190,7 @@ def write_advisory_answer(
         "company_summary": _company_summary(
             company,
             eligibility.get("derived_facts") or {},
+            language=lang,
         ),
         "coverage": {
             "coverage_status": selection.get("coverage_status"),
@@ -158,11 +200,16 @@ def write_advisory_answer(
         "eligibility_results": _safe_results(results),
     }
 
+    SUGGESTIONS_LABEL = {
+        "vi": "Gợi ý dành cho doanh nghiệp",
+        "en": "Suggested next steps",
+    }
+
     last_error: Exception | None = None
     suggestion: str | None = None
     for _attempt in range(2):
         try:
-            suggestion = fpt.advise(llm_payload)
+            suggestion = fpt.advise(llm_payload, language=lang)
             if suggestion:
                 break
         except Exception as exc:  # LLM is optional; deterministic answer is authoritative.
@@ -183,6 +230,6 @@ def write_advisory_answer(
             fallback_reason="llm_disabled_or_empty",
         )
     return AdvisoryWriteResult(
-        answer=f"{deterministic_answer}\n\nGợi ý dành cho doanh nghiệp:\n{suggestion}",
+        answer=f"{deterministic_answer}\n\n{SUGGESTIONS_LABEL[lang]}:\n{suggestion}",
         writer="fpt_llm",
     )

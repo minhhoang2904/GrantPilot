@@ -116,9 +116,29 @@ class LLMClient:
 
     # -- Grounded answer (Groq / Mistral) -----------------------------------
 
-    def answer(self, question: str, evidence: list[dict]) -> str | None:
+    def answer(self, question: str, evidence: list[dict], language: str = "vi") -> str | None:
         if not config.answer_enabled() or not evidence:
             return None
+        ANSWER_SYSTEM = {
+            "vi": (
+                "Bạn là trợ lý tra cứu pháp luật. Chỉ trả lời bằng bằng chứng "
+                "được cung cấp. Mỗi khẳng định pháp lý phải dẫn số văn bản và "
+                "Điều/Khoản/Điểm. Nếu bằng chứng không đủ, nói rõ là không đủ. "
+                "Không tự kết luận doanh nghiệp chắc chắn đủ điều kiện. "
+                "Viết văn bản thuần, không dùng Markdown (không **, #, bảng); dùng gạch "
+                "đầu dòng '-' khi cần. Không in mã định danh trong ngoặc vuông."
+            ),
+            "en": (
+                "You are a legal research assistant. Only answer using the provided evidence. "
+                "Every legal claim must cite the document number and Article/Clause/Point. "
+                "If evidence is insufficient, say so clearly. "
+                "Do not conclude that a business definitely qualifies for support. "
+                "The evidence is in Vietnamese; always write your answer in English. "
+                "Write plain text without Markdown (no **, #, tables); use '-' bullets "
+                "when needed. Do not print the bracketed identifiers."
+            ),
+        }
+        lang = language if language in ANSWER_SYSTEM else "vi"
         blocks = []
         for unit in evidence:
             location = f"{unit.get('document_number', '')}, Điều {unit.get('article', '')}"
@@ -133,12 +153,7 @@ class LLMClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "Bạn là trợ lý tra cứu pháp luật. Chỉ trả lời bằng bằng chứng "
-                        "được cung cấp. Mỗi khẳng định pháp lý phải dẫn số văn bản và "
-                        "Điều/Khoản/Điểm. Nếu bằng chứng không đủ, nói rõ là không đủ. "
-                        "Không tự kết luận doanh nghiệp chắc chắn đủ điều kiện."
-                    ),
+                    "content": ANSWER_SYSTEM[lang],
                 },
                 {
                     "role": "user",
@@ -164,24 +179,37 @@ class LLMClient:
 
     # -- Advisory suggestions (Groq / Mistral) ------------------------------
 
-    def advise(self, advisory_payload: dict[str, Any]) -> str | None:
+    def advise(self, advisory_payload: dict[str, Any], language: str = "vi") -> str | None:
         if not config.ADVISORY_ENABLED or not config.ADVISORY_MODEL:
             return None
+        ADVISE_SYSTEM = {
+            "vi": (
+                "Bạn là chuyên viên hỗ trợ doanh nghiệp nhỏ và vừa. Chỉ viết phần "
+                "gợi ý hành động dựa trên JSON đầu vào. Trạng thái eligibility là kết "
+                "quả cố định: không thay đổi, phủ định hoặc suy diễn lại. Không thêm "
+                "chính sách, điều kiện, mức tiền, thời hạn, thủ tục hay giấy tờ không "
+                "có trong dữ liệu. Không nói doanh nghiệp chắc chắn sẽ nhận hỗ trợ. "
+                "Không dùng tên field kỹ thuật, JSON, RAG, rule engine hoặc thuật ngữ "
+                "nội bộ. Không lặp lại phần kết luận. Chỉ nêu 2-4 việc thực tế nên làm "
+                "tiếp bằng tiếng Việt rõ ràng và ngắn gọn."
+            ),
+            "en": (
+                "You are an SME support specialist. Only write action suggestions based on the input JSON. "
+                "The eligibility status is a fixed result: do not change, negate, or re-infer it. "
+                "Do not add policies, conditions, amounts, deadlines, procedures, or documents not in the data. "
+                "Do not say the business will definitely receive support. "
+                "Do not use technical field names, JSON, RAG, rule engine, or internal terms. "
+                "Do not repeat the conclusion. "
+                "Only list 2-4 practical next steps in clear, concise English."
+            ),
+        }
+        lang = language if language in ADVISE_SYSTEM else "vi"
         payload: dict[str, Any] = {
             "model": config.ADVISORY_MODEL,
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "Bạn là chuyên viên hỗ trợ doanh nghiệp nhỏ và vừa. Chỉ viết phần "
-                        "gợi ý hành động dựa trên JSON đầu vào. Trạng thái eligibility là kết "
-                        "quả cố định: không thay đổi, phủ định hoặc suy diễn lại. Không thêm "
-                        "chính sách, điều kiện, mức tiền, thời hạn, thủ tục hay giấy tờ không "
-                        "có trong dữ liệu. Không nói doanh nghiệp chắc chắn sẽ nhận hỗ trợ. "
-                        "Không dùng tên field kỹ thuật, JSON, RAG, rule engine hoặc thuật ngữ "
-                        "nội bộ. Không lặp lại phần kết luận. Chỉ nêu 2-4 việc thực tế nên làm "
-                        "tiếp bằng tiếng Việt rõ ràng và ngắn gọn."
-                    ),
+                    "content": ADVISE_SYSTEM[lang],
                 },
                 {
                     "role": "user",
@@ -198,6 +226,35 @@ class LLMClient:
         if content:
             return content
         raise RuntimeError("LLM tư vấn trả content rỗng")
+
+    # -- Translation of composed answers (answer provider) ------------------
+
+    def translate_to_english(self, text: str) -> str | None:
+        """Translate a composed Vietnamese answer; never adds or drops content."""
+        if not config.answer_enabled() or not text.strip():
+            return None
+        payload: dict[str, Any] = {
+            "model": config.ANSWER_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Translate the user's text into clear English. Keep the meaning, "
+                        "structure, line breaks, bullets and numbering exactly. Do not add, "
+                        "remove, soften or strengthen any statement. Keep legal document "
+                        "numbers (e.g. 80/2021/NĐ-CP) unchanged; render Điều/Khoản/Điểm as "
+                        "Article/Clause/Point. Output only the translation."
+                    ),
+                },
+                {"role": "user", "content": text},
+            ],
+            "temperature": 0,
+            "max_tokens": config.ANSWER_MAX_TOKENS,
+            "stream": False,
+        }
+        data = self._post(config.ANSWER_CHAT_URL, config.ANSWER_API_KEY, payload)
+        message = (data.get("choices") or [{}])[0].get("message") or {}
+        return (message.get("content") or "").strip() or None
 
 
 # Backward-compatible alias so existing imports keep working.

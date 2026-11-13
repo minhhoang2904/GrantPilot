@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Company } from './types'
 import { getEmail, isTokenValid, clearSession } from './auth'
 import { getCompany } from './api'
+import { useT } from './i18n'
 import LoginPage from './pages/LoginPage'
 import OnboardingPage from './pages/OnboardingPage'
 import MainPage from './pages/MainPage'
@@ -9,6 +10,7 @@ import MainPage from './pages/MainPage'
 type View = 'loading' | 'login' | 'onboarding' | 'main'
 
 export default function App() {
+  const t = useT()
   const [view, setView] = useState<View>('loading')
   const [email, setEmail] = useState<string>('')
   const [company, setCompany] = useState<Company | null>(null)
@@ -83,7 +85,7 @@ export default function App() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-gray-500">Đang tải...</p>
+          <p className="text-sm text-gray-500">{t('common.loading')}</p>
         </div>
       </div>
     )

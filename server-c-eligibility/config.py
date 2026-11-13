@@ -48,14 +48,14 @@ ELIGIBILITY_BASE_URL = os.getenv(
 ).strip().rstrip("/")
 ELIGIBILITY_MODEL = os.getenv(
     "ELIGIBILITY_MODEL",
-    os.getenv("FPT_ELIGIBILITY_MODEL", "llama-3.3-70b-versatile"),
+    os.getenv("FPT_ELIGIBILITY_MODEL", "openai/gpt-oss-120b"),
 ).strip()
 ELIGIBILITY_CHAT_URL = os.getenv(
     "ELIGIBILITY_CHAT_URL",
     f"{ELIGIBILITY_BASE_URL}/chat/completions",
 ).strip()
 ELIGIBILITY_MAX_TOKENS = int(
-    os.getenv("ELIGIBILITY_MAX_TOKENS", os.getenv("FPT_ELIGIBILITY_MAX_TOKENS", "1200"))
+    os.getenv("ELIGIBILITY_MAX_TOKENS", os.getenv("FPT_ELIGIBILITY_MAX_TOKENS", "4096"))
 )
 LLM_TIMEOUT_SECONDS = float(
     os.getenv("LLM_TIMEOUT_SECONDS", os.getenv("FPT_TIMEOUT_SECONDS", "60"))

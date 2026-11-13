@@ -2,38 +2,31 @@ import { useState, useEffect } from 'react'
 import type { AdvisoryScope, ChatMode, Company, LegalForm, Message, Sector } from '../types'
 import { chatStream, deleteSession, getHistory, ApiError, type HistorySession } from '../api'
 import { clearSession } from '../auth'
+import { useT } from '../i18n'
+import type { TranslationKey } from '../i18n/types'
 import ChatThread from '../components/ChatThread'
 import ChatInput from '../components/ChatInput'
 import PdfSidePanel from '../components/PdfSidePanel'
+import LanguageToggle from '../components/LanguageToggle'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const MODE_KEY = 'gp_chat_mode'
 
-const SECTOR_LABELS: Record<Sector, string> = {
-  nong_lam_ngu_nghiep: 'Nông / Lâm / Ngư',
-  cong_nghiep_xay_dung: 'CN & Xây dựng',
-  thuong_mai_dich_vu: 'TM & Dịch vụ',
+const SECTOR_LABEL_KEYS: Record<Sector, TranslationKey> = {
+  nong_lam_ngu_nghiep: 'main.sectorNongLamNgu',
+  cong_nghiep_xay_dung: 'main.sectorCnXayDung',
+  thuong_mai_dich_vu: 'main.sectorTmDichVu',
 }
 
-const LEGAL_FORM_LABELS: Record<LegalForm, string> = {
-  joint_stock_company: 'Công ty cổ phần',
-  limited_liability_company: 'Công ty TNHH',
-  partnership: 'Công ty hợp danh',
-  private_enterprise: 'Doanh nghiệp tư nhân',
-  cooperative: 'Hợp tác xã',
-  household_business: 'Hộ kinh doanh',
-  other: 'Khác',
-}
-
-function sectorLabel(s?: Sector | null) {
-  return s ? SECTOR_LABELS[s] : null
-}
-
-function triboolLabel(v?: boolean | null) {
-  if (v === true) return 'Có'
-  if (v === false) return 'Không'
-  return null
+const LEGAL_FORM_LABEL_KEYS: Record<LegalForm, TranslationKey> = {
+  joint_stock_company: 'main.legalJointStock',
+  limited_liability_company: 'main.legalLimitedLiability',
+  partnership: 'main.legalPartnership',
+  private_enterprise: 'main.legalPrivate',
+  cooperative: 'main.legalCooperative',
+  household_business: 'main.legalHousehold',
+  other: 'main.legalOther',
 }
 
 function compactVnd(n?: number | null) {
@@ -77,13 +70,13 @@ function loadStoredMode(): ChatMode {
   return 'lookup'
 }
 
-function sessionTitle(session: HistorySession, index: number): string {
-  const firstUser = session.turns.find((t) => t.role === 'user')
+function sessionTitle(session: HistorySession, index: number, tFn: (key: TranslationKey, params?: Record<string, string | number>) => string): string {
+  const firstUser = session.turns.find((turn) => turn.role === 'user')
   if (firstUser?.content?.trim()) {
-    const t = firstUser.content.trim()
-    return t.length > 42 ? t.slice(0, 42) + '…' : t
+    const content = firstUser.content.trim()
+    return content.length > 42 ? content.slice(0, 42) + '…' : content
   }
-  return `Cuộc trò chuyện ${index + 1}`
+  return tFn('main.sessionTitle', { n: index + 1 })
 }
 
 function turnsToMessages(turns: HistorySession['turns']): Message[] {
@@ -130,6 +123,7 @@ export default function MainPage({
   onLogout,
   onOpenOnboarding,
 }: Props) {
+  const t = useT()
   const [mode, setMode] = useState<ChatMode>(loadStoredMode)
   const [sessions, setSessions] = useState<HistorySession[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -353,7 +347,7 @@ export default function MainPage({
       }
     } catch (err) {
       const errText =
-        err instanceof ApiError ? err.message : 'Đã xảy ra lỗi, vui lòng thử lại.'
+        err instanceof ApiError ? err.message : t('common.error')
       if (!assistantStarted) {
         setMessages((prev) => [
           ...prev,
@@ -377,7 +371,7 @@ export default function MainPage({
   }
 
   function handleProfileScan() {
-    void handleSend('Quét chính sách phù hợp với hồ sơ doanh nghiệp', 'profile_scan')
+    void handleSend(t('main.profileScanQuery'), 'profile_scan')
   }
 
   const sessionsNewestFirst = [...sessions].reverse()
@@ -401,7 +395,7 @@ export default function MainPage({
 
         {/* Mode toggle */}
         <div className="px-4 py-3 border-b border-white/10">
-          <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">Chế độ tư vấn</p>
+          <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">{t('main.modeSection')}</p>
           <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-white/5">
             <button
               type="button"
@@ -412,7 +406,7 @@ export default function MainPage({
                   : 'text-gray-400 hover:text-white hover:bg-white/10'
               }`}
             >
-              Tra cứu nhanh
+              {t('main.modeLookup')}
             </button>
             <button
               type="button"
@@ -423,12 +417,12 @@ export default function MainPage({
                   : 'text-gray-400 hover:text-white hover:bg-white/10'
               }`}
             >
-              Tư vấn sâu
+              {t('main.modeAdvisory')}
             </button>
           </div>
           {mode === 'advisory' && !profileComplete && (
             <p className="mt-2 text-[11px] text-amber-400/90 leading-snug">
-              Cần hồ sơ doanh nghiệp đầy đủ để dùng chế độ này.
+              {t('main.modeAdvisoryNeedsProfile')}
             </p>
           )}
         </div>
@@ -436,20 +430,20 @@ export default function MainPage({
         {/* Sessions */}
         <div className="flex-1 min-h-0 flex flex-col border-b border-white/10">
           <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] uppercase tracking-wide text-gray-500">Cuộc trò chuyện</p>
+            <p className="text-[11px] uppercase tracking-wide text-gray-500">{t('main.sessionsSection')}</p>
             <button
               type="button"
               onClick={handleNewChat}
               className="text-[11px] font-medium text-brand hover:text-white transition"
             >
-              + Mới
+              {t('main.newChat')}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto chat-scroll px-2 pb-2 space-y-0.5">
             {historyLoading ? (
-              <p className="px-2 py-3 text-xs text-gray-500">Đang tải...</p>
+              <p className="px-2 py-3 text-xs text-gray-500">{t('main.loadingHistory')}</p>
             ) : sessionsNewestFirst.length === 0 ? (
-              <p className="px-2 py-3 text-xs text-gray-500 italic">Chưa có phiên chat</p>
+              <p className="px-2 py-3 text-xs text-gray-500 italic">{t('main.noSessions')}</p>
             ) : (
               sessionsNewestFirst.map((s, i) => {
                 const active = s.session_id === sessionId
@@ -474,14 +468,14 @@ export default function MainPage({
                       </svg>
                       <span className="flex-1 min-w-0">
                         <span className="block text-xs font-medium truncate">
-                          {sessionTitle(s, idx)}
+                          {sessionTitle(s, idx, t)}
                         </span>
                         <span className="block text-[10px] text-gray-500 mt-0.5">
                           {s.started_at
                             ? new Date(s.started_at).toLocaleDateString('vi-VN')
                             : '—'}
                           {' · '}
-                          {s.turns.length} tin
+                          {s.turns.length} {t('main.sessionTurns')}
                         </span>
                       </span>
                     </button>
@@ -489,7 +483,7 @@ export default function MainPage({
                       type="button"
                       onClick={(e) => void handleDeleteSession(e, s.session_id)}
                       className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-gray-500 hover:text-red-400 transition shrink-0"
-                      title="Xóa phiên"
+                      title={t('main.deleteSession')}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -503,7 +497,7 @@ export default function MainPage({
             {/* Draft new chat indicator */}
             {!historyLoading && sessionId === undefined && (
               <div className="px-2.5 py-2 rounded-lg bg-white/10 text-white text-xs font-medium">
-                Cuộc trò chuyện mới
+                {t('main.newSessionDraft')}
               </div>
             )}
           </div>
@@ -512,55 +506,58 @@ export default function MainPage({
         {/* Profile */}
         <div className="px-4 py-3 border-b border-white/10 max-h-56 overflow-y-auto chat-scroll">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[11px] uppercase tracking-wide text-gray-500">Hồ sơ cá nhân</p>
+            <p className="text-[11px] uppercase tracking-wide text-gray-500">{t('main.profileSection')}</p>
             <button
               type="button"
               onClick={() => onOpenOnboarding(false)}
               className="text-[11px] font-medium text-brand hover:text-white transition"
             >
-              {profileComplete ? 'Sửa' : 'Điền hồ sơ'}
+              {profileComplete ? t('main.editProfile') : t('main.fillProfile')}
             </button>
           </div>
           <p className="text-sm font-semibold text-white truncate mb-0.5">
-            {company?.company_name?.trim() || 'Chưa có tên DN'}
+            {company?.company_name?.trim() || t('main.noCompanyName')}
           </p>
           <p className="text-xs text-gray-400 truncate mb-2">{email}</p>
           <div className="space-y-1">
-            <SidebarStat label="Lĩnh vực" value={sectorLabel(company?.sector)} />
-            <SidebarStat label="Loại hình" value={company?.legal_form ? LEGAL_FORM_LABELS[company.legal_form] : null} />
-            <SidebarStat label="Đăng ký lần đầu" value={company?.first_business_registration_date ?? null} />
+            <SidebarStat label={t('main.statSector')} value={company?.sector ? t(SECTOR_LABEL_KEYS[company.sector]) : null} />
+            <SidebarStat label={t('main.statLegalForm')} value={company?.legal_form ? t(LEGAL_FORM_LABEL_KEYS[company.legal_form]) : null} />
+            <SidebarStat label={t('main.statRegistrationDate')} value={company?.first_business_registration_date ?? null} />
             <SidebarStat
-              label="LĐ BHXH"
+              label={t('main.statSiEmployees')}
               value={
                 company?.social_insurance_employees != null
                   ? String(company.social_insurance_employees)
                   : null
               }
             />
-            <SidebarStat label="Doanh thu" value={compactVnd(company?.annual_revenue_vnd)} />
-            <SidebarStat label="Tổng vốn" value={compactVnd(company?.total_capital_vnd)} />
-            <SidebarStat label="SP / DV" value={company?.business_description ?? null} />
-            <SidebarStat label="Tỉnh / TP" value={company?.province_name ?? null} />
+            <SidebarStat label={t('main.statRevenue')} value={compactVnd(company?.annual_revenue_vnd)} />
+            <SidebarStat label={t('main.statCapital')} value={compactVnd(company?.total_capital_vnd)} />
+            <SidebarStat label={t('main.statBusinessDesc')} value={company?.business_description ?? null} />
+            <SidebarStat label={t('main.statProvince')} value={company?.province_name ?? null} />
             <SidebarStat
-              label="Chào bán CK"
-              value={triboolLabel(company?.has_public_offering)}
+              label={t('main.statPublicOffering')}
+              value={company?.has_public_offering === true ? t('common.yes') : company?.has_public_offering === false ? t('common.no') : null}
             />
-            <SidebarStat label="ĐKKD" value={triboolLabel(company?.has_business_registration)} />
+            <SidebarStat label={t('main.statBusinessReg')} value={company?.has_business_registration === true ? t('common.yes') : company?.has_business_registration === false ? t('common.no') : null} />
             <SidebarStat
-              label="Coworking"
-              value={triboolLabel(company?.has_coworking_contract)}
+              label={t('main.statCoworking')}
+              value={company?.has_coworking_contract === true ? t('common.yes') : company?.has_coworking_contract === false ? t('common.no') : null}
             />
             {company?.has_coworking_contract === true && (
               <SidebarStat
-                label="Chi phí CW"
+                label={t('main.statCoworkingCost')}
                 value={compactVnd(company?.coworking_monthly_cost_vnd)}
               />
             )}
           </div>
         </div>
 
-        {/* Logout */}
-        <div className="px-3 py-3">
+        {/* Language + Logout */}
+        <div className="px-3 py-3 space-y-1">
+          <div className="flex justify-center pb-1">
+            <LanguageToggle />
+          </div>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-white/10 hover:text-white transition"
@@ -569,7 +566,7 @@ export default function MainPage({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            Đăng xuất
+            {t('main.logout')}
           </button>
         </div>
       </aside>
@@ -596,7 +593,7 @@ export default function MainPage({
                     mode === 'advisory' ? 'text-teal-900' : 'text-sky-900'
                   }`}
                 >
-                  {mode === 'advisory' ? 'Tư vấn sâu theo hồ sơ' : 'Tra cứu chính sách nhanh'}
+                  {mode === 'advisory' ? t('main.headerAdvisoryTitle') : t('main.headerLookupTitle')}
                 </h2>
               </div>
               <p
@@ -605,8 +602,8 @@ export default function MainPage({
                 }`}
               >
                 {mode === 'advisory'
-                  ? 'Đối chiếu ưu đãi với hồ sơ doanh nghiệp của bạn — biết ngay đủ điều kiện hay còn thiếu gì.'
-                  : 'Hỏi đáp chính sách hỗ trợ nhanh, không cần điền hồ sơ doanh nghiệp.'}
+                  ? t('main.headerAdvisoryDesc')
+                  : t('main.headerLookupDesc')}
               </p>
             </div>
             <span
@@ -616,7 +613,7 @@ export default function MainPage({
                   : 'bg-sky-600 text-white'
               }`}
             >
-              {mode === 'advisory' ? 'Tư vấn sâu' : 'Tra cứu nhanh'}
+              {mode === 'advisory' ? t('main.headerAdvisoryBadge') : t('main.headerLookupBadge')}
             </span>
           </div>
         </div>
@@ -624,7 +621,7 @@ export default function MainPage({
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
               <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-              <p className="text-xs text-gray-400">Đang tải lịch sử...</p>
+              <p className="text-xs text-gray-400">{t('main.loadingHistoryFull')}</p>
             </div>
           </div>
         ) : (

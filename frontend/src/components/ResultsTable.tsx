@@ -1,43 +1,46 @@
 import type { PolicyResult, PolicyStatus } from '../types'
+import type { TranslationKey } from '../i18n/types'
 import GapDetail from './GapDetail'
+import { useT } from '../i18n'
 
 function formatVND(value?: number): string {
   if (value == null || value === 0) return '—'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
-const STATUS_CONFIG: Record<PolicyStatus, { label: string; className: string }> = {
+const STATUS_CONFIG: Record<PolicyStatus, { labelKey: TranslationKey; className: string }> = {
   eligible: {
-    label: 'Đủ điều kiện',
+    labelKey: 'results.statusEligible',
     className: 'bg-green-100 text-green-800',
   },
   partial: {
-    label: 'Thiếu — khắc phục được',
+    labelKey: 'results.statusPartial',
     className: 'bg-yellow-100 text-yellow-800',
   },
   not_eligible: {
-    label: 'Không đủ điều kiện',
+    labelKey: 'results.statusNotEligible',
     className: 'bg-red-100 text-red-700',
   },
   expired: {
-    label: 'Đã hết hạn',
+    labelKey: 'results.statusExpired',
     className: 'bg-gray-100 text-gray-600',
   },
   needs_more_information: {
-    label: 'Cần thêm thông tin',
+    labelKey: 'results.statusNeedsInfo',
     className: 'bg-yellow-100 text-yellow-800',
   },
   manual_review: {
-    label: 'Cần xem xét thêm',
+    labelKey: 'results.statusManualReview',
     className: 'bg-blue-100 text-blue-700',
   },
 }
 
 function StatusBadge({ status }: { status: PolicyStatus }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' }
+  const t = useT()
+  const cfg = STATUS_CONFIG[status]
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cfg.className}`}>
-      {cfg.label}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cfg ? cfg.className : 'bg-gray-100 text-gray-600'}`}>
+      {cfg ? t(cfg.labelKey) : status}
     </span>
   )
 }
@@ -49,9 +52,10 @@ function SourceLink({
   source: PolicyResult['source']
   onOpenPdf?: (url: string, label: string) => void
 }) {
+  const t = useT()
   if (!source) return <span className="text-gray-400">—</span>
   const parts = [source.dieu, source.khoan, source.thong_tu].filter(Boolean).join(', ')
-  const label = parts || 'Nguồn'
+  const label = parts || t('results.colSource')
   if (source.url) {
     return (
       <button
@@ -76,6 +80,7 @@ interface Props {
 }
 
 export default function ResultsTable({ results, onOpenPdf }: Props) {
+  const t = useT()
   if (!results || results.length === 0) return null
 
   return (
@@ -84,10 +89,10 @@ export default function ResultsTable({ results, onOpenPdf }: Props) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Chính sách</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trạng thái</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Giá trị</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Nguồn</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('results.colPolicy')}</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('results.colStatus')}</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('results.colValue')}</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('results.colSource')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

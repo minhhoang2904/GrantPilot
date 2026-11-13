@@ -35,7 +35,7 @@ services:
       - key: ELIGIBILITY_BASE_URL
         value: https://api.groq.com/openai/v1
       - key: ELIGIBILITY_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-120b
       - key: ELIGIBILITY_LLM_ENABLED
         value: "true"
 
@@ -87,21 +87,21 @@ services:
       - key: REWRITE_BASE_URL
         value: https://api.groq.com/openai/v1
       - key: REWRITE_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-120b
       # Answer generation (Groq)
       - key: ANSWER_API_KEY
         sync: false
       - key: ANSWER_BASE_URL
         value: https://api.groq.com/openai/v1
       - key: ANSWER_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-120b
       - key: ANSWER_MAX_TOKENS
         value: "8192"
       # Advisory
       - key: ADVISORY_ENABLED
         value: "true"
       - key: ADVISORY_MAX_TOKENS
-        value: "1200"
+        value: "4096"
 
   # --- Frontend ---
   - type: web

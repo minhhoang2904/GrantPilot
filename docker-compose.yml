@@ -81,16 +81,16 @@ services:
       # Query rewrite LLM (Groq)
       - REWRITE_API_KEY=${REWRITE_API_KEY:-}
       - REWRITE_BASE_URL=${REWRITE_BASE_URL:-https://api.groq.com/openai/v1}
-      - REWRITE_MODEL=${REWRITE_MODEL:-llama-3.3-70b-versatile}
+      - REWRITE_MODEL=${REWRITE_MODEL:-openai/gpt-oss-120b}
       - REWRITE_MAX_TOKENS=${REWRITE_MAX_TOKENS:-512}
       # Answer LLM (Groq)
       - ANSWER_API_KEY=${ANSWER_API_KEY:-}
       - ANSWER_BASE_URL=${ANSWER_BASE_URL:-https://api.groq.com/openai/v1}
-      - ANSWER_MODEL=${ANSWER_MODEL:-llama-3.3-70b-versatile}
+      - ANSWER_MODEL=${ANSWER_MODEL:-openai/gpt-oss-120b}
       - ANSWER_MAX_TOKENS=${ANSWER_MAX_TOKENS:-8192}
       # Advisory LLM (defaults to answer provider)
       - ADVISORY_API_KEY=${ADVISORY_API_KEY:-${ANSWER_API_KEY:-}}
-      - ADVISORY_MODEL=${ADVISORY_MODEL:-${ANSWER_MODEL:-llama-3.3-70b-versatile}}
+      - ADVISORY_MODEL=${ADVISORY_MODEL:-${ANSWER_MODEL:-openai/gpt-oss-120b}}
       - ADVISORY_MAX_TOKENS=${ADVISORY_MAX_TOKENS:-1200}
       - ADVISORY_ENABLED=${ADVISORY_ENABLED:-true}
 
@@ -111,7 +111,7 @@ services:
       # Eligibility explanation LLM (Groq)
       - ELIGIBILITY_API_KEY=${ELIGIBILITY_API_KEY:-${ANSWER_API_KEY:-}}
       - ELIGIBILITY_BASE_URL=${ELIGIBILITY_BASE_URL:-https://api.groq.com/openai/v1}
-      - ELIGIBILITY_MODEL=${ELIGIBILITY_MODEL:-llama-3.3-70b-versatile}
+      - ELIGIBILITY_MODEL=${ELIGIBILITY_MODEL:-openai/gpt-oss-120b}
       - ELIGIBILITY_LLM_ENABLED=${ELIGIBILITY_LLM_ENABLED:-true}
       - STRICT_LEGAL_STATUS=${STRICT_LEGAL_STATUS:-false}
 

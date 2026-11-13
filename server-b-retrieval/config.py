@@ -127,14 +127,14 @@ REWRITE_BASE_URL = os.getenv(
 ).strip().rstrip("/")
 REWRITE_MODEL = os.getenv(
     "REWRITE_MODEL",
-    os.getenv("FPT_QUERY_REWRITE_MODEL", "llama-3.3-70b-versatile"),
+    os.getenv("FPT_QUERY_REWRITE_MODEL", "openai/gpt-oss-120b"),
 ).strip()
 REWRITE_CHAT_URL = os.getenv(
     "REWRITE_CHAT_URL",
     f"{REWRITE_BASE_URL}/chat/completions",
 ).strip()
 REWRITE_MAX_TOKENS = int(
-    os.getenv("REWRITE_MAX_TOKENS", os.getenv("FPT_QUERY_REWRITE_MAX_TOKENS", "512"))
+    os.getenv("REWRITE_MAX_TOKENS", os.getenv("FPT_QUERY_REWRITE_MAX_TOKENS", "2048"))
 )
 
 # -- Answer LLM (default: Groq) -------------------------------------------
@@ -145,7 +145,7 @@ ANSWER_BASE_URL = os.getenv(
 ).strip().rstrip("/")
 ANSWER_MODEL = os.getenv(
     "ANSWER_MODEL",
-    os.getenv("FPT_ANSWER_MODEL", "llama-3.3-70b-versatile"),
+    os.getenv("FPT_ANSWER_MODEL", "openai/gpt-oss-120b"),
 ).strip()
 ANSWER_CHAT_URL = os.getenv(
     "ANSWER_CHAT_URL",
@@ -169,7 +169,7 @@ ADVISORY_CHAT_URL = os.getenv(
     f"{ADVISORY_BASE_URL}/chat/completions",
 ).strip()
 ADVISORY_MAX_TOKENS = int(
-    os.getenv("ADVISORY_MAX_TOKENS", os.getenv("FPT_ADVISORY_MAX_TOKENS", "1200"))
+    os.getenv("ADVISORY_MAX_TOKENS", os.getenv("FPT_ADVISORY_MAX_TOKENS", "4096"))
 )
 ADVISORY_ENABLED = os.getenv(
     "ADVISORY_ENABLED",

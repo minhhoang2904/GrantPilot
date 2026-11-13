@@ -75,7 +75,7 @@ POLICY_BASE_URL = os.getenv(
     "POLICY_BASE_URL", os.getenv("ANSWER_BASE_URL", _FPT_BASE_URL or "https://api.groq.com/openai/v1")
 ).strip().rstrip("/")
 POLICY_MODEL = os.getenv(
-    "POLICY_MODEL", os.getenv("FPT_POLICY_MODEL", "llama-3.3-70b-versatile")
+    "POLICY_MODEL", os.getenv("FPT_POLICY_MODEL", "openai/gpt-oss-120b")
 ).strip()
 POLICY_CHAT_URL = os.getenv("POLICY_CHAT_URL", f"{POLICY_BASE_URL}/chat/completions").strip()
 

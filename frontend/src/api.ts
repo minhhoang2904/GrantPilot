@@ -8,6 +8,7 @@ import type {
   SourceItem,
 } from './types'
 import { getToken, clearSession } from './auth'
+import { getStoredLang, translate } from './i18n'
 
 // In dev, Vite proxies /api/* -> http://localhost:8001/* (see vite.config.ts).
 const BASE = '/api'
@@ -28,7 +29,7 @@ function authHeaders(): Record<string, string> {
 }
 
 async function responseErrorDetail(res: Response): Promise<string> {
-  const fallback = res.statusText || 'Không thể xử lý yêu cầu.'
+  const fallback = res.statusText || translate('api.cannotProcessRequest')
   try {
     const body = (await res.json()) as unknown
     if (typeof body !== 'object' || body === null || Array.isArray(body)) return fallback
@@ -60,7 +61,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   if (!res.ok) {
     const detail = await responseErrorDetail(res)
-    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
+    throw new ApiError(res.status, translate('api.serverError', { status: res.status, detail }))
   }
   return res.json() as Promise<T>
 }
@@ -74,7 +75,7 @@ export async function apiRegister(email: string, password: string): Promise<{ to
     body: JSON.stringify({ email, password }),
   })
   const data = await result.json()
-  if (!result.ok) throw new ApiError(result.status, data.detail ?? 'Đăng ký thất bại.')
+  if (!result.ok) throw new ApiError(result.status, data.detail ?? translate('api.registerFailed'))
   return data
 }
 
@@ -85,7 +86,7 @@ export async function apiLogin(email: string, password: string): Promise<{ token
     body: JSON.stringify({ email, password }),
   })
   const data = await result.json()
-  if (!result.ok) throw new ApiError(result.status, data.detail ?? 'Đăng nhập thất bại.')
+  if (!result.ok) throw new ApiError(result.status, data.detail ?? translate('api.loginFailed'))
   return data
 }
 
@@ -97,7 +98,7 @@ export async function getCompany(email: string): Promise<Company | null> {
 
 export async function createCompany(payload: Omit<Company, never>): Promise<Company> {
   const result = await request<Company>('POST', '/companies', payload)
-  if (!result) throw new ApiError(500, 'Không tạo được hồ sơ công ty.')
+  if (!result) throw new ApiError(500, translate('api.cannotCreateCompany'))
   return result
 }
 
@@ -106,7 +107,7 @@ export async function updateCompany(
   payload: Partial<Omit<Company, 'email'>>,
 ): Promise<Company> {
   const result = await request<Company>('PATCH', `/companies/${encodeURIComponent(email)}`, payload)
-  if (!result) throw new ApiError(404, 'Không tìm thấy hồ sơ công ty.')
+  if (!result) throw new ApiError(404, translate('api.companyNotFound'))
   return result
 }
 
@@ -139,7 +140,7 @@ export async function deleteSession(email: string, sessionId: string): Promise<v
     'DELETE',
     `/history/${encodeURIComponent(email)}/sessions/${encodeURIComponent(sessionId)}`,
   )
-  if (!result) throw new ApiError(404, 'Không tìm thấy phiên chat.')
+  if (!result) throw new ApiError(404, translate('api.sessionNotFound'))
 }
 
 // ── New streaming chat API (/v1/chat/stream) ──────────────────────────────────
@@ -220,6 +221,7 @@ export async function* chatStream(
       conversation_id: conversationId,
       advisory_scope: advisoryScope ?? 'question',
       options: { top_k: 5 },
+      language: getStoredLang(),
     }),
   })
 
@@ -231,16 +233,16 @@ export async function* chatStream(
 
   if (res.status === 409) {
     const detail = await responseErrorDetail(res)
-    throw new ApiError(409, detail || 'Cần hồ sơ doanh nghiệp để dùng chế độ tư vấn.')
+    throw new ApiError(409, detail || translate('api.needsProfile'))
   }
 
   if (!res.ok) {
     const detail = await responseErrorDetail(res)
-    throw new ApiError(res.status, `Server lỗi ${res.status}: ${detail}`)
+    throw new ApiError(res.status, translate('api.serverError', { status: res.status, detail }))
   }
 
   if (!res.body) {
-    throw new ApiError(500, 'Không nhận được phản hồi từ server.')
+    throw new ApiError(500, translate('api.noResponseBody'))
   }
 
   const reader = res.body.getReader()
@@ -308,12 +310,12 @@ export async function ask(
     session_id: sessionId ?? null,
     mode,
   })
-  if (!result) throw new ApiError(500, 'Không nhận được câu trả lời.')
+  if (!result) throw new ApiError(500, translate('api.noAnswer'))
   return normalizeAskResponse(result)
 }
 
 export async function askFlat(question: string): Promise<FlatAskResponse> {
   const result = await request<FlatAskResponse>('POST', '/ask/flat', { question })
-  if (!result) throw new ApiError(500, 'Không nhận được câu trả lời.')
+  if (!result) throw new ApiError(500, translate('api.noAnswer'))
   return result
 }

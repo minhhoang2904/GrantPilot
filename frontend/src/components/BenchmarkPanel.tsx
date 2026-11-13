@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { ask, askFlat, ApiError } from '../api'
 import type { AskResponse, FlatAskResponse } from '../types'
 import ResultsTable from './ResultsTable'
+import { useT } from '../i18n'
 
 interface Props {
   email: string
 }
 
 export default function BenchmarkPanel({ email }: Props) {
+  const t = useT()
   const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
   const [full, setFull] = useState<AskResponse | null>(null)
@@ -30,12 +32,12 @@ export default function BenchmarkPanel({ email }: Props) {
       ask(email, question.trim())
         .then(setFull)
         .catch((err: unknown) => {
-          setFullError(err instanceof ApiError ? err.message : 'Lỗi không xác định.')
+          setFullError(err instanceof ApiError ? err.message : t('benchmark.unknownError'))
         }),
       askFlat(question.trim())
         .then(setFlat)
         .catch((err: unknown) => {
-          setFlatError(err instanceof ApiError ? err.message : 'Lỗi không xác định.')
+          setFlatError(err instanceof ApiError ? err.message : t('benchmark.unknownError'))
         }),
     ])
     setLoading(false)
@@ -49,7 +51,7 @@ export default function BenchmarkPanel({ email }: Props) {
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Nhập câu hỏi để so sánh hai pipeline..."
+          placeholder={t('benchmark.placeholder')}
           className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition"
         />
         <button
@@ -57,7 +59,7 @@ export default function BenchmarkPanel({ email }: Props) {
           disabled={loading || !question.trim()}
           className="px-5 py-2.5 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white text-sm font-medium rounded-xl transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 whitespace-nowrap"
         >
-          {loading ? 'Đang so sánh...' : 'So sánh'}
+          {loading ? t('benchmark.comparing') : t('benchmark.compare')}
         </button>
       </form>
 
@@ -67,7 +69,7 @@ export default function BenchmarkPanel({ email }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          <p className="text-sm">Nhập câu hỏi và nhấn "So sánh" để xem kết quả</p>
+          <p className="text-sm">{t('benchmark.emptyHint')}</p>
         </div>
       )}
 
@@ -77,7 +79,7 @@ export default function BenchmarkPanel({ email }: Props) {
           <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500" />
-              <h3 className="text-sm font-semibold text-gray-800">Có Eligibility Engine</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{t('benchmark.withEngine')}</h3>
             </div>
             <div className="p-5">
               {loading ? (
@@ -101,7 +103,7 @@ export default function BenchmarkPanel({ email }: Props) {
           <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-800">RAG phẳng (baseline)</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{t('benchmark.flatRag')}</h3>
             </div>
             <div className="p-5">
               {loading ? (

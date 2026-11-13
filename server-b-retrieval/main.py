@@ -357,12 +357,20 @@ def _legal_citations(units: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
-NOT_COVERED_ANSWER = (
-    "Chủ đề này hiện chưa nằm trong bộ chính sách MVP. "
-    "Hệ thống chưa thể đánh giá doanh nghiệp đủ hay không đủ điều kiện cho nội dung này. "
-    "Hiện bạn có thể hỏi về hỗ trợ thông tin, đào tạo trực tuyến, đào tạo trực tiếp "
-    "hoặc thuê/mua giải pháp chuyển đổi số."
-)
+NOT_COVERED_ANSWER = {
+    "vi": (
+        "Chủ đề này hiện chưa nằm trong bộ chính sách MVP. "
+        "Hệ thống chưa thể đánh giá doanh nghiệp đủ hay không đủ điều kiện cho nội dung này. "
+        "Hiện bạn có thể hỏi về hỗ trợ thông tin, đào tạo trực tuyến, đào tạo trực tiếp "
+        "hoặc thuê/mua giải pháp chuyển đổi số."
+    ),
+    "en": (
+        "This topic is not yet covered by the MVP policy set. "
+        "The system cannot assess whether the business qualifies for this topic. "
+        "You can currently ask about information support, online training, in-person training, "
+        "or renting/purchasing digital transformation solutions."
+    ),
+}
 
 FACT_LABELS = {
     "sector": "lĩnh vực hoạt động",
@@ -460,16 +468,137 @@ def _advisory_answer(
     question: str,
     eligibility: dict[str, Any],
     scope: Literal["question", "profile_scan"],
+    language: str = "vi",
 ) -> str:
     """Compose a stable business-facing answer from Server C's fixed decision."""
+    lang = language if language == "en" else "vi"
+    L = {
+        "no_question": {
+            "vi": "Vui lòng nhập nội dung cần tư vấn.",
+            "en": "Please enter the topic you need advice on.",
+        },
+        "no_results": {
+            "vi": "Chưa có kết quả chính sách để đánh giá cho hồ sơ này.",
+            "en": "No policy results available to evaluate for this profile.",
+        },
+        "status_eligible": {
+            "vi": "phù hợp",
+            "en": "eligible",
+        },
+        "status_not_eligible": {
+            "vi": "chưa đáp ứng",
+            "en": "not eligible",
+        },
+        "status_needs_more_information": {
+            "vi": "cần bổ sung thông tin",
+            "en": "needs more information",
+        },
+        "status_manual_review": {
+            "vi": "cần kiểm tra thêm",
+            "en": "needs further review",
+        },
+        "scan_header": {
+            "vi": "Kết quả quét hồ sơ: ",
+            "en": "Profile scan results: ",
+        },
+        "scan_program_suffix": {
+            "vi": " chương trình ",
+            "en": " program(s) ",
+        },
+        "scan_eligible_header": {
+            "vi": "\nDoanh nghiệp có thể xem xét đăng ký:",
+            "en": "\nThe business may consider applying for:",
+        },
+        "scan_not_eligible_header": {
+            "vi": "\nChương trình chưa phù hợp với hồ sơ hiện tại:",
+            "en": "\nPrograms not currently matching the profile:",
+        },
+        "conclusion_eligible": {
+            "vi": "Có. Theo hồ sơ hiện tại, doanh nghiệp phù hợp với \u201c{title}\u201d",
+            "en": "Yes. Based on the current profile, the business is eligible for \u201c{title}\u201d",
+        },
+        "conclusion_not_eligible": {
+            "vi": "Hiện doanh nghiệp chưa đáp ứng điều kiện của \u201c{title}\u201d",
+            "en": "The business does not currently meet the conditions for \u201c{title}\u201d",
+        },
+        "conclusion_needs_more_information": {
+            "vi": "Chưa thể kết luận doanh nghiệp có phù hợp với \u201c{title}\u201d",
+            "en": "Cannot yet determine whether the business qualifies for \u201c{title}\u201d",
+        },
+        "conclusion_manual_review": {
+            "vi": "\u201c{title}\u201d cần được kiểm tra thêm trước khi kết luận",
+            "en": "\u201c{title}\u201d requires further review before a conclusion can be made",
+        },
+        "conclusion_default": {
+            "vi": "Đã đánh giá \u201c{title}\u201d theo hồ sơ hiện tại",
+            "en": "\u201c{title}\u201d has been evaluated against the current profile",
+        },
+        "conclusion_prefix": {
+            "vi": "Kết luận: ",
+            "en": "Conclusion: ",
+        },
+        "reasons_header": {
+            "vi": "\nLý do chính:",
+            "en": "\nMain reasons:",
+        },
+        "missing_header": {
+            "vi": "\nThông tin cần bổ sung:",
+            "en": "\nInformation needed:",
+        },
+        "benefits_header": {
+            "vi": "\nDoanh nghiệp có thể được hỗ trợ:",
+            "en": "\nThe business may receive support for:",
+        },
+        "basis_header": {
+            "vi": "\nVì sao hồ sơ đang phù hợp:",
+            "en": "\nWhy the profile currently qualifies:",
+        },
+        "requirements_header": {
+            "vi": "\nViệc cần kiểm tra trước khi đăng ký:",
+            "en": "\nItems to verify before applying:",
+        },
+        "action_plan_header": {
+            "vi": "\nKế hoạch hành động ưu tiên:",
+            "en": "\nPriority action plan:",
+        },
+        "action_identify_needs": {
+            "vi": "Xác định nhu cầu thực tế và phạm vi hỗ trợ doanh nghiệp muốn đăng ký.",
+            "en": "Identify actual needs and the scope of support the business wants to apply for.",
+        },
+        "action_verify_requirement": {
+            "vi": "Kiểm tra và đối chiếu: {requirement}",
+            "en": "Verify and cross-check: {requirement}",
+        },
+        "action_cross_ref_source": {
+            "vi": "Đối chiếu hướng dẫn gốc tại {source} trước khi chuẩn bị hồ sơ.",
+            "en": "Cross-reference the original guidance at {source} before preparing your application.",
+        },
+        "documents_header": {
+            "vi": "\nChecklist hồ sơ đã được xác minh:",
+            "en": "\nVerified application checklist:",
+        },
+        "confirm_header": {
+            "vi": "\nHai thông tin cần xác nhận với đơn vị tiếp nhận:",
+            "en": "\nTwo items to confirm with the receiving authority:",
+        },
+        "confirm_docs": {
+            "vi": "- Danh mục giấy tờ cần nộp cho trường hợp cụ thể của doanh nghiệp.",
+            "en": "- The list of documents required for the business's specific case.",
+        },
+        "confirm_channel": {
+            "vi": "- Cơ quan, kênh tiếp nhận và thời hạn của đợt hỗ trợ hiện hành.",
+            "en": "- The receiving authority, submission channel, and deadline for the current support round.",
+        },
+    }
+
     # Policy discovery already used the original question to bind these results;
     # keeping it in this boundary prevents Server C from becoming the copywriter.
     question = " ".join(question.split())
     if scope == "question" and not question:
-        return "Vui lòng nhập nội dung cần tư vấn."
+        return L["no_question"][lang]
     results = list(eligibility.get("eligibility_results") or [])
     if not results:
-        return "Chưa có kết quả chính sách để đánh giá cho hồ sơ này."
+        return L["no_results"][lang]
 
     by_status = {
         status: [result for result in results if result.get("status") == status]
@@ -478,54 +607,55 @@ def _advisory_answer(
 
     if scope == "profile_scan":
         summary = []
-        labels = {
-            "eligible": "phù hợp",
-            "not_eligible": "chưa đáp ứng",
-            "needs_more_information": "cần bổ sung thông tin",
-            "manual_review": "cần kiểm tra thêm",
+        status_labels = {
+            "eligible": L["status_eligible"][lang],
+            "not_eligible": L["status_not_eligible"][lang],
+            "needs_more_information": L["status_needs_more_information"][lang],
+            "manual_review": L["status_manual_review"][lang],
         }
-        for status, label in labels.items():
+        for status, label in status_labels.items():
             count = len(by_status[status])
             if count:
-                summary.append(f"{count} chương trình {label}")
-        lines = ["Kết quả quét hồ sơ: " + ", ".join(summary) + "."]
+                summary.append(f"{count}{L['scan_program_suffix'][lang]}{label}")
+        lines = [L["scan_header"][lang] + ", ".join(summary) + "."]
         if by_status["eligible"]:
-            lines.append("\nDoanh nghiệp có thể xem xét đăng ký:")
+            lines.append(L["scan_eligible_header"][lang])
             lines.extend(f"- {result.get('policy_name') or result.get('policy_id')}" for result in by_status["eligible"])
         if by_status["not_eligible"]:
-            lines.append("\nChương trình chưa phù hợp với hồ sơ hiện tại:")
+            lines.append(L["scan_not_eligible_header"][lang])
             lines.extend(f"- {result.get('policy_name') or result.get('policy_id')}" for result in by_status["not_eligible"])
     else:
         primary = results[0]
-        title = primary.get("policy_name") or primary.get("policy_id") or "chương trình này"
+        title = primary.get("policy_name") or primary.get("policy_id") or ("chương trình này" if lang == "vi" else "this program")
         status = primary.get("status")
-        conclusion = {
-            "eligible": f"Có. Theo hồ sơ hiện tại, doanh nghiệp phù hợp với “{title}”",
-            "not_eligible": f"Hiện doanh nghiệp chưa đáp ứng điều kiện của “{title}”",
-            "needs_more_information": f"Chưa thể kết luận doanh nghiệp có phù hợp với “{title}”",
-            "manual_review": f"“{title}” cần được kiểm tra thêm trước khi kết luận",
-        }.get(status, f"Đã đánh giá “{title}” theo hồ sơ hiện tại")
-        lines = [f"Kết luận: {conclusion}."]
+        conclusion_map = {
+            "eligible": L["conclusion_eligible"][lang].format(title=title),
+            "not_eligible": L["conclusion_not_eligible"][lang].format(title=title),
+            "needs_more_information": L["conclusion_needs_more_information"][lang].format(title=title),
+            "manual_review": L["conclusion_manual_review"][lang].format(title=title),
+        }
+        conclusion = conclusion_map.get(status, L["conclusion_default"][lang].format(title=title))
+        lines = [f"{L['conclusion_prefix'][lang]}{conclusion}."]
 
         reasons = _user_facing_reasons(primary)
         if reasons:
-            lines.append("\nLý do chính:")
+            lines.append(L["reasons_header"][lang])
             lines.extend(f"- {reason}" for reason in reasons)
 
         missing = list(dict.fromkeys(_fact_label(field) for field in primary.get("missing_fields") or []))
         if missing:
-            lines.append("\nThông tin cần bổ sung:")
+            lines.append(L["missing_header"][lang])
             lines.extend(f"- {label}" for label in missing)
 
         if status == "eligible":
             benefits = _benefit_summary(primary)
             if benefits:
-                lines.append("\nDoanh nghiệp có thể được hỗ trợ:")
+                lines.append(L["benefits_header"][lang])
                 lines.extend(f"- {benefit}" for benefit in benefits)
 
             basis = _eligible_basis(primary)
             if basis:
-                lines.append("\nVì sao hồ sơ đang phù hợp:")
+                lines.append(L["basis_header"][lang])
                 lines.extend(f"- {reason}" for reason in basis)
 
     requirements = list(dict.fromkeys(
@@ -535,7 +665,7 @@ def _advisory_answer(
         for requirement in (result.get("application_requirements") or [])
     ))
     if requirements:
-        lines.append("\nViệc cần kiểm tra trước khi đăng ký:")
+        lines.append(L["requirements_header"][lang])
         lines.extend(f"- {requirement}" for requirement in requirements)
 
     if scope == "question" and results[0].get("status") == "eligible":
@@ -543,23 +673,23 @@ def _advisory_answer(
         actions: list[str] = []
         benefits = _benefit_summary(primary)
         if benefits:
-            actions.append("Xác định nhu cầu thực tế và phạm vi hỗ trợ doanh nghiệp muốn đăng ký.")
-        actions.extend(f"Kiểm tra và đối chiếu: {requirement}" for requirement in requirements)
+            actions.append(L["action_identify_needs"][lang])
+        actions.extend(L["action_verify_requirement"][lang].format(requirement=requirement) for requirement in requirements)
         source = next(iter(primary.get("sources") or []), None)
         if source and _source_label(source):
-            actions.append(f"Đối chiếu hướng dẫn gốc tại {_source_label(source)} trước khi chuẩn bị hồ sơ.")
+            actions.append(L["action_cross_ref_source"][lang].format(source=_source_label(source)))
         if actions:
-            lines.append("\nKế hoạch hành động ưu tiên:")
+            lines.append(L["action_plan_header"][lang])
             lines.extend(f"{index}. {action}" for index, action in enumerate(actions[:3], start=1))
 
         documents = list(primary.get("required_documents") or [])
         if documents:
-            lines.append("\nChecklist hồ sơ đã được xác minh:")
+            lines.append(L["documents_header"][lang])
             lines.extend(f"- {document}" for document in documents)
         else:
-            lines.append("\nHai thông tin cần xác nhận với đơn vị tiếp nhận:")
-            lines.append("- Danh mục giấy tờ cần nộp cho trường hợp cụ thể của doanh nghiệp.")
-            lines.append("- Cơ quan, kênh tiếp nhận và thời hạn của đợt hỗ trợ hiện hành.")
+            lines.append(L["confirm_header"][lang])
+            lines.append(L["confirm_docs"][lang])
+            lines.append(L["confirm_channel"][lang])
     return "\n".join(lines)
 
 
@@ -629,7 +759,7 @@ def ask(
             raise HTTPException(status_code=409, detail="Cần cập nhật hồ sơ doanh nghiệp lên phiên bản mới.")
         selection = _select_advisory_policies(payload.question, payload.advisory_scope)
         if selection["coverage_status"] == "not_covered":
-            answer = NOT_COVERED_ANSWER
+            answer = NOT_COVERED_ANSWER["vi"]
             eligibility["diagnostics"] = {"skipped": "topic_not_covered"}
         else:
             try:
@@ -739,6 +869,7 @@ class ChatStreamIn(BaseModel):
     conversation_id: Optional[str] = None
     advisory_scope: Literal["question", "profile_scan"] = "question"
     options: Optional[ChatStreamOptions] = None
+    language: str = "vi"
 
 
 def _ndjson(obj: dict[str, Any]) -> str:
@@ -830,6 +961,7 @@ async def chat_stream_endpoint(
 ) -> StreamingResponse:
     mode = payload.mode if payload.mode in ("lookup", "advisory") else "lookup"
     top_k = payload.options.top_k if payload.options else 5
+    lang = payload.language if payload.language in ("vi", "en") else "vi"
 
     # Pre-stream check: advisory requires a company profile
     company: dict[str, Any] | None = None
@@ -882,10 +1014,11 @@ async def chat_stream_endpoint(
                     payload.message,
                     legal_units,
                     fpt=fpt_client,
+                    language=lang,
                 )
                 answer: str = await asyncio.to_thread(gen_fn)
             except Exception:
-                answer = answer_gen.NO_EVIDENCE
+                answer = answer_gen.NO_EVIDENCE[lang]
             sources = _build_sources(legal_units)
         else:
             try:
@@ -895,23 +1028,35 @@ async def chat_stream_endpoint(
                     payload.advisory_scope,
                 )
             except Exception:
+                _policy_discovery_unavailable_msg = {
+                    "vi": "Chưa thể xác định nhóm chính sách lúc này.",
+                    "en": "Unable to determine the policy group at this time.",
+                }
                 yield _ndjson({
                     "type": "error",
                     "error": {
                         "code": "POLICY_DISCOVERY_UNAVAILABLE",
-                        "message": "Chưa thể xác định nhóm chính sách lúc này.",
+                        "message": _policy_discovery_unavailable_msg[lang],
                         "retryable": True,
                     },
                 })
                 return
 
             if selection["coverage_status"] == "not_covered":
-                answer = NOT_COVERED_ANSWER
+                answer = NOT_COVERED_ANSWER[lang]
                 advisory_result = _build_advisory_result(
                     {"eligibility_results": [], "derived_facts": {}, "explanation": ""},
                     selection,
                 )
             else:
+                _eligibility_unavailable_msg = {
+                    "vi": "Chưa thể đánh giá hồ sơ lúc này. Vui lòng thử lại sau.",
+                    "en": "Unable to evaluate the profile at this time. Please try again later.",
+                }
+                _eligibility_warning_msg = {
+                    "vi": "Chưa thể đánh giá hồ sơ lúc này.",
+                    "en": "Unable to evaluate the profile at this time.",
+                }
                 try:
                     evaluate_fn = functools.partial(
                         eligibility_client.evaluate_company,
@@ -920,7 +1065,7 @@ async def chat_stream_endpoint(
                         top_k=min(top_k, 10),
                     )
                     eligibility = await asyncio.to_thread(evaluate_fn)
-                    answer = _advisory_answer(payload.message, eligibility, payload.advisory_scope)
+                    answer = _advisory_answer(payload.message, eligibility, payload.advisory_scope, language=lang)
                     write_fn = functools.partial(
                         advisory_writer.write_advisory_answer,
                         payload.message,
@@ -929,9 +1074,21 @@ async def chat_stream_endpoint(
                         eligibility,
                         answer,
                         fpt=retrieval.get_retriever().fpt,
+                        language=lang,
                     )
                     written = await asyncio.to_thread(write_fn)
                     answer = written.answer
+                    if lang == "en":
+                        # Policy names, benefits and requirements come from Vietnamese
+                        # policy data; translate the composed text, keep it on failure.
+                        try:
+                            translated = await asyncio.to_thread(
+                                retrieval.get_retriever().fpt.translate_to_english, answer
+                            )
+                            if translated:
+                                answer = translated
+                        except Exception:
+                            pass
                     diagnostics = dict(eligibility.get("diagnostics") or {})
                     diagnostics["answer_writer"] = written.writer
                     if written.fallback_reason:
@@ -940,10 +1097,10 @@ async def chat_stream_endpoint(
                     advisory_result = _build_advisory_result(eligibility, selection)
                     sources = _eligibility_sources(eligibility)
                 except Exception:
-                    answer = "Chưa thể đánh giá hồ sơ lúc này. Vui lòng thử lại sau."
+                    answer = _eligibility_unavailable_msg[lang]
                     warning = {
                         "code": "ELIGIBILITY_UNAVAILABLE",
-                        "message": "Chưa thể đánh giá hồ sơ lúc này.",
+                        "message": _eligibility_warning_msg[lang],
                     }
 
         # Stream answer word-by-word

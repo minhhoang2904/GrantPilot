@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useT } from '../i18n'
 
 interface Props {
   onSend: (question: string) => void
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function ChatInput({ onSend, disabled }: Props) {
+  const t = useT()
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -44,7 +46,7 @@ export default function ChatInput({ onSend, disabled }: Props) {
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          placeholder="Hỏi về ưu đãi / chính sách hỗ trợ doanh nghiệp... (Enter để gửi)"
+          placeholder={t('chat.inputPlaceholder')}
           className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed"
           style={{ minHeight: '48px', maxHeight: '160px' }}
         />
@@ -60,7 +62,7 @@ export default function ChatInput({ onSend, disabled }: Props) {
         </button>
       </form>
       <p className="mt-2 text-xs text-gray-400 text-center">
-        Shift + Enter để xuống dòng
+        {t('chat.inputHint')}
       </p>
     </div>
   )

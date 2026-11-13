@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { createCompany, updateCompany, ApiError } from '../api'
 import type { BusinessActivityGroup, Company, LegalForm, Sector } from '../types'
+import { useT } from '../i18n'
+import LanguageToggle from '../components/LanguageToggle'
 
 interface Props {
   email: string
@@ -45,13 +47,13 @@ const inputCls =
 function TriToggle({
   value,
   onChange,
-  labelTrue = 'Có',
-  labelFalse = 'Không',
+  labelTrue,
+  labelFalse,
 }: {
   value: boolean | null
   onChange: (v: boolean | null) => void
-  labelTrue?: string
-  labelFalse?: string
+  labelTrue: string
+  labelFalse: string
 }) {
   const btn = (label: string, active: boolean, click: () => void, color: string) => (
     <button
@@ -72,42 +74,44 @@ function TriToggle({
   )
 }
 
+import type { TranslationKey } from '../i18n/types'
+
 // ── sector options ────────────────────────────────────────────────────────────
-const SECTOR_OPTIONS: { value: Sector; label: string }[] = [
-  { value: 'nong_lam_ngu_nghiep', label: 'Nông, lâm, ngư nghiệp' },
-  { value: 'cong_nghiep_xay_dung', label: 'Công nghiệp & xây dựng' },
-  { value: 'thuong_mai_dich_vu', label: 'Thương mại & dịch vụ' },
+const SECTOR_OPTIONS: { value: Sector; labelKey: TranslationKey }[] = [
+  { value: 'nong_lam_ngu_nghiep', labelKey: 'onboarding.sectorAgri' },
+  { value: 'cong_nghiep_xay_dung', labelKey: 'onboarding.sectorIndustry' },
+  { value: 'thuong_mai_dich_vu', labelKey: 'onboarding.sectorTrade' },
 ]
 
-const OTHER_ACTIVITY = { value: 'other' as BusinessActivityGroup, label: 'Khác' }
-const ACTIVITY_OPTIONS: Record<Sector, { value: BusinessActivityGroup; label: string }[]> = {
+const OTHER_ACTIVITY_KEY: TranslationKey = 'onboarding.activityOther'
+const ACTIVITY_OPTIONS: Record<Sector, { value: BusinessActivityGroup; labelKey: TranslationKey }[]> = {
   nong_lam_ngu_nghiep: [
-    { value: 'agriculture', label: 'Nông nghiệp' },
-    { value: 'forestry', label: 'Lâm nghiệp' },
-    { value: 'fisheries', label: 'Thủy sản' },
-    OTHER_ACTIVITY,
+    { value: 'agriculture', labelKey: 'onboarding.activityAgriculture' },
+    { value: 'forestry', labelKey: 'onboarding.activityForestry' },
+    { value: 'fisheries', labelKey: 'onboarding.activityFisheries' },
+    { value: 'other', labelKey: OTHER_ACTIVITY_KEY },
   ],
   cong_nghiep_xay_dung: [
-    { value: 'manufacturing', label: 'Sản xuất' },
-    { value: 'processing', label: 'Chế biến' },
-    { value: 'construction', label: 'Xây dựng' },
-    OTHER_ACTIVITY,
+    { value: 'manufacturing', labelKey: 'onboarding.activityManufacturing' },
+    { value: 'processing', labelKey: 'onboarding.activityProcessing' },
+    { value: 'construction', labelKey: 'onboarding.activityConstruction' },
+    { value: 'other', labelKey: OTHER_ACTIVITY_KEY },
   ],
   thuong_mai_dich_vu: [
-    { value: 'trade', label: 'Thương mại' },
-    { value: 'services', label: 'Dịch vụ' },
-    OTHER_ACTIVITY,
+    { value: 'trade', labelKey: 'onboarding.activityTrade' },
+    { value: 'services', labelKey: 'onboarding.activityServices' },
+    { value: 'other', labelKey: OTHER_ACTIVITY_KEY },
   ],
 }
 
-const LEGAL_FORM_OPTIONS: { value: LegalForm; label: string }[] = [
-  { value: 'limited_liability_company', label: 'Công ty TNHH' },
-  { value: 'joint_stock_company', label: 'Công ty cổ phần' },
-  { value: 'partnership', label: 'Công ty hợp danh' },
-  { value: 'private_enterprise', label: 'Doanh nghiệp tư nhân' },
-  { value: 'cooperative', label: 'Hợp tác xã' },
-  { value: 'household_business', label: 'Hộ kinh doanh' },
-  { value: 'other', label: 'Khác' },
+const LEGAL_FORM_OPTIONS: { value: LegalForm; labelKey: TranslationKey }[] = [
+  { value: 'limited_liability_company', labelKey: 'onboarding.legalLimitedLiability' },
+  { value: 'joint_stock_company', labelKey: 'onboarding.legalJointStock' },
+  { value: 'partnership', labelKey: 'onboarding.legalPartnership' },
+  { value: 'private_enterprise', labelKey: 'onboarding.legalPrivate' },
+  { value: 'cooperative', labelKey: 'onboarding.legalCooperative' },
+  { value: 'household_business', labelKey: 'onboarding.legalHousehold' },
+  { value: 'other', labelKey: 'onboarding.legalOther' },
 ]
 
 function numStr(v?: number | null) {
@@ -122,6 +126,7 @@ export default function OnboardingPage({
   onComplete,
   onSkip,
 }: Props) {
+  const t = useT()
   const isEdit = Boolean(existing)
 
   const [companyName, setCompanyName] = useState(existing?.company_name ?? '')
@@ -181,20 +186,20 @@ export default function OnboardingPage({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!companyName.trim())        { setError('Vui lòng nhập tên doanh nghiệp.'); return }
-    if (!sector)                    { setError('Vui lòng chọn lĩnh vực hoạt động.'); return }
-    if (!activityGroup)             { setError('Vui lòng chọn nhóm ngành nghề chính.'); return }
-    if (!legalForm)                 { setError('Vui lòng chọn loại hình pháp lý.'); return }
-    if (!siEmployees)               { setError('Vui lòng nhập số lao động đóng BHXH.'); return }
-    if (!annualRevenue)             { setError('Vui lòng nhập doanh thu năm.'); return }
-    if (!totalCapital)              { setError('Vui lòng nhập tổng vốn.'); return }
-    if (!registrationDate)          { setError('Vui lòng nhập ngày đăng ký doanh nghiệp lần đầu.'); return }
-    if (!businessDescription.trim()) { setError('Vui lòng mô tả sản phẩm / dịch vụ chính.'); return }
-    if (hasPublicOffering === null) { setError('Vui lòng chọn trạng thái chào bán chứng khoán.'); return }
-    if (!provinceName.trim())       { setError('Vui lòng nhập tỉnh / thành phố.'); return }
-    if (hasCoworkingContract === null)  { setError('Vui lòng chọn trạng thái hợp đồng coworking.'); return }
-    if (hasBusinessRegistration === null) { setError('Vui lòng chọn trạng thái giấy đăng ký kinh doanh.'); return }
-    if (hasCoworkingContract && !coworkingMonthlyCost) { setError('Vui lòng nhập chi phí coworking hàng tháng.'); return }
+    if (!companyName.trim())        { setError(t('onboarding.errorCompanyName')); return }
+    if (!sector)                    { setError(t('onboarding.errorSector')); return }
+    if (!activityGroup)             { setError(t('onboarding.errorActivityGroup')); return }
+    if (!legalForm)                 { setError(t('onboarding.errorLegalForm')); return }
+    if (!siEmployees)               { setError(t('onboarding.errorSiEmployees')); return }
+    if (!annualRevenue)             { setError(t('onboarding.errorAnnualRevenue')); return }
+    if (!totalCapital)              { setError(t('onboarding.errorTotalCapital')); return }
+    if (!registrationDate)          { setError(t('onboarding.errorRegistrationDate')); return }
+    if (!businessDescription.trim()) { setError(t('onboarding.errorBusinessDescription')); return }
+    if (hasPublicOffering === null) { setError(t('onboarding.errorPublicOffering')); return }
+    if (!provinceName.trim())       { setError(t('onboarding.errorProvinceName')); return }
+    if (hasCoworkingContract === null)  { setError(t('onboarding.errorCoworkingContract')); return }
+    if (hasBusinessRegistration === null) { setError(t('onboarding.errorBusinessRegistration')); return }
+    if (hasCoworkingContract && !coworkingMonthlyCost) { setError(t('onboarding.errorCoworkingCost')); return }
     setError('')
     setSubmitting(true)
     try {
@@ -225,14 +230,17 @@ export default function OnboardingPage({
         : await createCompany({ email, ...payload })
       onComplete(company)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Đã xảy ra lỗi, vui lòng thử lại.')
+      setError(err instanceof ApiError ? err.message : t('common.error'))
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageToggle variant="light" />
+      </div>
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
@@ -243,19 +251,13 @@ export default function OnboardingPage({
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {isEdit ? 'Cập nhật hồ sơ doanh nghiệp' : 'Thiết lập hồ sơ doanh nghiệp'}
+            {isEdit ? t('onboarding.titleEdit') : t('onboarding.titleNew')}
           </h1>
           <p className="mt-2 text-sm text-gray-500">
             {required ? (
-              <>
-                Chế độ <span className="font-medium text-gray-700">Tư vấn sâu</span> cần hồ sơ
-                doanh nghiệp đầy đủ để đối chiếu ưu đãi.
-              </>
+              t('onboarding.subtitleRequired')
             ) : (
-              <>
-                Chào mừng <span className="font-medium text-gray-700">{email}</span>. Điền thông tin
-                nếu muốn dùng chế độ tư vấn sâu — bạn có thể bỏ qua và tra cứu nhanh ngay.
-              </>
+              t('onboarding.subtitleOptional')
             )}
           </p>
         </div>
@@ -264,19 +266,19 @@ export default function OnboardingPage({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            <Field label="Tên doanh nghiệp" required>
+            <Field label={t('onboarding.labelCompanyName')} required>
               <input
                 type="text"
                 autoFocus
                 required
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Công ty TNHH ABC"
+                placeholder={t('onboarding.placeholderCompanyName')}
                 className={inputCls}
               />
             </Field>
 
-            <Field label="Lĩnh vực hoạt động" required>
+            <Field label={t('onboarding.labelSector')} required>
               <select
                 required
                 value={sector}
@@ -286,15 +288,15 @@ export default function OnboardingPage({
                 }}
                 className={inputCls}
               >
-                <option value="">— Chọn lĩnh vực —</option>
+                <option value="">{t('onboarding.placeholderSector')}</option>
                 {SECTOR_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
                 ))}
               </select>
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Nhóm ngành nghề chính" required>
+              <Field label={t('onboarding.labelActivityGroup')} required>
                 <select
                   required
                   disabled={!sector}
@@ -302,40 +304,40 @@ export default function OnboardingPage({
                   onChange={(e) => setActivityGroup(e.target.value as BusinessActivityGroup)}
                   className={inputCls}
                 >
-                  <option value="">— Chọn nhóm ngành —</option>
+                  <option value="">{t('onboarding.placeholderActivityGroup')}</option>
                   {(sector ? (ACTIVITY_OPTIONS[sector] ?? []) : []).map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
                   ))}
                 </select>
               </Field>
-              <Field label="Loại hình pháp lý" required>
+              <Field label={t('onboarding.labelLegalForm')} required>
                 <select
                   required
                   value={legalForm}
                   onChange={(e) => setLegalForm(e.target.value as LegalForm)}
                   className={inputCls}
                 >
-                  <option value="">— Chọn loại hình —</option>
+                  <option value="">{t('onboarding.placeholderLegalForm')}</option>
                   {LEGAL_FORM_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
                   ))}
                 </select>
               </Field>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Field label="Lao động BHXH" hint="⚠️ BHXH" required>
+              <Field label={t('onboarding.labelSiEmployees')} hint={t('onboarding.hintSiEmployees')} required>
                 <input
                   type="number"
                   min={0}
                   required
                   value={siEmployees}
                   onChange={(e) => setSiEmployees(e.target.value)}
-                  placeholder="vd: 45"
+                  placeholder={t('onboarding.placeholderSiEmployees')}
                   className={inputCls}
                 />
               </Field>
-              <Field label="Doanh thu năm (VNĐ)" required>
+              <Field label={t('onboarding.labelAnnualRevenue')} required>
                 <input
                   type="number"
                   min={0}
@@ -343,14 +345,14 @@ export default function OnboardingPage({
                   required
                   value={annualRevenue}
                   onChange={(e) => setAnnualRevenue(e.target.value)}
-                  placeholder="vd: 50000000000"
+                  placeholder={t('onboarding.placeholderAnnualRevenue')}
                   className={inputCls}
                 />
                 {fmtVnd(annualRevenue) && (
                   <p className="mt-0.5 text-xs text-gray-400">≈ {fmtVnd(annualRevenue)}</p>
                 )}
               </Field>
-              <Field label="Tổng vốn (VNĐ)" required>
+              <Field label={t('onboarding.labelTotalCapital')} required>
                 <input
                   type="number"
                   min={0}
@@ -358,7 +360,7 @@ export default function OnboardingPage({
                   required
                   value={totalCapital}
                   onChange={(e) => setTotalCapital(e.target.value)}
-                  placeholder="vd: 20000000000"
+                  placeholder={t('onboarding.placeholderTotalCapital')}
                   className={inputCls}
                 />
                 {fmtVnd(totalCapital) && (
@@ -368,7 +370,7 @@ export default function OnboardingPage({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Ngày đăng ký doanh nghiệp lần đầu" required>
+              <Field label={t('onboarding.labelRegistrationDate')} required>
                 <input
                   type="date"
                   max={new Date().toISOString().slice(0, 10)}
@@ -378,57 +380,72 @@ export default function OnboardingPage({
                   className={inputCls}
                 />
               </Field>
-              <Field label="Sản phẩm / dịch vụ chính" required>
+              <Field label={t('onboarding.labelBusinessDescription')} required>
                 <input
                   type="text"
                   required
                   value={businessDescription}
                   onChange={(e) => setBusinessDescription(e.target.value)}
-                  placeholder="vd: phần mềm SaaS, thiết bị y tế..."
+                  placeholder={t('onboarding.placeholderBusinessDescription')}
                   className={inputCls}
                 />
               </Field>
             </div>
 
-            <Field label="Đã chào bán chứng khoán ra công chúng?" required>
-              <TriToggle value={hasPublicOffering} onChange={setHasPublicOffering} />
+            <Field label={t('onboarding.labelPublicOffering')} required>
+              <TriToggle
+                value={hasPublicOffering}
+                onChange={setHasPublicOffering}
+                labelTrue={t('common.yes')}
+                labelFalse={t('common.no')}
+              />
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
-                <Field label="Tỉnh / thành phố" required>
+                <Field label={t('onboarding.labelProvinceName')} required>
                   <input
                     type="text"
                     required
                     value={provinceName}
                     onChange={(e) => setProvinceName(e.target.value)}
-                    placeholder="vd: Hà Nội, TP. Hồ Chí Minh..."
+                    placeholder={t('onboarding.placeholderProvinceName')}
                     className={inputCls}
                   />
                 </Field>
               </div>
-              <Field label="Mã địa bàn" hint="nếu biết">
+              <Field label={t('onboarding.labelProvinceCode')} hint={t('onboarding.hintProvinceCode')}>
                 <input
                   type="text"
                   value={provinceCode}
                   onChange={(e) => setProvinceCode(e.target.value)}
-                  placeholder="vd: 01"
+                  placeholder={t('onboarding.placeholderProvinceCode')}
                   className={inputCls}
                 />
               </Field>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Có hợp đồng thuê coworking?" required>
-                <TriToggle value={hasCoworkingContract} onChange={setHasCoworkingContract} />
+              <Field label={t('onboarding.labelCoworkingContract')} required>
+                <TriToggle
+                  value={hasCoworkingContract}
+                  onChange={setHasCoworkingContract}
+                  labelTrue={t('common.yes')}
+                  labelFalse={t('common.no')}
+                />
               </Field>
-              <Field label="Có giấy đăng ký kinh doanh?" required>
-                <TriToggle value={hasBusinessRegistration} onChange={setHasBusinessRegistration} />
+              <Field label={t('onboarding.labelBusinessRegistration')} required>
+                <TriToggle
+                  value={hasBusinessRegistration}
+                  onChange={setHasBusinessRegistration}
+                  labelTrue={t('common.yes')}
+                  labelFalse={t('common.no')}
+                />
               </Field>
             </div>
 
             {hasCoworkingContract && (
-              <Field label="Chi phí coworking / tháng (VNĐ)" required>
+              <Field label={t('onboarding.labelCoworkingCost')} required>
                 <input
                   type="number"
                   min={0}
@@ -436,29 +453,29 @@ export default function OnboardingPage({
                   required
                   value={coworkingMonthlyCost}
                   onChange={(e) => setCoworkingMonthlyCost(e.target.value)}
-                  placeholder="vd: 3000000"
+                  placeholder={t('onboarding.placeholderCoworkingCost')}
                   className={inputCls}
                 />
                 {fmtVnd(coworkingMonthlyCost) && (
-                  <p className="mt-0.5 text-xs text-gray-400">≈ {fmtVnd(coworkingMonthlyCost)}/tháng</p>
+                  <p className="mt-0.5 text-xs text-gray-400">≈ {fmtVnd(coworkingMonthlyCost)}{t('common.perMonth')}</p>
                 )}
               </Field>
             )}
 
             <div className="border-t border-gray-100 pt-5">
-              <p className="text-sm font-medium text-gray-700 mb-3">Thông tin bổ sung</p>
+              <p className="text-sm font-medium text-gray-700 mb-3">{t('onboarding.additionalInfo')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Có vốn nhà nước?">
-                  <TriToggle value={hasStateCapital} onChange={setHasStateCapital} />
+                <Field label={t('onboarding.labelStateCapital')}>
+                  <TriToggle value={hasStateCapital} onChange={setHasStateCapital} labelTrue={t('common.yes')} labelFalse={t('common.no')} />
                 </Field>
-                <Field label="Có vốn đầu tư nước ngoài?">
-                  <TriToggle value={hasForeignCapital} onChange={setHasForeignCapital} />
+                <Field label={t('onboarding.labelForeignCapital')}>
+                  <TriToggle value={hasForeignCapital} onChange={setHasForeignCapital} labelTrue={t('common.yes')} labelFalse={t('common.no')} />
                 </Field>
-                <Field label="Có tài sản bảo đảm?">
-                  <TriToggle value={hasCollateral} onChange={setHasCollateral} />
+                <Field label={t('onboarding.labelCollateral')}>
+                  <TriToggle value={hasCollateral} onChange={setHasCollateral} labelTrue={t('common.yes')} labelFalse={t('common.no')} />
                 </Field>
-                <Field label="Đã nhận hỗ trợ lãi suất cùng giai đoạn?">
-                  <TriToggle value={hasReceivedInterestSupport} onChange={setHasReceivedInterestSupport} />
+                <Field label={t('onboarding.labelInterestSupport')}>
+                  <TriToggle value={hasReceivedInterestSupport} onChange={setHasReceivedInterestSupport} labelTrue={t('common.yes')} labelFalse={t('common.no')} />
                 </Field>
               </div>
             </div>
@@ -477,10 +494,10 @@ export default function OnboardingPage({
                 className="flex-1 py-2.5 px-4 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
               >
                 {submitting
-                  ? 'Đang lưu...'
+                  ? t('common.saving')
                   : isEdit
-                    ? 'Lưu hồ sơ →'
-                    : 'Lưu & bắt đầu tư vấn →'}
+                    ? t('onboarding.submitSave')
+                    : t('onboarding.submitNew')}
               </button>
               <button
                 type="button"
@@ -488,14 +505,14 @@ export default function OnboardingPage({
                 onClick={onSkip}
                 className="flex-1 py-2.5 px-4 border border-gray-300 hover:bg-gray-50 disabled:opacity-60 text-gray-700 text-sm font-medium rounded-lg transition"
               >
-                {required ? 'Quay lại (tra cứu nhanh)' : 'Bỏ qua, chat ngay'}
+                {required ? t('onboarding.skipBack') : t('onboarding.skipOptional')}
               </button>
             </div>
           </form>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          Khi bỏ qua, bạn vẫn dùng được chế độ Tra cứu nhanh. Hồ sơ bắt buộc khi bật Tư vấn sâu.
+          {t('onboarding.skipNote')}
         </p>
       </div>
     </div>
